@@ -15,8 +15,8 @@ com/example/hello/controller/LoginController.class
 com/example/hello/UpdateAdminPassword.class
 com/example/hello/service/SalarySlipService.class
 com/example/hello/service/RoleService.class
-com/example/hello/entity/Attendance.class
 com/example/hello/controller/AccountDetailController.class
+com/example/hello/entity/Attendance.class
 com/example/hello/config/SecurityConfig.class
 com/example/hello/mapper/EmployeeMapper.class
 com/example/hello/entity/AccountDetail.class
@@ -31,13 +31,13 @@ com/example/hello/config/MenuAdvice.class
 com/example/hello/controller/CategoryController.class
 com/example/hello/mapper/WorkHourConfigMapper.class
 com/example/hello/config/DatabaseInitializer.class
-com/example/hello/entity/Category.class
 com/example/hello/service/WorkHourConfigService.class
 com/example/hello/service/PasswordEncryptionService.class
+com/example/hello/entity/Category.class
 com/example/hello/controller/AttendanceController.class
 com/example/hello/controller/TestController.class
-com/example/hello/entity/FeeItem.class
 com/example/hello/controller/EmployeeController.class
+com/example/hello/entity/FeeItem.class
 com/example/hello/service/CategoryService.class
 com/example/hello/mapper/SalarySlipMapper.class
 com/example/hello/entity/JobCategory.class
@@ -58,8 +58,8 @@ com/example/hello/controller/SalarySlipController.class
 com/example/hello/service/AccountService.class
 com/example/hello/interceptor/LoginInterceptor.class
 com/example/hello/PermissionTestRunner.class
-com/example/hello/dto/ProjectStatsDTO.class
 com/example/hello/mapper/EmployeeProjectMapper.class
+com/example/hello/dto/ProjectStatsDTO.class
 com/example/hello/HelloApplication.class
 com/example/hello/controller/MenuController.class
 com/example/hello/config/MenuUrlFixInitializer.class
