@@ -12,19 +12,13 @@ dev_commands() {
 prod_commands() {
     echo "Running production environment commands..."
     
-    # 配置 Git 安全目录
-    echo "Configuring Git safe directory..."
-    git config --global --add safe.directory /home/devbox/project
+    # 下载最新 jar 包
+    echo "Downloading latest jar from GitHub..."
+    curl -L -o /home/devbox/project/target/accounting-0.0.1-SNAPSHOT.jar https://github.com/qianzong330/cw-admin/raw/main/target/accounting-0.0.1-SNAPSHOT.jar
     
-    # 拉取最新代码
-    echo "Pulling latest code from GitHub..."
-    git pull origin main
-    
-    # 重新打包
-    echo "Building jar..."
-    mvn clean package -DskipTests
-    
-    java -jar target/accounting-0.0.1-SNAPSHOT.jar --spring.profiles.active=prod
+    # 启动应用
+    echo "Starting application..."
+    java -jar /home/devbox/project/target/accounting-0.0.1-SNAPSHOT.jar --spring.profiles.active=prod
 }
 
 # prod_commands
