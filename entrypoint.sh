@@ -12,6 +12,10 @@ dev_commands() {
 prod_commands() {
     echo "Running production environment commands..."
     
+    # 配置 Git 安全目录
+    echo "Configuring Git safe directory..."
+    git config --global --add safe.directory /home/devbox/project
+    
     # 拉取最新代码
     echo "Pulling latest code from GitHub..."
     git pull origin main
