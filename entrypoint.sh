@@ -11,13 +11,15 @@ dev_commands() {
 # Production environment commands
 prod_commands() {
     echo "Running production environment commands..."
-    # 先检查是否有预编译的 jar，没有则打包
-    if [ -f "target/accounting-0.0.1-SNAPSHOT.jar" ]; then
-        echo "Using existing jar..."
-    else
-        echo "Building jar..."
-        mvn clean package -DskipTests
-    fi
+    
+    # 拉取最新代码
+    echo "Pulling latest code from GitHub..."
+    git pull origin main
+    
+    # 重新打包
+    echo "Building jar..."
+    mvn clean package -DskipTests
+    
     java -jar target/accounting-0.0.1-SNAPSHOT.jar --spring.profiles.active=prod
 }
 
