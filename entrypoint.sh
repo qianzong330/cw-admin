@@ -11,8 +11,8 @@ dev_commands() {
 # Production environment commands
 prod_commands() {
     echo "Running production environment commands..."
-    mvn clean install
-    mvn spring-boot:run
+    mvn clean package -DskipTests
+    java -jar target/accounting-0.0.1-SNAPSHOT.jar --spring.profiles.active=prod
 }
 
 # prod_commands
