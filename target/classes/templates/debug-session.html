@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>调试 - Session 信息</title>
+</head>
+<body>
+    <h1>当前用户 Session 信息</h1>
+    
+    <div th:if="${session.currentUser != null}">
+        <h3>用户信息:</h3>
+        <p>用户名：<span th:text="${session.currentUser.name}"></span></p>
+        <p>角色 ID: <span th:text="${session.currentUser.roleId}"></span></p>
+        <p>角色编码：<span th:text="${session.currentUser.roleCode}"></span></p>
+        <p>角色名称：<span th:text="${session.currentUser.roleName}"></span></p>
+        
+        <h3>菜单权限 (menuCodes):</h3>
+        <div th:if="${session.currentUser.menuCodes != null}">
+            <p>权限数量：<span th:text="${session.currentUser.menuCodes.size()}"></span></p>
+            <ul>
+                <li th:each="code : ${session.currentUser.menuCodes}" th:text="${code}"></li>
+            </ul>
+        </div>
+        <div th:unless="${session.currentUser.menuCodes != null}">
+            <p style="color: red;">menuCodes 为 null!</p>
+        </div>
+        
+        <h3>权限检查:</h3>
+        <p>hasPermission('employee'): <span th:text="${session.currentUser.hasPermission('employee')}"></span></p>
+        <p>hasPermission('workhour'): <span th:text="${session.currentUser.hasPermission('workhour')}"></span></p>
+        <p>hasPermission('home'): <span th:text="${session.currentUser.hasPermission('home')}"></span></p>
+    </div>
+    
+    <div th:unless="${session.currentUser != null}">
+        <p style="color: red;">未登录或 session 中没有 currentUser!</p>
+    </div>
+    
+    <hr>
+    <a href="/index">返回首页</a>
+</body>
+</html>

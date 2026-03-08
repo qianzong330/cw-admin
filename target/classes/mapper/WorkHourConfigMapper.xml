@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.hello.mapper.WorkHourConfigMapper">
+
+    <resultMap id="BaseResultMap" type="com.example.hello.entity.WorkHourConfig">
+        <id column="id" property="id"/>
+        <result column="calc_type" property="calcType"/>
+        <result column="monthly_work_days" property="monthlyWorkDays"/>
+        <result column="morning_start_time" property="morningStartTime"/>
+        <result column="morning_end_time" property="morningEndTime"/>
+        <result column="afternoon_start_time" property="afternoonStartTime"/>
+        <result column="afternoon_end_time" property="afternoonEndTime"/>
+        <result column="daily_work_hours" property="dailyWorkHours"/>
+        <result column="overtime_start_time" property="overtimeStartTime"/>
+        <result column="min_overtime_hours" property="minOvertimeHours"/>
+        <result column="weekday_overtime_rate" property="weekdayOvertimeRate"/>
+        <result column="weekday_overtime_hourly" property="weekdayOvertimeHourly"/>
+        <result column="restday_overtime_rate" property="restdayOvertimeRate"/>
+        <result column="restday_overtime_hourly" property="restdayOvertimeHourly"/>
+        <result column="holiday_overtime_rate" property="holidayOvertimeRate"/>
+        <result column="holiday_overtime_hourly" property="holidayOvertimeHourly"/>
+        <result column="status" property="status"/>
+        <result column="created_by_id" property="createdById"/>
+        <result column="created_by_name" property="createdByName"/>
+        <result column="approved_by_id" property="approvedById"/>
+        <result column="approved_by_name" property="approvedByName"/>
+        <result column="approved_time" property="approvedTime"/>
+        <result column="approve_remark" property="approveRemark"/>
+        <result column="remark" property="remark"/>
+        <result column="created_time" property="createdTime"/>
+        <result column="updated_time" property="updatedTime"/>
+    </resultMap>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO tb_work_hour_config (
+            calc_type, monthly_work_days,
+            morning_start_time, morning_end_time,
+            afternoon_start_time, afternoon_end_time,
+            daily_work_hours,
+            overtime_start_time, min_overtime_hours,
+            weekday_overtime_rate, weekday_overtime_hourly,
+            restday_overtime_rate, restday_overtime_hourly,
+            holiday_overtime_rate, holiday_overtime_hourly,
+            status,
+            created_by_id, created_by_name,
+            remark
+        ) VALUES (
+            #{calcType}, #{monthlyWorkDays},
+            #{morningStartTime}, #{morningEndTime},
+            #{afternoonStartTime}, #{afternoonEndTime},
+            #{dailyWorkHours},
+            #{overtimeStartTime}, #{minOvertimeHours},
+            #{weekdayOvertimeRate}, #{weekdayOvertimeHourly},
+            #{restdayOvertimeRate}, #{restdayOvertimeHourly},
+            #{holidayOvertimeRate}, #{holidayOvertimeHourly},
+            #{status},
+            #{createdById}, #{createdByName},
+            #{remark}
+        )
+    </insert>
+
+    <update id="update">
+        UPDATE tb_work_hour_config
+        SET calc_type = #{calcType},
+            monthly_work_days = #{monthlyWorkDays},
+            morning_start_time = #{morningStartTime},
+            morning_end_time = #{morningEndTime},
+            afternoon_start_time = #{afternoonStartTime},
+            afternoon_end_time = #{afternoonEndTime},
+            daily_work_hours = #{dailyWorkHours},
+            overtime_start_time = #{overtimeStartTime},
+            min_overtime_hours = #{minOvertimeHours},
+            weekday_overtime_rate = #{weekdayOvertimeRate},
+            weekday_overtime_hourly = #{weekdayOvertimeHourly},
+            restday_overtime_rate = #{restdayOvertimeRate},
+            restday_overtime_hourly = #{restdayOvertimeHourly},
+            holiday_overtime_rate = #{holidayOvertimeRate},
+            holiday_overtime_hourly = #{holidayOvertimeHourly},
+            status = #{status},
+            approved_by_id = #{approvedById},
+            approved_by_name = #{approvedByName},
+            approved_time = #{approvedTime},
+            approve_remark = #{approveRemark},
+            remark = #{remark}
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        DELETE FROM tb_work_hour_config WHERE id = #{id}
+    </delete>
+
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT * FROM tb_work_hour_config WHERE id = #{id}
+    </select>
+
+    <select id="selectAll" resultMap="BaseResultMap">
+        SELECT * FROM tb_work_hour_config ORDER BY status DESC, calc_type ASC, id ASC
+    </select>
+
+    <select id="selectActiveByCalcType" resultMap="BaseResultMap">
+        SELECT * FROM tb_work_hour_config WHERE calc_type = #{calcType} AND status = 2 LIMIT 1
+    </select>
+    
+    <select id="selectByCalcType" resultMap="BaseResultMap">
+        SELECT * FROM tb_work_hour_config WHERE calc_type = #{calcType} ORDER BY status DESC, id ASC
+    </select>
+
+    <update id="updateStatus">
+        UPDATE tb_work_hour_config
+        SET status = #{status},
+            approved_by_id = #{approvedById},
+            approved_by_name = #{approvedByName},
+            approved_time = #{approvedTime},
+            approve_remark = #{approveRemark}
+        WHERE id = #{id}
+    </update>
+    
+    <update id="updateCreatedTime">
+        UPDATE tb_work_hour_config
+        SET created_time = #{createdTime}
+        WHERE id = #{id}
+    </update>
+
+</mapper>

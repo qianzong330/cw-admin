@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{common/layout :: layout('新增角色', ~{::content})}">
+<head>
+    <meta charset="UTF-8">
+</head>
+<body>
+    <div th:fragment="content">
+        <div class="container-fluid mt-4">
+            <div class="row">
+                <main class="col-md-12 px-md-4">
+                    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                        <h1 class="h2">新增角色</h1>
+                        <div>
+                            <a th:href="@{/role/list}" class="btn btn-secondary btn-sm">
+                                <i class="bi bi-arrow-left"></i> 返回列表
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header bg-primary text-white">
+                            <i class="bi bi-person-plus"></i> 角色信息
+                        </div>
+                        <div class="card-body">
+                            <form id="roleForm">
+                                <div class="mb-3">
+                                    <label class="form-label">角色编码 <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="roleCode" name="roleCode" 
+                                           placeholder="如：finance、hr、manager" required>
+                                    <div class="form-text">建议使用小写英文，用于系统内部标识</div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">角色名称 <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="roleName" name="roleName" 
+                                           placeholder="如：财务人员、HR专员" required>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">备注</label>
+                                    <textarea class="form-control" id="remark" name="remark" rows="2"
+                                              placeholder="可选，填写角色说明"></textarea>
+                                </div>
+                                
+                                <div class="alert alert-info">
+                                    <i class="bi bi-info-circle"></i> 创建角色后，请前往"配置权限"为该角色分配菜单和操作权限。
+                                </div>
+                                
+                                <div class="text-end">
+                                    <button type="button" class="btn btn-primary" onclick="saveRole()">
+                                        <i class="bi bi-save"></i> 创建角色
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </main>
+            </div>
+        </div>
+        
+        <script th:src="@{/js/jquery.min.js}"></script>
+        <script th:src="@{/js/bootstrap.bundle.min.js}"></script>
+        <script th:src="@{/common/layout.js}"></script>
+        
+        <script>
+            function saveRole() {
+                var roleCode = document.getElementById('roleCode').value.trim();
+                var roleName = document.getElementById('roleName').value.trim();
+                var remark = document.getElementById('remark').value.trim();
+                
+                if (!roleCode) {
+                    alert('请输入角色编码');
+                    return;
+                }
+                if (!roleName) {
+                    alert('请输入角色名称');
+                    return;
+                }
+                
+                // 验证角色编码格式（只允许小写字母、数字和下划线）
+                if (!/^[a-z0-9_]+$/.test(roleCode)) {
+                    alert('角色编码只能包含小写字母、数字和下划线');
+                    return;
+                }
+                
+                fetch('/role/add', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                    body: 'roleCode=' + encodeURIComponent(roleCode) + 
+                          '&roleName=' + encodeURIComponent(roleName) + 
+                          '&remark=' + encodeURIComponent(remark)
+                })
+                .then(function(res) { return res.json(); })
+                .then(function(result) {
+                    if (result.success) {
+                        alert('角色创建成功！');
+                        window.location.href = '/role/list';
+                    } else {
+                        alert(result.message);
+                    }
+                })
+                .catch(function() {
+                    alert('网络错误，请稍后重试');
+                });
+            }
+        </script>
+    </div>
+</body>
+</html>

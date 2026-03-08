@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>正在跳转...</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .container {
+            text-align: center;
+            padding: 40px;
+        }
+        .loading {
+            width: 60px;
+            height: 60px;
+            border: 4px solid rgba(255,255,255,0.3);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 30px;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        h2 {
+            color: #fff;
+            font-size: 24px;
+            margin-bottom: 15px;
+        }
+        p {
+            color: rgba(255,255,255,0.8);
+            font-size: 14px;
+            margin-bottom: 30px;
+        }
+        .btn {
+            display: inline-block;
+            padding: 12px 30px;
+            background: #fff;
+            color: #667eea;
+            text-decoration: none;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+        .tips {
+            margin-top: 40px;
+            padding: 15px 20px;
+            background: rgba(255,255,255,0.15);
+            border-radius: 10px;
+            color: rgba(255,255,255,0.9);
+            font-size: 13px;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="loading"></div>
+        <h2>正在跳转至财务管理系统</h2>
+        <p>如果页面没有自动跳转，请点击下方按钮</p>
+        <a href="https://wzpewavfyqry.sealoshzh.site" class="btn">立即访问</a>
+        
+        <div class="tips">
+            <strong>提示：</strong>微信内访问可能会被拦截，建议点击右上角「···」<br>
+            选择「在浏览器打开」获得最佳体验
+        </div>
+    </div>
+
+    <script>
+        // 检测是否在微信内置浏览器中
+        function isWeixin() {
+            var ua = navigator.userAgent.toLowerCase();
+            return ua.indexOf('micromessenger') !== -1;
+        }
+
+        // 自动跳转
+        setTimeout(function() {
+            window.location.href = 'https://wzpewavfyqry.sealoshzh.site';
+        }, 1500);
+
+        // 如果在微信中，显示额外提示
+        if (isWeixin()) {
+            document.querySelector('h2').textContent = '微信内访问受限';
+            document.querySelector('p').textContent = '请点击下方按钮或右上角菜单在浏览器中打开';
+        }
+    </script>
+</body>
+</html>

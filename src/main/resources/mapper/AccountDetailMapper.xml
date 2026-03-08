@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.hello.mapper.AccountDetailMapper">
+
+    <resultMap id="BaseResultMap" type="com.example.hello.entity.AccountDetail">
+        <id column="id" property="id"/>
+        <result column="project_id" property="projectId"/>
+        <result column="account_id" property="accountId"/>
+        <result column="operator_name" property="operatorName"/>
+        <result column="operator_id" property="operatorId"/>
+        <result column="action_type" property="actionType"/>
+        <result column="remark" property="remark"/>
+        <result column="operate_time" property="operateTime"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="project_name" property="projectName"/>
+        <result column="account_remark" property="accountRemark"/>
+    </resultMap>
+
+    <select id="findById" resultMap="BaseResultMap">
+        SELECT ad.*, p.name as project_name, a.remark as account_remark
+        FROM tb_account_detail ad
+        LEFT JOIN tb_project p ON ad.project_id = p.id
+        LEFT JOIN tb_account a ON ad.account_id = a.id
+        WHERE ad.id = #{id}
+    </select>
+
+    <select id="findAll" resultMap="BaseResultMap">
+        SELECT ad.*, p.name as project_name, a.remark as account_remark
+        FROM tb_account_detail ad
+        LEFT JOIN tb_project p ON ad.project_id = p.id
+        LEFT JOIN tb_account a ON ad.account_id = a.id
+        ORDER BY ad.create_time DESC
+    </select>
+
+    <select id="findByAccountId" resultMap="BaseResultMap">
+        SELECT ad.*, p.name as project_name, a.remark as account_remark
+        FROM tb_account_detail ad
+        LEFT JOIN tb_project p ON ad.project_id = p.id
+        LEFT JOIN tb_account a ON ad.account_id = a.id
+        WHERE ad.account_id = #{accountId}
+        ORDER BY ad.operate_time DESC
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO tb_account_detail (project_id, account_id, operator_name, operator_id, 
+                                       action_type, remark, operate_time)
+        VALUES (#{projectId}, #{accountId}, #{operatorName}, #{operatorId}, 
+                #{actionType}, #{remark}, #{operateTime})
+    </insert>
+
+    <update id="update">
+        UPDATE tb_account_detail
+        SET project_id = #{projectId},
+            account_id = #{accountId},
+            operator_name = #{operatorName},
+            operator_id = #{operatorId},
+            action_type = #{actionType},
+            remark = #{remark},
+            operate_time = #{operateTime}
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        DELETE FROM tb_account_detail WHERE id = #{id}
+    </delete>
+
+</mapper>

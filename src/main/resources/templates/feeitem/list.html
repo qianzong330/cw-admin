@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{common/layout :: layout('费用项管理', ~{::#mainContent})}">
+<head>
+    <title>费用项管理</title>
+</head>
+<body>
+<div id="mainContent">
+<style>
+    .feeitem-container { padding: 16px; }
+    
+    .top-bar {
+        display: flex; align-items: center; justify-content: space-between;
+        margin-bottom: 16px; padding: 12px 16px;
+        background: #f8f9fa; border-radius: 8px;
+    }
+    .top-bar h5 { margin: 0; font-weight: 600; }
+    
+    .table-wrap {
+        border: 1px solid #dee2e6; border-radius: 8px; overflow: hidden;
+    }
+    .data-table { width: 100%; border-collapse: collapse; }
+    .data-table th {
+        background: #f8f9fa; padding: 12px; font-size: 13px; font-weight: 600;
+        border-bottom: 1px solid #dee2e6; text-align: left;
+    }
+    .data-table td {
+        padding: 12px; font-size: 13px; border-bottom: 1px solid #f0f0f0;
+        vertical-align: middle;
+    }
+    .data-table tr:hover { background: #f8f9fa; }
+    
+    .type-badge {
+        display: inline-block; padding: 2px 10px; border-radius: 4px;
+        font-size: 12px; font-weight: 500;
+    }
+    .type-plus { background: #d1fae5; color: #065f46; }
+    .type-minus { background: #fee2e2; color: #991b1b; }
+    
+    .status-badge {
+        display: inline-block; padding: 2px 10px; border-radius: 4px;
+        font-size: 12px; font-weight: 500;
+    }
+    .status-1 { background: #d1fae5; color: #065f46; }
+    .status-0 { background: #e5e7eb; color: #374151; }
+    
+    .btn-action {
+        padding: 4px 12px; font-size: 12px; border-radius: 4px;
+        border: 1px solid; cursor: pointer; margin-right: 4px;
+    }
+    .btn-delete {
+        background: #fef2f2; border-color: #fecaca; color: #991b1b;
+    }
+    .btn-delete:hover { background: #fee2e2; }
+    
+    .empty-hint {
+        text-align: center; padding: 60px 20px; color: #6b7280;
+    }
+</style>
+
+<div class="feeitem-container">
+    <div class="top-bar">
+        <h5><i class="bi bi-tags me-2"></i>费用项管理</h5>
+        <button class="btn btn-primary btn-sm" onclick="openAddModal()">
+            <i class="bi bi-plus-lg me-1"></i>新增费用项
+        </button>
+    </div>
+    
+    <div class="table-wrap">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th style="width:80px;">ID</th>
+                    <th>费用项名称</th>
+                    <th style="width:100px;">加减类型</th>
+                    <th style="width:80px;">状态</th>
+                    <th style="width:120px;">操作</th>
+                </tr>
+            </thead>
+            <tbody id="feeItemTableBody">
+                <tr th:each="item : ${feeItems}">
+                    <td th:text="${item.id}"></td>
+                    <td th:text="${item.name}"></td>
+                    <td>
+                        <span class="type-badge" th:classappend="${item.type == 1} ? 'type-plus' : 'type-minus'"
+                              th:text="${item.typeName}"></span>
+                    </td>
+                    <td>
+                        <span class="status-badge" th:classappend="${item.status == 1} ? 'status-1' : 'status-0'"
+                              th:text="${item.status == 1} ? '启用' : '禁用'"></span>
+                    </td>
+                    <td>
+                        <button class="btn-action btn-delete" th:onclick="'deleteFeeItem(' + ${item.id} + ')'">
+                            <i class="bi bi-trash3"></i> 删除
+                        </button>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+        <div id="emptyHint" class="empty-hint" th:if="${#lists.isEmpty(feeItems)}">
+            <i class="bi bi-inbox fs-1 text-muted"></i>
+            <p class="mt-2">暂无费用项，请点击上方按钮新增</p>
+        </div>
+    </div>
+</div>
+
+<!-- 新增费用项弹窗 -->
+<div class="modal fade" id="addModal" tabindex="-1">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">新增费用项</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">费用项名称 <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="itemName" placeholder="请输入费用项名称">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">加减类型 <span class="text-danger">*</span></label>
+                    <select class="form-select" id="itemType">
+                        <option value="">请选择</option>
+                        <option value="1">加项</option>
+                        <option value="2">减项</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="saveFeeItem()">确定</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function openAddModal() {
+        document.getElementById('itemName').value = '';
+        document.getElementById('itemType').value = '';
+        new bootstrap.Modal(document.getElementById('addModal')).show();
+    }
+    
+    function saveFeeItem() {
+        var name = document.getElementById('itemName').value.trim();
+        var type = document.getElementById('itemType').value;
+        
+        if (!name) {
+            alert('请输入费用项名称');
+            return;
+        }
+        if (!type) {
+            alert('请选择加减类型');
+            return;
+        }
+        
+        var payload = {
+            name: name,
+            type: parseInt(type),
+            status: 1
+        };
+        
+        fetch('/feeitem/add', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(payload)
+        }).then(r => r.text()).then(function(res) {
+            if (res === 'success') {
+                bootstrap.Modal.getInstance(document.getElementById('addModal')).hide();
+                window.location.reload();
+            } else {
+                alert('新增失败：' + res);
+            }
+        });
+    }
+    
+    function deleteFeeItem(id) {
+        if (!confirm('确认删除该费用项？')) return;
+        fetch('/feeitem/delete/' + id, {method: 'POST'})
+            .then(r => r.text()).then(function(res) {
+                if (res === 'success') {
+                    window.location.reload();
+                } else {
+                    alert('删除失败：' + res);
+                }
+            });
+    }
+</script>
+</div>

@@ -1,0 +1,976 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:fragment="layout(title, content)">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${title} + ' - 昌涵建筑'">昌涵建筑</title>
+    <link href="/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/css/bootstrap-icons.min.css">
+    <link href="/css/select2.min.css" rel="stylesheet" />
+    <link href="/css/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
+    <style>
+        /* 商务风格配色方案 */
+        :root {
+            --primary-color: #2c5282;
+            --primary-light: #3182ce;
+            --primary-dark: #1a365d;
+            --secondary-color: #4a5568;
+            --accent-color: #d69e2e;
+            --success-color: #276749;
+            --danger-color: #c53030;
+        }
+        
+        /* 考勤日历样式 */
+        .calendar-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            margin-top: 10px;
+            width: 100%;
+        }
+        .calendar-grid > div {
+            width: calc(14.285% - 4px);
+            box-sizing: border-box;
+        }
+        .calendar-day {
+            aspect-ratio: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid #e2e8f0;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            min-width: 40px;
+            min-height: 40px;
+        }
+        .calendar-day:hover {
+            background-color: #f7fafc;
+        }
+        .calendar-day.has-attendance {
+            background-color: #c6f6d5;
+            border-color: #9ae6b4;
+        }
+        .calendar-day.other-month {
+            color: #a0aec0;
+            background-color: #f7fafc;
+        }
+        .calendar-day-header {
+            text-align: center;
+            font-weight: bold;
+            font-size: 12px;
+            padding: 5px;
+            color: #4a5568;
+            min-height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .employee-card {
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .employee-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        :root {
+            --bg-light: #f7fafc;
+            --bg-white: #ffffff;
+            --text-primary: #1a202c;
+            --text-secondary: #4a5568;
+            --border-color: #e2e8f0;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
+            --shadow-md: 0 4px 6px rgba(0,0,0,0.07);
+            --shadow-lg: 0 10px 15px rgba(0,0,0,0.05);
+        }
+        
+        body {
+            background-color: var(--bg-light);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+            color: var(--text-primary);
+            overflow-x: hidden;
+        }
+        
+        /* 侧边栏样式 - 深蓝商务风 - 固定定位 */
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 220px;
+            height: 100vh;
+            background: linear-gradient(180deg, var(--primary-dark) 0%, var(--primary-color) 100%);
+            color: #fff;
+            box-shadow: var(--shadow-lg);
+            overflow-y: auto;
+            overflow-x: hidden;
+            z-index: 1000;
+        }
+        
+        .sidebar .system-title {
+            padding: 24px 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            text-align: center;
+        }
+        
+        .sidebar .system-title h5 {
+            color: #fff;
+            font-weight: 600;
+            font-size: 1.1rem;
+            margin: 0;
+            letter-spacing: 1px;
+        }
+        
+        .sidebar .system-title small {
+            color: rgba(255,255,255,0.6);
+            font-size: 0.75rem;
+        }
+        
+        .sidebar .nav-link {
+            color: rgba(255,255,255,0.85);
+            padding: 14px 24px;
+            border-left: 3px solid transparent;
+            transition: all 0.25s ease;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+        
+        .sidebar .nav-link:hover {
+            background: rgba(255,255,255,0.08);
+            color: #fff;
+            border-left-color: var(--accent-color);
+        }
+        
+        .sidebar .nav-link.active {
+            background: rgba(255,255,255,0.12);
+            color: #fff;
+            border-left-color: var(--accent-color);
+        }
+        
+        .sidebar .nav-link i {
+            margin-right: 12px;
+            font-size: 1.1rem;
+            width: 20px;
+            text-align: center;
+            color: rgba(255,255,255,0.7);
+        }
+        
+        .sidebar .nav-link:hover i,
+        .sidebar .nav-link.active i {
+            color: var(--accent-color);
+        }
+        
+        /* 主内容区 - 添加左边距给固定侧边栏留空间，顶部padding给固定导航栏留空间 */
+        .main-content {
+            margin-left: 220px;
+            padding: 70px 24px 24px 24px;
+            background-color: var(--bg-light);
+            min-height: 100vh;
+            width: calc(100vw - 220px);
+            max-width: calc(100vw - 220px);
+            box-sizing: border-box;
+        }
+        
+        /* 顶部导航栏 - 商务简约风格 */
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 220px;
+            right: 0;
+            width: calc(100vw - 220px);
+            margin: 0;
+            background: linear-gradient(135deg, var(--bg-white) 0%, #f8fafc 100%);
+            border-bottom: 1px solid var(--border-color);
+            border-radius: 0;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+            padding: 0;
+            z-index: 100;
+            height: 64px;
+        }
+        
+        .navbar .container-fluid {
+            height: 100%;
+            padding: 0 32px;
+        }
+        
+        .navbar-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        
+        .greeting-section {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .greeting-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-light) 100%);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.2rem;
+            box-shadow: 0 2px 8px rgba(44, 82, 130, 0.25);
+        }
+        
+        .greeting-text {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .greeting-main {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            line-height: 1.3;
+        }
+        
+        .greeting-sub {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            line-height: 1.3;
+        }
+        
+        .navbar-divider {
+            width: 1px;
+            height: 32px;
+            background: var(--border-color);
+            margin: 0 8px;
+        }
+        
+        .navbar-right {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        
+        .user-section {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 6px 16px;
+            background: var(--bg-light);
+            border-radius: 24px;
+            border: 1px solid var(--border-color);
+        }
+        
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-light) 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+        
+        .user-info-compact {
+            display: flex;
+            flex-direction: column;
+            line-height: 1.3;
+        }
+        
+        .user-name {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        
+        .user-role {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+        
+        .logout-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-white);
+            color: var(--text-secondary);
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+        
+        .logout-btn:hover {
+            background: #fee2e2;
+            border-color: #fecaca;
+            color: var(--danger-color);
+        }
+        
+        /* 移动端隐藏顶部导航栏 */
+        @media (max-width: 768px) {
+            .navbar {
+                display: none !important;
+            }
+            .main-content {
+                padding-top: 16px;
+            }
+            .mobile-menu-btn {
+                position: fixed;
+                top: 10px;
+                left: 10px;
+                right: auto;
+                z-index: 102;
+                background: rgba(255,255,255,0.95);
+                border: none;
+                border-radius: 8px;
+                padding: 10px 12px;
+                font-size: 20px;
+                color: var(--primary-color);
+                box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            }
+            /* 隐藏移动端原来的顶部导航 */
+            .col-12.d-md-none.bg-dark {
+                display: none !important;
+            }
+            /* 移动端卡片头部布局优化 */
+            .card-header {
+                flex-wrap: nowrap !important;
+                gap: 8px !important;
+            }
+            .card-header h5, .card-header h6 {
+                font-size: 0.95rem;
+                white-space: nowrap;
+                flex-shrink: 0;
+            }
+            .card-header .form-select {
+                min-width: 100px;
+                width: auto;
+                flex-shrink: 1;
+            }
+        }
+        
+        .navbar-brand {
+            color: var(--text-primary) !important;
+            font-weight: 500;
+            font-size: 1rem;
+        }
+        
+        .navbar .user-info {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+        
+        .navbar .user-info i {
+            color: var(--primary-color);
+            margin-right: 6px;
+        }
+        
+        /* 按钮样式 - 商务简约 */
+        .btn {
+            font-weight: 500;
+            font-size: 0.875rem;
+            padding: 8px 20px;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+        }
+        
+        .btn-primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+            box-shadow: 0 2px 4px rgba(44, 82, 130, 0.2);
+        }
+        
+        .btn-primary:hover {
+            background-color: var(--primary-dark);
+            border-color: var(--primary-dark);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(44, 82, 130, 0.25);
+        }
+        
+        .btn-success {
+            background-color: var(--success-color);
+            border-color: var(--success-color);
+        }
+        
+        .btn-danger {
+            background-color: var(--danger-color);
+            border-color: var(--danger-color);
+        }
+        
+        .btn-warning {
+            background-color: var(--accent-color);
+            border-color: var(--accent-color);
+            color: #fff;
+        }
+        
+        .btn-outline-danger {
+            color: var(--danger-color);
+            border-color: var(--danger-color);
+        }
+        
+        .btn-outline-danger:hover {
+            background-color: var(--danger-color);
+            color: #fff;
+        }
+        
+        .btn-sm {
+            padding: 6px 16px;
+            font-size: 0.8rem;
+        }
+        
+        /* 卡片样式 - 扁平商务 */
+        .card {
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            box-shadow: var(--shadow-sm);
+            background: var(--bg-white);
+            transition: box-shadow 0.2s ease;
+        }
+        
+        .card:hover {
+            box-shadow: var(--shadow-md);
+        }
+        
+        .card-header {
+            background-color: var(--bg-white);
+            border-bottom: 1px solid var(--border-color);
+            padding: 16px 20px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        
+        .card-header h5, .card-header h6 {
+            margin: 0;
+            font-weight: 600;
+        }
+        
+        /* 表格样式 */
+        .table {
+            font-size: 0.875rem;
+        }
+        
+        .table th {
+            background-color: var(--bg-light);
+            border-bottom: 2px solid var(--border-color);
+            color: var(--text-secondary);
+            font-weight: 600;
+            padding: 12px 16px;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.5px;
+        }
+        
+        .table td {
+            padding: 14px 16px;
+            vertical-align: middle;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .table-hover tbody tr:hover {
+            background-color: rgba(44, 82, 130, 0.03);
+        }
+        
+        /* 表单样式 */
+        .form-control, .form-select {
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 0.875rem;
+            padding: 8px 12px;
+        }
+        
+        .form-control:focus, .form-select:focus {
+            border-color: var(--primary-light);
+            box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.1);
+        }
+        
+        /* 统计卡片 - 商务风格 */
+        .stat-card {
+            background: var(--bg-white);
+            border-radius: 8px;
+            padding: 24px;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border-color);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+        }
+        
+        .stat-card.income::before {
+            background-color: var(--success-color);
+        }
+        
+        .stat-card.expense::before {
+            background-color: var(--danger-color);
+        }
+        
+        .stat-card h6 {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+        
+        .stat-card h3 {
+            color: var(--text-primary);
+            font-size: 1.75rem;
+            font-weight: 700;
+            margin: 0;
+        }
+        
+        /* 徽章样式 */
+        .badge {
+            font-weight: 500;
+            font-size: 0.75rem;
+            padding: 4px 10px;
+            border-radius: 4px;
+        }
+        
+        /* 分页样式 */
+        .pagination .page-link {
+            color: var(--primary-color);
+            border: 1px solid var(--border-color);
+            font-size: 0.875rem;
+        }
+        
+        .pagination .page-item.active .page-link {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+        
+        /* 响应式 - 移动端适配 */
+        @media (max-width: 768px) {
+            .sidebar {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 70%;
+                height: 100vh;
+                z-index: 1000;
+                transform: translateX(-100%);
+                transition: transform 0.3s ease;
+            }
+            .sidebar.show {
+                transform: translateX(0);
+            }
+            .sidebar-overlay {
+                display: none;
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0,0,0,0.5);
+                z-index: 999;
+            }
+            .sidebar-overlay.show {
+                display: block;
+            }
+            .main-content {
+                margin-left: 0;
+                padding: 70px 16px 16px 16px;
+                width: 100vw;
+                max-width: 100vw;
+            }
+            .navbar {
+                left: 0;
+                width: calc(100vw - 32px);
+                margin: 0 16px;
+            }
+            .mobile-menu-btn {
+                display: block !important;
+                position: fixed;
+                top: 15px;
+                left: 15px;
+                z-index: 101;
+                background: var(--bg-white);
+                border: 1px solid var(--border-color);
+                border-radius: 6px;
+                padding: 8px 12px;
+                font-size: 18px;
+            }
+        }
+        
+        @media (min-width: 769px) {
+            .mobile-menu-btn {
+                display: none !important;
+            }
+            .sidebar-overlay {
+                display: none !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 移动端菜单按钮 -->
+    <button class="mobile-menu-btn" onclick="toggleSidebar()">
+        <i class="bi bi-list"></i>
+    </button>
+    
+    <!-- 侧边栏遮罩层 -->
+    <div class="sidebar-overlay" onclick="toggleSidebar()"></div>
+    
+    <div class="container-fluid p-0">
+        <div class="row g-0">
+            <!-- 侧边栏 -->
+            <nav class="sidebar p-0" id="sidebar">
+                <div class="system-title">
+                    <h5>河南昌涵建筑工程有限公司</h5>
+                    <small>CHANGHAN CONSTRUCTION</small>
+                </div>
+                <ul class="nav flex-column mt-2">
+                    <!-- 动态菜单：顶层菜单（含首页）完全按数据库 sort_order 顺序渲染 -->
+                    <th:block th:if="${navMenus != null}">
+                        <!-- 遍历所有菜单，只处理顶层菜单（parent_id 为 null 或 0） -->
+                        <th:block th:each="menu : ${navMenus}">
+                            <th:block th:if="${menu.parent_id == null || menu.parent_id.toString() == '0'}">
+                                <!-- 首页：直接链接，无需权限判断 -->
+                                <th:block th:if="${menu.menu_code == 'home'}">
+                                    <li class="nav-item">
+                                        <a class="nav-link" th:href="${menu.menu_url ?: '/index'}" th:data-url="${menu.menu_url ?: '/index'}">
+                                            <i th:class="'bi ' + ${menu.menu_icon ?: 'bi-house-door'}"></i>
+                                            <span th:text="${menu.menu_name}">首页</span>
+                                        </a>
+                                    </li>
+                                </th:block>
+                                <!-- 目录类型：可点击展开/收起 -->
+                                <th:block th:if="${menu.menu_type == 1 && menu.menu_code != 'home'}">
+                                    <li class="nav-item"
+                                        th:if="${session.currentUser != null && session.currentUser.hasPermission(menu.menu_code)}">
+                                        <a class="nav-link" href="javascript:void(0)" th:onclick="'toggleMenu(' + ${menu.id} + ')'"
+                                           th:data-menu-id="${menu.id}">
+                                            <i th:class="'bi ' + ${menu.menu_icon}"></i>
+                                            <span th:text="${menu.menu_name}"></span>
+                                            <i class="bi bi-chevron-down ms-auto" th:id="'arrow-' + ${menu.id}"></i>
+                                        </a>
+                                    </li>
+                                    <!-- 子菜单容器 -->
+                                    <li th:id="'submenu-' + ${menu.id}" style="display:none; list-style:none; padding:0; margin:0;" th:data-parent-id="${menu.id}">
+                                        <ul class="nav flex-column" style="list-style:none; padding:0; margin:0;">
+                                        <th:block th:each="subMenu : ${navMenus}">
+                                            <li class="nav-item"
+                                                th:if="${subMenu.parent_id != null && subMenu.parent_id.toString() == menu.id.toString() && session.currentUser != null && session.currentUser.hasPermission(subMenu.menu_code)}"
+                                                style="padding-left: 1.5rem;">
+                                                <a class="nav-link" th:href="${subMenu.menu_url}"
+                                                   th:data-url="${subMenu.menu_url}">
+                                                    <i th:class="'bi ' + ${subMenu.menu_icon}"></i>
+                                                    <span th:text="${subMenu.menu_name}"></span>
+                                                    <!-- 工资条管理子菜单待审批数量徽章 -->
+                                                    <span th:if="${subMenu.menu_code == 'salary' && pendingSalaryCount != null && pendingSalaryCount > 0}"
+                                                          class="badge bg-danger ms-auto salary-pending-badge" th:text="${pendingSalaryCount}">0</span>
+                                                </a>
+                                            </li>
+                                        </th:block>
+                                        </ul>
+                                    </li>
+                                </th:block>
+                                <!-- 非目录类型且无父菜单（排除首页，已单独处理）：直接展示 -->
+                                <li class="nav-item" th:if="${menu.menu_type != 1 && menu.menu_code != 'home' && session.currentUser != null && session.currentUser.hasPermission(menu.menu_code)}">
+                                    <a class="nav-link" th:href="${menu.menu_url}">
+                                        <i th:class="'bi ' + ${menu.menu_icon}"></i>
+                                        <span th:text="${menu.menu_name}"></span>
+                                        <!-- 工资条管理独立菜单待审批数量徽章 -->
+                                        <span th:if="${menu.menu_code == 'salary' && pendingSalaryCount != null && pendingSalaryCount > 0}"
+                                              class="badge bg-danger ms-auto salary-pending-badge" th:text="${pendingSalaryCount}">0</span>
+                                    </a>
+                                </li>
+                            </th:block>
+                        </th:block>
+                    </th:block>
+                    
+                    <li class="nav-item mt-3 pt-3 border-top border-secondary d-md-none">
+                        <a class="nav-link text-danger" href="#" onclick="confirmLogout(); return false;">
+                            <i class="bi bi-box-arrow-right"></i> 退出登录
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+
+            <!-- 移动端导航 -->
+            <nav class="col-12 d-md-none bg-dark p-2">
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="text-white">昌涵建筑</span>
+                    <button class="btn btn-sm btn-outline-light" type="button" data-bs-toggle="collapse" data-bs-target="#mobileNav">
+                        <i class="bi bi-list"></i>
+                    </button>
+                </div>
+                <div class="collapse" id="mobileNav">
+                    <ul class="nav flex-column mt-2">
+                        <li class="nav-item">
+                            <a class="nav-link text-white" href="/index">首页</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-white" href="/account/list">帐条管理</a>
+                        </li>
+                        <!-- 角色管理 (移动端) -->
+                        <li class="nav-item" th:if="${session.currentUser != null && session.currentUser.hasPermission('role')}">
+                            <a class="nav-link text-white" href="/role/list">角色管理</a>
+                        </li>
+                        <li class="nav-item" th:if="${session.currentUser != null && session.currentUser.hasPermission('employee')}">
+                            <a class="nav-link text-white" href="/employee/list">员工管理</a>
+                        </li>
+                        <li class="nav-item" th:if="${session.currentUser != null && session.currentUser.hasPermission('category')}">
+                            <a class="nav-link text-white" href="/category/list">费用分类</a>
+                        </li>
+                        <li class="nav-item" th:if="${session.currentUser != null && session.currentUser.hasPermission('project')}">
+                            <a class="nav-link text-white" href="/project/list">项目管理</a>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+
+            <!-- 主内容区 -->
+            <main class="main-content">
+                <!-- 顶部导航栏 -->
+                <nav class="navbar navbar-expand-lg">
+                    <div class="container-fluid d-flex justify-content-between align-items-center">
+                        <!-- 左侧：问候语 -->
+                        <div class="navbar-left">
+                            <div class="greeting-section">
+                                <div class="greeting-icon">
+                                    <i class="bi bi-sun" id="greetingIcon"></i>
+                                </div>
+                                <div class="greeting-text">
+                                    <span class="greeting-main" id="greetingMain">早上好</span>
+                                    <span class="greeting-sub" id="greetingSub">祝您今天工作顺利</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 右侧：用户信息和退出 -->
+                        <div class="navbar-right" th:if="${session.currentUser != null}">
+                            <div class="user-section">
+                                <div class="user-avatar" th:text="${#strings.substring(session.currentUser.name, 0, 1)}">张</div>
+                                <div class="user-info-compact d-none d-md-flex">
+                                    <span class="user-name" th:text="${session.currentUser.name}">张三</span>
+                                    <span class="user-role" th:text="${session.currentUser.roleName}">管理员</span>
+                                </div>
+                            </div>
+                            <button type="button" class="logout-btn" onclick="confirmLogout()" title="退出登录">
+                                <i class="bi bi-box-arrow-right"></i>
+                            </button>
+                        </div>
+                    </div>
+                </nav>
+
+                <!-- 页面内容 -->
+                <div th:replace="${content}"></div>
+            </main>
+        </div>
+    </div>
+
+    <!-- 退出确认弹窗 -->
+    <div class="modal fade" id="logoutModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" style="max-width: 350px;">
+            <div class="modal-content">
+                <div class="modal-header py-2">
+                    <h6 class="modal-title fw-bold">确认退出</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body py-3">
+                    <p class="mb-0">确定要退出系统吗？</p>
+                </div>
+                <div class="modal-footer py-2">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-danger btn-sm" onclick="doLogout()">退出</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="/js/jquery.min.js"></script>
+    <script src="/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/select2.min.js"></script>
+    <script>
+        function confirmLogout() {
+            new bootstrap.Modal(document.getElementById('logoutModal')).show();
+        }
+
+        function doLogout() {
+            window.location.href = '/logout';
+        }
+
+        // 展开/收起子菜单
+        function toggleMenu(menuId) {
+            var submenu = document.getElementById('submenu-' + menuId);
+            var arrow = document.getElementById('arrow-' + menuId);
+            var isExpanding = false;
+            if (submenu.style.display === 'none' || submenu.style.display === '') {
+                submenu.style.display = 'block';
+                arrow.classList.remove('bi-chevron-down');
+                arrow.classList.add('bi-chevron-up');
+                isExpanding = true;
+            } else {
+                submenu.style.display = 'none';
+                arrow.classList.remove('bi-chevron-up');
+                arrow.classList.add('bi-chevron-down');
+            }
+            
+            // 更新 sessionStorage 中的展开状态
+            var expandedIds = [];
+            try {
+                var stored = sessionStorage.getItem('menuExpanded');
+                if (stored) {
+                    expandedIds = JSON.parse(stored);
+                }
+            } catch(e) {}
+            
+            if (isExpanding) {
+                // 展开：添加到列表
+                if (expandedIds.indexOf(String(menuId)) === -1) {
+                    expandedIds.push(String(menuId));
+                }
+            } else {
+                // 收起：从列表移除
+                expandedIds = expandedIds.filter(function(id) { return id !== String(menuId); });
+            }
+            sessionStorage.setItem('menuExpanded', JSON.stringify(expandedIds));
+        }
+
+        // 页面加载时，自动展开当前 URL 对应的父目录
+        (function autoExpandActiveMenu() {
+            var currentPath = window.location.pathname;
+            
+            // 首先将所有子菜单容器隐藏（防止页面刷新时先显示再隐藏的抖动）
+            document.querySelectorAll('[data-parent-id]').forEach(function(container) {
+                container.style.display = 'none';
+            });
+            document.querySelectorAll('[id^="arrow-"]').forEach(function(arrow) {
+                arrow.classList.remove('bi-chevron-up');
+                arrow.classList.add('bi-chevron-down');
+            });
+            
+            // 检查 sessionStorage 中是否有用户手动设置的展开状态
+            var manuallyExpanded = sessionStorage.getItem('menuExpanded');
+            if (manuallyExpanded) {
+                // 用户之前手动展开过，保持展开状态
+                try {
+                    var expandedIds = JSON.parse(manuallyExpanded);
+                    expandedIds.forEach(function(parentId) {
+                        var submenuDiv = document.getElementById('submenu-' + parentId);
+                        var arrow = document.getElementById('arrow-' + parentId);
+                        if (submenuDiv) {
+                            submenuDiv.style.display = 'block';
+                        }
+                        if (arrow) {
+                            arrow.classList.remove('bi-chevron-down');
+                            arrow.classList.add('bi-chevron-up');
+                        }
+                    });
+                } catch(e) {}
+            }
+            
+            // 找到所有子菜单链接，高亮当前页面并确保其父菜单展开
+            var subLinks = document.querySelectorAll('[data-url]');
+            var matchedParentIds = [];
+            var bestMatch = null;
+            var bestMatchPriority = 0;
+            var bestMatchLength = 0;
+            
+            subLinks.forEach(function(link) {
+                var linkUrl = link.getAttribute('data-url');
+                if (!linkUrl) return;
+                
+                // 精确匹配：路径必须完全相等，或者当前路径以子菜单URL开头加 '/'
+                if (currentPath === linkUrl || currentPath.startsWith(linkUrl + '/')) {
+                    var priority = link.getAttribute('data-priority') === 'system' ? 100 : 0;
+                    // 优先级高的优先，同优先级选最长匹配的URL
+                    if (priority > bestMatchPriority || 
+                        (priority === bestMatchPriority && linkUrl.length > bestMatchLength)) {
+                        bestMatch = link;
+                        bestMatchPriority = priority;
+                        bestMatchLength = linkUrl.length;
+                    }
+                }
+            });
+            
+            // 高亮最佳匹配的链接
+            if (bestMatch) {
+                bestMatch.classList.add('active');
+                var submenuDiv = bestMatch.closest('[data-parent-id]');
+                if (submenuDiv) {
+                    var parentId = submenuDiv.getAttribute('data-parent-id');
+                    matchedParentIds.push(parentId);
+                    // 展开该容器
+                    submenuDiv.style.display = 'block';
+                    // 更新箭头图标
+                    var arrow = document.getElementById('arrow-' + parentId);
+                    if (arrow) {
+                        arrow.classList.remove('bi-chevron-down');
+                        arrow.classList.add('bi-chevron-up');
+                    }
+                }
+            }
+            
+            // 保存当前展开的菜单状态到 sessionStorage
+            if (matchedParentIds.length > 0) {
+                sessionStorage.setItem('menuExpanded', JSON.stringify(matchedParentIds));
+            }
+        })();
+
+        // 移动端侧边栏切换
+        function toggleSidebar() {
+            var sidebar = document.getElementById('sidebar');
+            var overlay = document.querySelector('.sidebar-overlay');
+            sidebar.classList.toggle('show');
+            overlay.classList.toggle('show');
+        }
+        
+        // 点击侧边栏链接后自动关闭（移动端）
+        document.querySelectorAll('.sidebar .nav-link').forEach(function(link) {
+            link.addEventListener('click', function() {
+                if (window.innerWidth <= 768) {
+                    toggleSidebar();
+                }
+            });
+        });
+        
+        // 根据时间更新问候语
+        function updateGreeting() {
+            var hour = new Date().getHours();
+            var greetingMain = document.getElementById('greetingMain');
+            var greetingSub = document.getElementById('greetingSub');
+            var greetingIcon = document.getElementById('greetingIcon');
+            
+            var currentGreeting;
+            if (hour >= 5 && hour < 9) {
+                currentGreeting = { main: '早上好', sub: '新的一天，元气满满', icon: 'bi-sun' };
+            } else if (hour >= 9 && hour < 12) {
+                currentGreeting = { main: '上午好', sub: '工作顺利，效率满满', icon: 'bi-brightness-high' };
+            } else if (hour >= 12 && hour < 14) {
+                currentGreeting = { main: '中午好', sub: '午餐时间，适当休息', icon: 'bi-sun-fill' };
+            } else if (hour >= 14 && hour < 18) {
+                currentGreeting = { main: '下午好', sub: '精力充沛，继续加油', icon: 'bi-brightness-alt-high' };
+            } else if (hour >= 18 && hour < 22) {
+                currentGreeting = { main: '晚上好', sub: '工作一天，辛苦了', icon: 'bi-sunset' };
+            } else {
+                currentGreeting = { main: '夜深了', sub: '早点休息，保重身体', icon: 'bi-moon-stars' };
+            }
+            
+            if (greetingMain) greetingMain.textContent = currentGreeting.main;
+            if (greetingSub) greetingSub.textContent = currentGreeting.sub;
+            if (greetingIcon) {
+                greetingIcon.className = 'bi ' + currentGreeting.icon;
+            }
+        }
+        
+        // 页面加载时更新问候语
+        updateGreeting();
+        
+        // 每小时更新一次问候语
+        setInterval(updateGreeting, 3600000);
+    </script>
+</body>
+</html>

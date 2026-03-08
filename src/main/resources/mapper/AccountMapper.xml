@@ -1,0 +1,405 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.hello.mapper.AccountMapper">
+
+    <resultMap id="BaseResultMap" type="com.example.hello.entity.Account">
+        <id column="id" property="id"/>
+        <result column="project_id" property="projectId"/>
+        <result column="creator_id" property="creatorId"/>
+        <result column="job_category_id" property="jobCategoryId"/>
+        <result column="role_id" property="roleId"/>
+        <result column="type" property="type"/>
+        <result column="invoice_no" property="invoiceNo"/>
+        <result column="status" property="status"/>
+        <result column="company_name" property="companyName"/>
+        <result column="approval_progress_id" property="approvalProgressId"/>
+        <result column="amount" property="amount"/>
+        <result column="remark" property="remark"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="project_name" property="projectName"/>
+        <result column="creator_name" property="creatorName"/>
+        <result column="job_category_name" property="jobCategoryName"/>
+        <result column="role_name" property="roleName"/>
+        <result column="finance_contact_id" property="financeContactId"/>
+        <result column="finance_contact_name" property="financeContactName"/>
+    </resultMap>
+
+    <select id="findById" resultMap="BaseResultMap">
+        SELECT a.*, 
+               p.name as project_name,
+               e.name as creator_name,
+               jc.name as job_category_name,
+               r.role_name as role_name,
+               fe.id as finance_contact_id,
+               fe.name as finance_contact_name
+        FROM tb_account a
+        LEFT JOIN tb_project p ON a.project_id = p.id
+        LEFT JOIN tb_employee e ON a.creator_id = e.id
+        LEFT JOIN tb_job_category jc ON a.job_category_id = jc.id
+        LEFT JOIN tb_role r ON a.role_id = r.id
+        LEFT JOIN tb_employee fe ON e.finance_contact_id = fe.id
+        WHERE a.id = #{id}
+    </select>
+
+    <select id="findAll" resultMap="BaseResultMap">
+        SELECT a.*, 
+               p.name as project_name,
+               e.name as creator_name,
+               jc.name as job_category_name,
+               r.role_name as role_name,
+               fe.id as finance_contact_id,
+               fe.name as finance_contact_name
+        FROM tb_account a
+        LEFT JOIN tb_project p ON a.project_id = p.id
+        LEFT JOIN tb_employee e ON a.creator_id = e.id
+        LEFT JOIN tb_job_category jc ON a.job_category_id = jc.id
+        LEFT JOIN tb_role r ON a.role_id = r.id
+        LEFT JOIN tb_employee fe ON e.finance_contact_id = fe.id
+        ORDER BY a.create_time DESC
+    </select>
+
+    <select id="findByCreatorId" resultMap="BaseResultMap">
+        SELECT a.*, 
+               p.name as project_name,
+               e.name as creator_name,
+               jc.name as job_category_name,
+               r.role_name as role_name,
+               fe.id as finance_contact_id,
+               fe.name as finance_contact_name
+        FROM tb_account a
+        LEFT JOIN tb_project p ON a.project_id = p.id
+        LEFT JOIN tb_employee e ON a.creator_id = e.id
+        LEFT JOIN tb_job_category jc ON a.job_category_id = jc.id
+        LEFT JOIN tb_role r ON a.role_id = r.id
+        LEFT JOIN tb_employee fe ON e.finance_contact_id = fe.id
+        WHERE a.creator_id = #{creatorId}
+        ORDER BY a.create_time DESC
+    </select>
+
+    <select id="findByCondition" resultMap="BaseResultMap">
+        SELECT a.*, 
+               p.name as project_name,
+               e.name as creator_name,
+               jc.name as job_category_name,
+               r.role_name as role_name,
+               fe.id as finance_contact_id,
+               fe.name as finance_contact_name
+        FROM tb_account a
+        LEFT JOIN tb_project p ON a.project_id = p.id
+        LEFT JOIN tb_employee e ON a.creator_id = e.id
+        LEFT JOIN tb_job_category jc ON a.job_category_id = jc.id
+        LEFT JOIN tb_role r ON a.role_id = r.id
+        LEFT JOIN tb_employee fe ON e.finance_contact_id = fe.id
+        WHERE 1=1
+        <if test="!isBoss">
+            AND a.project_id IN (
+                SELECT project_id FROM tb_employee_project WHERE employee_id = #{currentUserId}
+            )
+        </if>
+        <if test="projectId != null">
+            AND a.project_id = #{projectId}
+        </if>
+        <if test="status != null">
+            AND a.status = #{status}
+        </if>
+        ORDER BY a.create_time DESC
+    </select>
+
+    <select id="findByConditionWithPage" resultMap="BaseResultMap">
+        SELECT a.*, 
+               p.name as project_name,
+               e.name as creator_name,
+               jc.name as job_category_name,
+               r.role_name as role_name,
+               fe.id as finance_contact_id,
+               fe.name as finance_contact_name
+        FROM tb_account a
+        LEFT JOIN tb_project p ON a.project_id = p.id
+        LEFT JOIN tb_employee e ON a.creator_id = e.id
+        LEFT JOIN tb_job_category jc ON a.job_category_id = jc.id
+        LEFT JOIN tb_role r ON a.role_id = r.id
+        LEFT JOIN tb_employee fe ON e.finance_contact_id = fe.id
+        WHERE 1=1
+        <if test="!isBoss">
+            AND a.project_id IN (
+                SELECT project_id FROM tb_employee_project WHERE employee_id = #{currentUserId}
+            )
+        </if>
+        <if test="projectId != null">
+            AND a.project_id = #{projectId}
+        </if>
+        <if test="status != null">
+            AND a.status = #{status}
+        </if>
+        ORDER BY a.create_time DESC
+        LIMIT #{pageSize} OFFSET #{offset}
+    </select>
+
+    <select id="countByCondition" resultType="int">
+        SELECT COUNT(*)
+        FROM tb_account a
+        WHERE 1=1
+        <if test="!isBoss">
+            AND a.project_id IN (
+                SELECT project_id FROM tb_employee_project WHERE employee_id = #{currentUserId}
+            )
+        </if>
+        <if test="projectId != null">
+            AND a.project_id = #{projectId}
+        </if>
+        <if test="status != null">
+            AND a.status = #{status}
+        </if>
+    </select>
+
+    <select id="findPendingByFinanceContactId" resultMap="BaseResultMap">
+        SELECT a.*, 
+               fe.id as finance_contact_id,
+               fe.name as finance_contact_name
+        FROM tb_account a
+        LEFT JOIN tb_project p ON a.project_id = p.id
+        LEFT JOIN tb_employee e ON a.creator_id = e.id
+        LEFT JOIN tb_job_category jc ON a.job_category_id = jc.id
+        LEFT JOIN tb_role r ON a.role_id = r.id
+        LEFT JOIN tb_employee fe ON e.finance_contact_id = fe.id
+        WHERE a.status = 1
+        <if test="!isBoss">
+            AND fe.id = #{financeContactId}
+        </if>
+        ORDER BY a.create_time DESC
+    </select>
+
+    <select id="findPendingByFinanceContactIdWithPage" resultMap="BaseResultMap">
+        SELECT a.*, 
+               p.name as project_name,
+               e.name as creator_name,
+               jc.name as job_category_name,
+               r.role_name as role_name,
+               fe.id as finance_contact_id,
+               fe.name as finance_contact_name
+        FROM tb_account a
+        LEFT JOIN tb_project p ON a.project_id = p.id
+        LEFT JOIN tb_employee e ON a.creator_id = e.id
+        LEFT JOIN tb_job_category jc ON a.job_category_id = jc.id
+        LEFT JOIN tb_role r ON a.role_id = r.id
+        LEFT JOIN tb_employee fe ON e.finance_contact_id = fe.id
+        WHERE a.status = 1
+        <if test="!isBoss">
+            AND fe.id = #{financeContactId}
+        </if>
+        ORDER BY a.create_time DESC
+        LIMIT #{pageSize} OFFSET #{offset}
+    </select>
+
+    <select id="countPendingByFinanceContactId" resultType="int">
+        SELECT COUNT(*)
+        FROM tb_account a
+        LEFT JOIN tb_employee e ON a.creator_id = e.id
+        LEFT JOIN tb_employee fe ON e.finance_contact_id = fe.id
+        WHERE a.status = 1
+        <if test="!isBoss">
+            AND fe.id = #{financeContactId}
+        </if>
+    </select>
+
+    <!-- 统计方法 - 支持时间筛选 -->
+    <select id="getProjectStats" resultType="com.example.hello.dto.ProjectStatsDTO">
+        SELECT 
+            p.id as projectId,
+            p.name as projectName,
+            COALESCE(SUM(CASE WHEN a.type = 1 AND a.status = 5 THEN a.amount ELSE 0 END), 0) as income,
+            COALESCE(SUM(CASE WHEN a.type = 2 AND a.status = 5 THEN a.amount ELSE 0 END), 0) as expense,
+            COALESCE(SUM(CASE WHEN a.type = 1 AND a.status = 5 THEN a.amount ELSE 0 END), 0) - 
+            COALESCE(SUM(CASE WHEN a.type = 2 AND a.status = 5 THEN a.amount ELSE 0 END), 0) as balance
+        FROM tb_project p
+        LEFT JOIN tb_account a ON p.id = a.project_id AND a.status = 5
+        <if test="!isBoss">
+            INNER JOIN tb_employee_project ep ON p.id = ep.project_id AND ep.employee_id = #{userId}
+        </if>
+        WHERE 1=1
+        <if test="startDate != null and startDate != ''">
+            AND DATE(a.create_time) &gt;= #{startDate}
+        </if>
+        <if test="endDate != null and endDate != ''">
+            AND DATE(a.create_time) &lt;= #{endDate}
+        </if>
+        GROUP BY p.id, p.name
+        ORDER BY expense DESC
+    </select>
+
+    <select id="getSingleProjectStats" resultType="com.example.hello.dto.ProjectStatsDTO">
+        SELECT 
+            p.id as projectId,
+            p.name as projectName,
+            COALESCE(SUM(CASE WHEN a.type = 1 AND a.status = 5 THEN a.amount ELSE 0 END), 0) as income,
+            COALESCE(SUM(CASE WHEN a.type = 2 AND a.status = 5 THEN a.amount ELSE 0 END), 0) as expense,
+            COALESCE(SUM(CASE WHEN a.type = 1 AND a.status = 5 THEN a.amount ELSE 0 END), 0) - 
+            COALESCE(SUM(CASE WHEN a.type = 2 AND a.status = 5 THEN a.amount ELSE 0 END), 0) as balance
+        FROM tb_project p
+        LEFT JOIN tb_account a ON p.id = a.project_id
+        WHERE p.id = #{projectId} AND a.status = 5
+        <if test="startDate != null and startDate != ''">
+            AND DATE(a.create_time) &gt;= #{startDate}
+        </if>
+        <if test="endDate != null and endDate != ''">
+            AND DATE(a.create_time) &lt;= #{endDate}
+        </if>
+        GROUP BY p.id, p.name
+    </select>
+
+    <select id="getTotalIncome" resultType="java.math.BigDecimal">
+        SELECT COALESCE(SUM(a.amount), 0)
+        FROM tb_account a
+        WHERE a.type = 1 AND a.status = 5
+        <if test="!isBoss">
+            AND a.project_id IN (
+                SELECT project_id FROM tb_employee_project WHERE employee_id = #{userId}
+            )
+        </if>
+        <if test="startDate != null and startDate != ''">
+            AND DATE(a.create_time) &gt;= #{startDate}
+        </if>
+        <if test="endDate != null and endDate != ''">
+            AND DATE(a.create_time) &lt;= #{endDate}
+        </if>
+    </select>
+
+    <select id="getTotalExpense" resultType="java.math.BigDecimal">
+        SELECT COALESCE(SUM(a.amount), 0)
+        FROM tb_account a
+        WHERE a.type = 2 AND a.status = 5
+        <if test="!isBoss">
+            AND a.project_id IN (
+                SELECT project_id FROM tb_employee_project WHERE employee_id = #{userId}
+            )
+        </if>
+        <if test="startDate != null and startDate != ''">
+            AND DATE(a.create_time) &gt;= #{startDate}
+        </if>
+        <if test="endDate != null and endDate != ''">
+            AND DATE(a.create_time) &lt;= #{endDate}
+        </if>
+    </select>
+
+    <!-- 收入TOP5项目 -->
+    <select id="getTop5IncomeProjects" resultType="com.example.hello.dto.ProjectStatsDTO">
+        SELECT 
+            p.id as projectId,
+            p.name as projectName,
+            COALESCE(SUM(a.amount), 0) as income,
+            0 as expense,
+            0 as balance
+        FROM tb_project p
+        LEFT JOIN tb_account a ON p.id = a.project_id AND a.type = 1 AND a.status = 5
+        <if test="!isBoss">
+            INNER JOIN tb_employee_project ep ON p.id = ep.project_id AND ep.employee_id = #{userId}
+        </if>
+        WHERE 1=1
+        <if test="startDate != null and startDate != ''">
+            AND DATE(a.create_time) &gt;= #{startDate}
+        </if>
+        <if test="endDate != null and endDate != ''">
+            AND DATE(a.create_time) &lt;= #{endDate}
+        </if>
+        GROUP BY p.id, p.name
+        HAVING income > 0
+        ORDER BY income DESC
+        LIMIT 5
+    </select>
+
+    <!-- 支出TOP5项目 -->
+    <select id="getTop5ExpenseProjects" resultType="com.example.hello.dto.ProjectStatsDTO">
+        SELECT 
+            p.id as projectId,
+            p.name as projectName,
+            0 as income,
+            COALESCE(SUM(a.amount), 0) as expense,
+            0 as balance
+        FROM tb_project p
+        LEFT JOIN tb_account a ON p.id = a.project_id AND a.type = 2 AND a.status = 5
+        <if test="!isBoss">
+            INNER JOIN tb_employee_project ep ON p.id = ep.project_id AND ep.employee_id = #{userId}
+        </if>
+        WHERE 1=1
+        <if test="startDate != null and startDate != ''">
+            AND DATE(a.create_time) &gt;= #{startDate}
+        </if>
+        <if test="endDate != null and endDate != ''">
+            AND DATE(a.create_time) &lt;= #{endDate}
+        </if>
+        GROUP BY p.id, p.name
+        HAVING expense > 0
+        ORDER BY expense DESC
+        LIMIT 5
+    </select>
+
+    <!-- 项目收入分类统计 - 暂按记账人分组 -->
+    <select id="getProjectIncomeByCategory" resultType="com.example.hello.dto.CategoryStatsDTO">
+        SELECT 
+            e.id as categoryId,
+            e.name as categoryName,
+            COALESCE(SUM(a.amount), 0) as amount
+        FROM tb_account a
+        LEFT JOIN tb_employee e ON a.creator_id = e.id
+        WHERE a.project_id = #{projectId} AND a.type = 1 AND a.status = 5
+        <if test="startDate != null and startDate != ''">
+            AND DATE(a.create_time) &gt;= #{startDate}
+        </if>
+        <if test="endDate != null and endDate != ''">
+            AND DATE(a.create_time) &lt;= #{endDate}
+        </if>
+        GROUP BY e.id, e.name
+        HAVING amount > 0
+        ORDER BY amount DESC
+    </select>
+
+    <!-- 项目支出分类统计 - 暂按记账人分组 -->
+    <select id="getProjectExpenseByCategory" resultType="com.example.hello.dto.CategoryStatsDTO">
+        SELECT 
+            e.id as categoryId,
+            e.name as categoryName,
+            COALESCE(SUM(a.amount), 0) as amount
+        FROM tb_account a
+        LEFT JOIN tb_employee e ON a.creator_id = e.id
+        WHERE a.project_id = #{projectId} AND a.type = 2 AND a.status = 5
+        <if test="startDate != null and startDate != ''">
+            AND DATE(a.create_time) &gt;= #{startDate}
+        </if>
+        <if test="endDate != null and endDate != ''">
+            AND DATE(a.create_time) &lt;= #{endDate}
+        </if>
+        GROUP BY e.id, e.name
+        HAVING amount > 0
+        ORDER BY amount DESC
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO tb_account (project_id, creator_id, job_category_id, role_id, type, 
+                                category_id, invoice_no, status, 
+                                company_name, approval_progress_id, amount, remark)
+        VALUES (#{projectId}, #{creatorId}, #{jobCategoryId}, #{roleId}, #{type}, 
+                #{categoryId}, #{invoiceNo}, #{status}, 
+                #{companyName}, #{approvalProgressId}, #{amount}, #{remark})
+    </insert>
+
+    <update id="update">
+        UPDATE tb_account
+        SET project_id = #{projectId},
+            type = #{type},
+            category_id = #{categoryId},
+            invoice_no = #{invoiceNo},
+            amount = #{amount},
+            remark = #{remark}
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateStatus">
+        UPDATE tb_account SET status = #{status} WHERE id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        DELETE FROM tb_account WHERE id = #{id}
+    </delete>
+
+</mapper>

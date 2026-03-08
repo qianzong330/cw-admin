@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{common/layout :: layout('工时配置审批', ~{::#mainContent})}">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <style>
+        .filter-bar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        .page-title {
+            color: #fff;
+            font-weight: 600;
+            font-size: 1.25rem;
+        }
+    </style>
+</head>
+<body>
+    <div id="mainContent">
+        <!-- 筛选栏 -->
+        <div class="filter-bar">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                <div class="page-title">
+                    <i class="bi bi-clock me-2"></i>工时配置审批
+                    <span class="badge bg-warning text-dark ms-2" th:text="${#lists.size(pendingConfigs)} + ' 条待审批'">0 条待审批</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-body">
+                <div th:if="${#lists.isEmpty(pendingConfigs)}" class="text-center text-muted py-5">
+                    <i class="bi bi-check-circle fs-1 text-success"></i>
+                    <p class="mt-2">暂无待审批的工时配置</p>
+                </div>
+                
+                <div th:if="${!#lists.isEmpty(pendingConfigs)}" class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>计算方式</th>
+                                <th>当月工作天数</th>
+                                <th>工作时间</th>
+                                <th>工作日加班费率</th>
+                                <th>休息日加班费率</th>
+                                <th>节假日加班费率</th>
+                                <th>发起人</th>
+                                <th>发起时间</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="config : ${pendingConfigs}">
+                                <td>
+                                    <span th:if="${config.calcType == 1}" class="badge bg-info">日薪计算</span>
+                                    <span th:if="${config.calcType == 2}" class="badge bg-primary">月薪计算</span>
+                                </td>
+                                <td>
+                                    <span th:if="${config.calcType == 2}" th:text="${config.monthlyWorkDays} + '天'">22天</span>
+                                    <span th:if="${config.calcType == 1}">-</span>
+                                </td>
+                                <td>
+                                    <small th:text="'上午:' + ${config.morningStartTime} + '-' + ${config.morningEndTime}">上午:08:00-12:00</small><br>
+                                    <small th:text="'下午:' + ${config.afternoonStartTime} + '-' + ${config.afternoonEndTime}">下午:13:00-17:00</small>
+                                </td>
+                                <td th:text="${config.weekdayOvertimeRate} + '倍'">1.5倍</td>
+                                <td th:text="${config.restdayOvertimeRate} + '倍'">2.0倍</td>
+                                <td th:text="${config.holidayOvertimeRate} + '倍'">3.0倍</td>
+                                <td th:text="${config.createdByName} ?: '-'">张三</td>
+                                <td th:text="${#temporals.format(config.createdTime, 'yyyy-MM-dd HH:mm')}">2026-03-01 10:00</td>
+                                <td>
+                                    <button type="button" class="btn btn-outline-primary btn-sm" th:onclick="'viewDetail(' + ${config.id} + ')'">
+                                        <i class="bi bi-eye"></i> 预览
+                                    </button>
+                                    <button type="button" class="btn btn-success btn-sm ms-1" th:onclick="'showApproveModal(' + ${config.id} + ')'">
+                                        <i class="bi bi-check-lg"></i> 通过
+                                    </button>
+                                    <button type="button" class="btn btn-danger btn-sm ms-1" th:onclick="'showRejectModal(' + ${config.id} + ')'">
+                                        <i class="bi bi-x-lg"></i> 拒绝
+                                    </button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 详情弹窗 -->
+        <div class="modal fade" id="detailModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-lg modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header bg-light">
+                        <h5 class="modal-title"><i class="bi bi-eye me-2 text-primary"></i>配置详情</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <!-- 基础配置 -->
+                        <div class="mb-4">
+                            <h6 class="text-primary border-bottom pb-2 mb-3"><i class="bi bi-sliders me-2"></i>基础配置</h6>
+                            <div class="row">
+                                <div class="col-md-6 mb-2">
+                                    <label class="form-label text-muted mb-1">计算方式：</label>
+                                    <div id="detailCalcType" class="fw-bold"></div>
+                                </div>
+                                <div class="col-md-6 mb-2" id="detailMonthlyWorkDaysRow">
+                                    <label class="form-label text-muted mb-1">当月工作天数：</label>
+                                    <div id="detailMonthlyWorkDays" class="fw-bold"></div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 工作时间配置 -->
+                        <div class="mb-4">
+                            <h6 class="text-success border-bottom pb-2 mb-3"><i class="bi bi-clock me-2"></i>工作时间配置</h6>
+                            <div class="row">
+                                <div class="col-md-6 mb-2">
+                                    <label class="form-label text-muted mb-1">上午工作时间：</label>
+                                    <div id="detailMorningTime" class="fw-bold"></div>
+                                </div>
+                                <div class="col-md-6 mb-2">
+                                    <label class="form-label text-muted mb-1">下午工作时间：</label>
+                                    <div id="detailAfternoonTime" class="fw-bold"></div>
+                                </div>
+                                <div class="col-md-6 mb-2">
+                                    <label class="form-label text-muted mb-1">每日工时：</label>
+                                    <div id="detailDailyHours" class="fw-bold text-success"></div>
+                                </div>
+                                <div class="col-md-6 mb-2">
+                                    <label class="form-label text-muted mb-1">最小加班时长：</label>
+                                    <div id="detailMinOvertime" class="fw-bold"></div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 加班费率配置 -->
+                        <div class="mb-4">
+                            <h6 class="text-warning border-bottom pb-2 mb-3"><i class="bi bi-percent me-2"></i>加班费率配置</h6>
+                            <div class="row">
+                                <div class="col-md-4 mb-2">
+                                    <label class="form-label text-muted mb-1">工作日加班费率：</label>
+                                    <div id="detailWeekdayRate" class="fw-bold"></div>
+                                </div>
+                                <div class="col-md-4 mb-2">
+                                    <label class="form-label text-muted mb-1">休息日加班费率：</label>
+                                    <div id="detailRestdayRate" class="fw-bold"></div>
+                                </div>
+                                <div class="col-md-4 mb-2">
+                                    <label class="form-label text-muted mb-1">节假日加班费率：</label>
+                                    <div id="detailHolidayRate" class="fw-bold"></div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 发起人信息 -->
+                        <div class="mb-3">
+                            <h6 class="text-info border-bottom pb-2 mb-3"><i class="bi bi-person me-2"></i>发起信息</h6>
+                            <div class="row">
+                                <div class="col-md-6 mb-2">
+                                    <label class="form-label text-muted mb-1">发起人：</label>
+                                    <div id="detailCreatedBy" class="fw-bold"></div>
+                                </div>
+                                <div class="col-md-6 mb-2">
+                                    <label class="form-label text-muted mb-1">发起时间：</label>
+                                    <div id="detailCreatedTime" class="fw-bold"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 审批通过弹窗 -->
+        <div class="modal fade" id="approveModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header bg-success text-white">
+                        <h5 class="modal-title"><i class="bi bi-check-circle me-2"></i>审批通过</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <input type="hidden" id="approveConfigId">
+                        <div class="mb-3">
+                            <label class="form-label">审批备注（可选）：</label>
+                            <textarea class="form-control" id="approveRemark" rows="3" placeholder="请输入审批备注..."></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                        <button type="button" class="btn btn-success" onclick="confirmApprove()">
+                            <i class="bi bi-check-lg"></i> 确认通过
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 审批拒绝弹窗 -->
+        <div class="modal fade" id="rejectModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header bg-danger text-white">
+                        <h5 class="modal-title"><i class="bi bi-x-circle me-2"></i>审批拒绝</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <input type="hidden" id="rejectConfigId">
+                        <div class="mb-3">
+                            <label class="form-label">拒绝原因（可选）：</label>
+                            <textarea class="form-control" id="rejectRemark" rows="3" placeholder="请输入拒绝原因..."></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                        <button type="button" class="btn btn-danger" onclick="confirmReject()">
+                            <i class="bi bi-x-lg"></i> 确认拒绝
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 结果提示弹窗 -->
+        <div class="modal fade" id="resultModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered modal-sm">
+                <div class="modal-content">
+                    <div class="modal-header" id="resultModalHeader">
+                        <h5 class="modal-title" id="resultModalTitle"></h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body text-center">
+                        <i id="resultIcon" class="bi" style="font-size: 48px;"></i>
+                        <p id="resultMessage" class="mt-3 mb-0"></p>
+                    </div>
+                    <div class="modal-footer justify-content-center">
+                        <button type="button" class="btn btn-primary" data-bs-dismiss="modal" onclick="location.reload()">确定</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <script>
+            function viewDetail(id) {
+                fetch('/workhour/get/' + id)
+                    .then(res => res.json())
+                    .then(data => {
+                        // 基础配置
+                        document.getElementById('detailCalcType').textContent = data.calcType == 1 ? '日薪计算' : '月薪计算';
+                                    
+                        // 当月工作天数（仅月薪显示）
+                        var monthlyWorkDaysRow = document.getElementById('detailMonthlyWorkDaysRow');
+                        if (data.calcType == 2) {
+                            monthlyWorkDaysRow.style.display = '';
+                            document.getElementById('detailMonthlyWorkDays').textContent = (data.monthlyWorkDays || 22) + '天';
+                        } else {
+                            monthlyWorkDaysRow.style.display = 'none';
+                        }
+                                    
+                        // 工作时间
+                        document.getElementById('detailMorningTime').textContent = 
+                            (data.morningStartTime || '08:00:00').substring(0, 5) + ' — ' + (data.morningEndTime || '12:00:00').substring(0, 5);
+                        document.getElementById('detailAfternoonTime').textContent = 
+                            (data.afternoonStartTime || '13:00:00').substring(0, 5) + ' — ' + (data.afternoonEndTime || '17:00:00').substring(0, 5);
+                        document.getElementById('detailDailyHours').textContent = (data.dailyWorkHours || 8) + ' 小时';
+                        document.getElementById('detailMinOvertime').textContent = (data.minOvertimeHours || 0.5) + ' 小时';
+                                    
+                        // 加班费率
+                        document.getElementById('detailWeekdayRate').textContent = (data.weekdayOvertimeRate || 1.5) + ' 倍';
+                        document.getElementById('detailRestdayRate').textContent = (data.restdayOvertimeRate || 2.0) + ' 倍';
+                        document.getElementById('detailHolidayRate').textContent = (data.holidayOvertimeRate || 3.0) + ' 倍';
+                                    
+                        // 发起人信息
+                        document.getElementById('detailCreatedBy').textContent = data.createdByName || '-';
+                        document.getElementById('detailCreatedTime').textContent = data.createdTime ? formatDateTime(data.createdTime) : '-';
+                                                
+                        // 显示弹窗
+                        var modal = new bootstrap.Modal(document.getElementById('detailModal'));
+                        modal.show();
+                    });
+            }
+            
+            function formatDateTime(dateTimeStr) {
+                if (!dateTimeStr) return '-';
+                return dateTimeStr.replace('T', ' ').substring(0, 16);
+            }
+            
+            // 显示审批通过弹窗
+            function showApproveModal(id) {
+                document.getElementById('approveConfigId').value = id;
+                document.getElementById('approveRemark').value = '';
+                var modal = new bootstrap.Modal(document.getElementById('approveModal'));
+                modal.show();
+            }
+            
+            // 显示审批拒绝弹窗
+            function showRejectModal(id) {
+                document.getElementById('rejectConfigId').value = id;
+                document.getElementById('rejectRemark').value = '';
+                var modal = new bootstrap.Modal(document.getElementById('rejectModal'));
+                modal.show();
+            }
+            
+            // 显示结果弹窗
+            function showResultModal(success, message) {
+                var header = document.getElementById('resultModalHeader');
+                var title = document.getElementById('resultModalTitle');
+                var icon = document.getElementById('resultIcon');
+                var msg = document.getElementById('resultMessage');
+                
+                if (success) {
+                    header.className = 'modal-header bg-success text-white';
+                    title.innerHTML = '<i class="bi bi-check-circle me-2"></i>成功';
+                    icon.className = 'bi bi-check-circle-fill text-success';
+                } else {
+                    header.className = 'modal-header bg-danger text-white';
+                    title.innerHTML = '<i class="bi bi-x-circle me-2"></i>失败';
+                    icon.className = 'bi bi-x-circle-fill text-danger';
+                }
+                msg.textContent = message;
+                
+                var modal = new bootstrap.Modal(document.getElementById('resultModal'));
+                modal.show();
+            }
+            
+            // 确认审批通过
+            function confirmApprove() {
+                var id = document.getElementById('approveConfigId').value;
+                var remark = document.getElementById('approveRemark').value;
+                
+                // 关闭审批弹窗
+                var approveModal = bootstrap.Modal.getInstance(document.getElementById('approveModal'));
+                approveModal.hide();
+                
+                var formData = new FormData();
+                formData.append('remark', remark);
+                
+                fetch('/workhour/approve/' + id, {method: 'POST', body: formData})
+                    .then(res => res.text())
+                    .then(result => {
+                        if (result === 'success') {
+                            showResultModal(true, '审批通过成功');
+                        } else {
+                            showResultModal(false, result);
+                        }
+                    });
+            }
+            
+            // 确认审批拒绝
+            function confirmReject() {
+                var id = document.getElementById('rejectConfigId').value;
+                var remark = document.getElementById('rejectRemark').value;
+                
+                // 关闭拒绝弹窗
+                var rejectModal = bootstrap.Modal.getInstance(document.getElementById('rejectModal'));
+                rejectModal.hide();
+                
+                var formData = new FormData();
+                formData.append('remark', remark);
+                
+                fetch('/workhour/reject/' + id, {method: 'POST', body: formData})
+                    .then(res => res.text())
+                    .then(result => {
+                        if (result === 'success') {
+                            showResultModal(true, '已拒绝该配置');
+                        } else {
+                            showResultModal(false, result);
+                        }
+                    });
+            }
+            
+            function approveConfig(id) {
+                if (!confirm('确定要通过该工时配置吗？')) {
+                    return;
+                }
+                fetch('/workhour/approve/' + id, {method: 'POST'})
+                    .then(res => res.text())
+                    .then(result => {
+                        if (result === 'success') {
+                            alert('审批通过');
+                            location.reload();
+                        } else {
+                            alert(result);
+                        }
+                    });
+            }
+            
+            function rejectConfig(id) {
+                if (!confirm('确定要拒绝该工时配置吗？')) {
+                    return;
+                }
+                fetch('/workhour/reject/' + id, {method: 'POST'})
+                    .then(res => res.text())
+                    .then(result => {
+                        if (result === 'success') {
+                            alert('已拒绝');
+                            location.reload();
+                        } else {
+                            alert(result);
+                        }
+                    });
+            }
+        </script>
+    </div>

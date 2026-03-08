@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="description" content="河南昌涵建筑工程有限公司 - 财务管理系统">
+    <title>河南昌涵建筑工程有限公司 - 登录</title>
+    <link href="/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #0a0e27;
+            overflow: hidden;
+            position: relative;
+        }
+        .bg-animation {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+        }
+        .bg-animation::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.3) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, rgba(120, 219, 255, 0.2) 0%, transparent 40%);
+            animation: bgMove 20s ease-in-out infinite;
+        }
+        .bg-animation::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
+            animation: gridMove 10s linear infinite;
+        }
+        @keyframes bgMove {
+            0%, 100% { transform: scale(1) rotate(0deg); }
+            50% { transform: scale(1.1) rotate(2deg); }
+        }
+        @keyframes gridMove {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(50px, 50px); }
+        }
+        .light-beam {
+            position: absolute;
+            width: 2px;
+            height: 100px;
+            background: linear-gradient(to bottom, transparent, rgba(255,255,255,0.5), transparent);
+            animation: beamMove 3s linear infinite;
+        }
+        .light-beam:nth-child(1) { left: 10%; animation-delay: 0s; }
+        .light-beam:nth-child(2) { left: 30%; animation-delay: 0.5s; }
+        .light-beam:nth-child(3) { left: 50%; animation-delay: 1s; }
+        .light-beam:nth-child(4) { left: 70%; animation-delay: 1.5s; }
+        .light-beam:nth-child(5) { left: 90%; animation-delay: 2s; }
+        @keyframes beamMove {
+            0% { top: -100px; opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { top: 100vh; opacity: 0; }
+        }
+        .login-box {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            width: 100%;
+            max-width: 450px;
+            position: relative;
+            z-index: 1;
+            backdrop-filter: blur(10px);
+        }
+        .company-name {
+            text-align: center;
+            font-size: 22px;
+            font-weight: 600;
+            color: #1a1a2e;
+            margin-bottom: 24px;
+            letter-spacing: 1px;
+        }
+        .login-title {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #666;
+            font-size: 16px;
+        }
+        .form-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            gap: 12px;
+        }
+        .form-row label {
+            width: 60px;
+            font-weight: 500;
+            color: #333;
+            margin-bottom: 0;
+            flex-shrink: 0;
+        }
+        .form-row input {
+            flex: 1;
+            padding: 10px 14px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        .form-row input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        .btn-login {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-weight: 500;
+            margin-top: 10px;
+        }
+        .btn-login:hover {
+            background: linear-gradient(135deg, #5a6fd6 0%, #6a4190 100%);
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-animation">
+        <div class="light-beam"></div>
+        <div class="light-beam"></div>
+        <div class="light-beam"></div>
+        <div class="light-beam"></div>
+        <div class="light-beam"></div>
+    </div>
+    <div class="login-box">
+        <div class="company-name">河南昌涵建筑工程有限公司</div>
+        <form action="/doLogin" method="post">
+            <div class="form-row">
+                <label>用户名</label>
+                <input type="text" name="name" placeholder="请输入姓名和手机号" required>
+            </div>
+            <div class="form-row">
+                <label>密码</label>
+                <input type="password" name="password" placeholder="请输入密码" required>
+            </div>
+            <div th:if="${error}" class="alert alert-danger" th:text="${error}"></div>
+            <button type="submit" class="btn btn-login">登录</button>
+        </form>
+    </div>
+    <script src="/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // 检测是否在微信内置浏览器中
+        function isWeixin() {
+            var ua = navigator.userAgent.toLowerCase();
+            return ua.indexOf('micromessenger') !== -1;
+        }
+        
+        // 检测是否在QQ内置浏览器中
+        function isQQ() {
+            var ua = navigator.userAgent.toLowerCase();
+            return ua.indexOf('qq') !== -1 && ua.indexOf('micromessenger') === -1;
+        }
+        
+        // 检测是否在支付宝内置浏览器中
+        function isAlipay() {
+            var ua = navigator.userAgent.toLowerCase();
+            return ua.indexOf('alipay') !== -1;
+        }
+        
+        // 显示提示信息
+        function showBrowserTip() {
+            if (isWeixin() || isQQ() || isAlipay()) {
+                var tipDiv = document.createElement('div');
+                tipDiv.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#fff3cd;border:1px solid #ffeaa7;padding:12px 15px;z-index:9999;font-size:14px;color:#856404;text-align:center;';
+                tipDiv.innerHTML = '<i class="bi bi-info-circle"></i> 请点击右上角 <b>···</b> 选择 <b>"在浏览器打开"</b> 以获得最佳体验';
+                document.body.appendChild(tipDiv);
+                
+                // 3秒后自动隐藏
+                setTimeout(function() {
+                    tipDiv.style.opacity = '0';
+                    tipDiv.style.transition = 'opacity 0.5s';
+                    setTimeout(function() {
+                        tipDiv.remove();
+                    }, 500);
+                }, 5000);
+            }
+        }
+        
+        // 页面加载完成后执行
+        document.addEventListener('DOMContentLoaded', function() {
+            showBrowserTip();
+        });
+    </script>
+</body>
+</html>

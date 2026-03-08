@@ -1,0 +1,995 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{common/layout :: layout(~{::title}, ~{::#mainContent})}">
+<head>
+    <title>考勤管理</title>
+</head>
+<body>
+<div id="mainContent">
+<style>
+        /* ===== 整体布局 ===== */
+        .attendance-wrap { display: flex; gap: 0; height: calc(100vh - 140px); min-height: 600px; }
+
+        /* ===== 左侧员工列表 ===== */
+        .emp-panel {
+            width: 220px; min-width: 180px; flex-shrink: 0;
+            background: #fff; border: 1px solid #dee2e6; border-radius: 8px 0 0 8px;
+            display: flex; flex-direction: column; overflow: hidden;
+        }
+        .emp-panel-header {
+            padding: 12px 14px; background: #f8f9fa;
+            border-bottom: 1px solid #dee2e6; font-weight: 600; font-size: 13px; color: #495057;
+        }
+        .emp-list { flex: 1; overflow-y: auto; }
+        .emp-item { 
+            padding: 10px 14px; cursor: pointer; border-bottom: 1px solid #f0f0f0;
+            transition: background 0.15s;
+            display: flex; align-items: center; justify-content: space-between; gap: 6px;
+        }
+        .emp-item:hover { background: #f0f4ff; }
+        .emp-item.active { background: #e8f0fe; border-left: 3px solid #4361ee; }
+        .emp-item .emp-name { font-size: 14px; font-weight: 500; color: #2c3e50; }
+        .emp-item .emp-job { font-size: 11px; color: #adb5bd; margin-top: 2px; }
+        .emp-days-badge {
+            flex-shrink: 0; font-size: 11px; font-weight: 600;
+            color: #16a34a; background: #f0faf4; border: 1px solid #b7ebc8;
+            border-radius: 10px; padding: 2px 7px; white-space: nowrap;
+            min-width: 32px; text-align: center;
+        }
+        .emp-days-badge.loading { color: #9ca3af; background: #f3f4f6; border-color: #e5e7eb; }
+
+        /* ===== 右侧主区域 ===== */
+        .main-panel {
+            flex: 1; display: flex; flex-direction: column;
+            border: 1px solid #dee2e6; border-left: none; border-radius: 0 8px 8px 0;
+            background: #fff; overflow: hidden;
+        }
+
+        /* ===== 顶部工具栏 ===== */
+        .toolbar {
+            padding: 10px 16px; background: #f8f9fa; border-bottom: 1px solid #dee2e6;
+            display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+        }
+        .toolbar .emp-title { font-size: 15px; font-weight: 600; color: #2c3e50; flex: 1; }
+        .toolbar .form-select, .toolbar .form-control { font-size: 13px; padding: 5px 10px; height: 32px; }
+        .toolbar .btn { font-size: 13px; padding: 5px 12px; height: 32px; }
+
+        /* ===== 汇总统计卡片 ===== */
+        .summary-bar {
+            display: flex; gap: 8px; padding: 10px 16px; background: #fff;
+            border-bottom: 1px solid #f0f0f0; flex-wrap: wrap;
+        }
+        .stat-card {
+            flex: 1; min-width: 90px; padding: 8px 12px; border-radius: 8px;
+            text-align: center; border: 1px solid transparent;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+        }
+        .stat-card.green  { background: #f0faf4; border-color: #b7ebc8; }
+        .stat-card.blue   { background: #eff6ff; border-color: #bfdbfe; }
+        .stat-card.orange { background: #fffbeb; border-color: #fde68a; }
+        .stat-card.cyan   { background: #ecfeff; border-color: #a5f3fc; }
+        .stat-card.red    { background: #fff1f2; border-color: #fecdd3; }
+        .stat-card .val   { font-size: 20px; font-weight: 700; line-height: 1.2; }
+        .stat-card.green  .val { color: #16a34a; }
+        .stat-card.blue   .val { color: #2563eb; }
+        .stat-card.orange .val { color: #d97706; }
+        .stat-card.cyan   .val { color: #0891b2; }
+        .stat-card.red    .val { color: #dc2626; }
+        .stat-card .lbl   { font-size: 11px; color: #6b7280; margin-top: 2px; }
+
+        /* ===== 月历 ===== */
+        .calendar-area { flex: 1; padding: 12px 16px; overflow-y: auto; }
+        .cal-nav { display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 10px; }
+        .cal-nav .cal-month { font-size: 15px; font-weight: 600; color: #374151; }
+        .cal-table { width: 100%; border-collapse: separate; border-spacing: 3px; }
+        .cal-table th {
+            text-align: center; font-size: 12px; color: #9ca3af;
+            padding: 4px 0; font-weight: 500;
+        }
+        .cal-table th.weekend { color: #f87171; }
+        .cal-cell {
+            height: 72px; vertical-align: top; padding: 4px 5px;
+            border: 1px solid #e5e7eb; border-radius: 6px;
+            cursor: pointer; transition: all 0.15s; position: relative;
+            background: #fff;
+        }
+        .cal-cell:hover { border-color: #4361ee; background: #f0f4ff; }
+        .cal-cell.other-month { background: #f9fafb; cursor: default; border-color: #f0f0f0; }
+        .cal-cell.other-month:hover { background: #f9fafb; border-color: #f0f0f0; }
+        .cal-cell.future { background: #fafafa; cursor: not-allowed; }
+        .cal-cell.future:hover { background: #fafafa; border-color: #e5e7eb; }
+        .cal-cell.today { border-color: #4361ee; background: #f0f4ff; }
+        .cal-cell.has-record { border-color: #86efac; }
+        .cal-cell.selected { border-color: #4361ee; background: #e8f0fe; box-shadow: 0 0 0 2px rgba(67,97,238,.3); }
+        .day-num { font-size: 12px; color: #374151; font-weight: 500; }
+        .day-num.weekend { color: #f87171; }
+        .day-num.today-num {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 20px; height: 20px; background: #4361ee; color: #fff;
+            border-radius: 50%; font-size: 11px;
+        }
+        .att-tags { display: flex; flex-wrap: wrap; gap: 2px; margin-top: 3px; }
+        .att-tag {
+            font-size: 10px; padding: 1px 4px; border-radius: 3px;
+            line-height: 1.4; white-space: nowrap;
+        }
+        .att-tag.t1 { background: #dcfce7; color: #16a34a; }
+        .att-tag.t2 { background: #fef9c3; color: #92400e; }
+        .att-tag.t3 { background: #e0f2fe; color: #0369a1; }
+        .att-tag.t4 { background: #fee2e2; color: #dc2626; }
+
+        /* ===== 右侧详情面板 ===== */
+        .detail-panel {
+            width: 240px; flex-shrink: 0; border-left: 1px solid #e5e7eb;
+            padding: 14px; overflow-y: auto; background: #fafafa;
+        }
+        .detail-panel .detail-date { font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 10px; }
+        .record-item {
+            background: #fff; border: 1px solid #e5e7eb; border-radius: 6px;
+            padding: 8px 10px; margin-bottom: 8px; position: relative;
+        }
+        .record-item .rec-type { font-size: 13px; font-weight: 500; }
+        .record-item .rec-hours { font-size: 12px; color: #6b7280; margin-top: 2px; }
+        .record-item .rec-actions { margin-top: 6px; display: flex; gap: 6px; }
+        .record-item .btn-rec { font-size: 11px; padding: 2px 8px; }
+        .no-record-hint { text-align: center; color: #adb5bd; padding: 30px 0; font-size: 13px; }
+
+        /* ===== 空状态 ===== */
+        .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: #adb5bd; }
+        .empty-state i { font-size: 48px; margin-bottom: 12px; }
+
+        /* ===== 响应式 ===== */
+        @media (max-width: 768px) {
+            .attendance-wrap { flex-direction: column; height: auto; }
+            .emp-panel { width: 100%; border-radius: 8px 8px 0 0; max-height: 200px; }
+            .main-panel { border-radius: 0 0 8px 8px; border-left: 1px solid #dee2e6; }
+            .detail-panel { width: 100%; border-left: none; border-top: 1px solid #e5e7eb; }
+        }
+    </style>
+
+    <!-- 顶部筛选栏 -->
+    <div class="d-flex align-items-center gap-3 mb-3 flex-wrap">
+        <h5 class="mb-0 fw-bold"><i class="bi bi-calendar-check me-2 text-primary"></i>考勤管理</h5>
+        <div class="d-flex align-items-center gap-2">
+            <label class="text-muted mb-0" style="font-size:13px;">项目</label>
+            <select class="form-select form-select-sm" id="projectId" style="width:170px;" onchange="changeProject()">
+                <option value="" th:selected="${projectId == null}">全部项目</option>
+                <option th:each="proj : ${projects}" th:value="${proj.id}" th:text="${proj.name}"
+                        th:selected="${proj.id == projectId}"></option>
+            </select>
+            <label class="text-muted mb-0" style="font-size:13px;">月份</label>
+            <input type="month" class="form-control form-control-sm" id="yearMonth" style="width:140px;"
+                   th:value="${yearMonth}" onchange="changeMonth()">
+        </div>
+        <!-- 考勤表状态提示 -->
+        <div class="ms-auto d-flex align-items-center gap-2 flex-wrap" id="monthStatusWrap">
+            <span class="text-muted" style="font-size:13px;">本月考勤表状态：</span>
+            <span class="badge bg-secondary" id="monthStatusBadge">草稿</span>
+            <span class="text-muted" id="monthStatusTip" style="font-size:12px;display:none;"></span>
+            <button class="btn btn-sm btn-primary" id="btnSubmitAudit" onclick="submitMonthAudit()">
+                <i class="bi bi-send"></i> 提交审批
+            </button>
+            <!-- 审批人专用按钮：待审批状态时显示 -->
+            <button class="btn btn-sm btn-success" id="btnApprovePass" onclick="approveMonth(true)" style="display:none;">
+                <i class="bi bi-check-circle"></i> 审批通过
+            </button>
+            <button class="btn btn-sm btn-danger" id="btnApproveReject" onclick="approveMonth(false)" style="display:none;">
+                <i class="bi bi-x-circle"></i> 驳回
+            </button>
+        </div>
+    </div>
+
+    <!-- 主面板 -->
+    <div class="attendance-wrap">
+
+        <!-- 左侧：员工列表 -->
+        <div class="emp-panel">
+            <div class="emp-panel-header"><i class="bi bi-people me-1"></i>员工列表
+                <span class="badge bg-primary ms-1" id="empCount"
+                      th:text="${#lists.size(employees)}">0</span>
+            </div>
+            <div class="emp-list" id="empList">
+                <div th:if="${#lists.isEmpty(employees)}" class="text-center text-muted p-4" style="font-size:13px;">
+                    暂无员工
+                </div>
+                <div class="emp-item" th:each="emp : ${employees}"
+                     th:data-emp-id="${emp.id}"
+                     th:data-emp-name="${emp.name}"
+                     th:data-emp-job="${emp.jobCategoryName}"
+                     th:data-emp-salary-type="${emp.salaryType}"
+                     onclick="selectEmployee(this)">
+                    <div>
+                        <div class="emp-name" th:text="${emp.name}">姓名</div>
+                        <div class="emp-job" th:text="${emp.jobCategoryName} ?: '未设置工种'">工种</div>
+                    </div>
+                    <div class="emp-days-badge loading" th:id="'empDays-' + ${emp.id}">-</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 右侧：主内容 -->
+        <div class="main-panel">
+            <!-- 权限标记（供JS使用） -->
+            <input type="hidden" id="canAddAttendance" th:value="${session.currentUser != null and session.currentUser.hasPermission('attendance:add')}"/>
+            <input type="hidden" id="currentRoleCode" th:value="${currentRoleCode}"/>
+
+            <!-- 工具栏 -->
+            <div class="toolbar">
+                <span class="emp-title" id="currentEmpTitle">
+                    <i class="bi bi-person-circle text-primary me-1"></i>
+                    <span id="currentEmpName">请从左侧选择员工</span>
+                </span>
+            </div>
+
+            <!-- 汇总统计 -->
+            <div class="summary-bar" id="summaryBar">
+                <div class="stat-card green">
+                    <div class="val" id="statNormalDays">-</div>
+                    <div class="lbl">当月出勤天数</div>
+                </div>
+                <div class="stat-card blue">
+                    <div class="val" id="statNormalHours">-</div>
+                    <div class="lbl">当月出勤总工时</div>
+                </div>
+                <div class="stat-card orange" style="display:flex;flex-direction:column;justify-content:center;gap:6px;">
+                    <div style="display:flex;justify-content:center;align-items:center;gap:8px;">
+                        <span style="font-size:12px;color:#9ca3af;">工作日加班</span>
+                        <span class="val" style="font-size:16px;" id="statWeekdayOvertimeHours">-</span>
+                    </div>
+                    <div style="border-top:1px dashed #fed7aa;"></div>
+                    <div style="display:flex;justify-content:center;align-items:center;gap:8px;">
+                        <span style="font-size:12px;color:#9ca3af;">休息日加班</span>
+                        <span class="val" style="font-size:16px;" id="statRestdayOvertimeHours">-</span>
+                    </div>
+                    <div style="border-top:1px dashed #fed7aa;"></div>
+                    <div style="display:flex;justify-content:center;align-items:center;gap:8px;">
+                        <span style="font-size:12px;color:#9ca3af;">节假日加班</span>
+                        <span class="val" style="font-size:16px;" id="statHolidayOvertimeHours">-</span>
+                    </div>
+                </div>
+                <div class="stat-card cyan">
+                    <div class="val" id="statLeaveHours">-</div>
+                    <div class="lbl">当月请假总工时</div>
+                </div>
+                <div class="stat-card" style="background:#fff7ed;border-color:#fed7aa;">
+                    <div class="val" style="color:#c2410c;" id="statLateHours">-</div>
+                    <div class="lbl">当月迟到总工时</div>
+                </div>
+                <div class="stat-card red">
+                    <div class="val" id="statAbsentHours">-</div>
+                    <div class="lbl">当月旷工总工时</div>
+                </div>
+            </div>
+
+            <!-- 月历 + 详情 并排 -->
+            <div style="display:flex; flex:1; overflow:hidden;">
+
+                <!-- 月历区 -->
+                <div class="calendar-area" id="calendarArea">
+                    <div class="empty-state" id="emptyHint">
+                        <i class="bi bi-person-check"></i>
+                        <p>请从左侧选择员工查看考勤</p>
+                    </div>
+                    <div id="calendarWrap" style="display:none;">
+                        <div class="cal-nav">
+                            <span class="cal-month" id="calMonthTitle"></span>
+                        </div>
+                        <table class="cal-table">
+                            <thead>
+                                <tr>
+                                    <th class="weekend">日</th>
+                                    <th>一</th><th>二</th><th>三</th><th>四</th><th>五</th>
+                                    <th class="weekend">六</th>
+                                </tr>
+                            </thead>
+                            <tbody id="calBody"></tbody>
+                        </table>
+                        <!-- 统计说明 -->
+                        <div class="mt-3 p-3 bg-light rounded" style="font-size:12px;color:#6b7280;">
+                            <div class="fw-bold mb-2 text-dark">统计说明：</div>
+                            <div class="row g-2">
+                                <div class="col-md-4"><strong>当月出勤天数</strong>：出勤总工时÷每日标准工时</div>
+                                <div class="col-md-4"><strong>当月出勤总工时</strong>：出勤工时累计</div>
+                                <div class="col-md-4"><strong>当月请假总工时</strong>：请假工时累计</div>
+                                <div class="col-md-4"><strong>当月迟到总工时</strong>：迟到记录累计</div>
+                                <div class="col-md-4"><strong>当月旷工总工时</strong>：旷工记录累计</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 右侧详情 -->
+                <div class="detail-panel" id="detailPanel">
+                    <div class="no-record-hint">
+                        <i class="bi bi-calendar3" style="font-size:28px; display:block; margin-bottom:8px;"></i>
+                        点击日历日期<br>查看当日考勤
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 新增/编辑考勤弹窗 ===== -->
+    <div class="modal fade" id="attendanceModal" tabindex="-1">
+        <div class="modal-dialog" style="max-width:460px;">
+            <div class="modal-content">
+                <div class="modal-header py-2">
+                    <h6 class="modal-title fw-bold" id="modalTitle">新增考勤</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="attId">
+                    <input type="hidden" id="attEmpId">
+                    <input type="hidden" id="attProjId">
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <label class="form-label mb-1" style="font-size:13px;">员工</label>
+                            <input class="form-control form-control-sm" id="attEmpName" readonly>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label mb-1" style="font-size:13px;">工作日期</label>
+                            <input type="date" class="form-control form-control-sm" id="attDate">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label mb-1" style="font-size:13px;">计算方式</label>
+                            <select class="form-select form-select-sm" id="attCalcType" onchange="onCalcTypeChange()" disabled>
+                                <option value="">加载中...</option>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label mb-1" style="font-size:13px;">每日工时（h）</label>
+                            <input type="number" class="form-control form-control-sm bg-light" id="attDailyHours"
+                                   readonly style="color:#6c757d;cursor:not-allowed;">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label mb-1" style="font-size:13px;">出勤类型</label>
+                            <select class="form-select form-select-sm" id="attType" onchange="onTypeChange()">
+                                <option value="1">出勤</option>
+                                <option value="2">加班</option>
+                                <option value="3">请假</option>
+                                <option value="5">迟到</option>
+                                <option value="6">旷工</option>
+                            </select>
+                        </div>
+                        <div class="col-6" id="overtimeTypeWrap" style="display:none;">
+                            <label class="form-label mb-1" style="font-size:13px;">加班类型</label>
+                            <select class="form-select form-select-sm" id="attOvertimeType">
+                                <option value="1">工作日加班</option>
+                                <option value="2">休息日加班</option>
+                                <option value="3">法定假期加班</option>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label mb-1" style="font-size:13px;">工时（小时）</label>
+                            <input type="number" class="form-control form-control-sm" id="attHours"
+                                   value="8" step="0.5" min="0.5" max="24">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label mb-1" style="font-size:13px;">备注</label>
+                            <textarea class="form-control form-control-sm" id="attRemark" rows="2"></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer py-2">
+                    <button class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">取消</button>
+                    <button class="btn btn-sm btn-primary" onclick="saveAttendance()">保存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 消息提示 Modal ===== -->
+    <div class="modal fade" id="msgModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-sm modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header py-2" id="msgModalHeader">
+                    <h6 class="modal-title fs-6" id="msgModalTitle">提示</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body py-3" id="msgModalBody">
+                    操作成功
+                </div>
+                <div class="modal-footer py-2">
+                    <button type="button" class="btn btn-sm btn-primary" data-bs-dismiss="modal">确定</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script th:src="@{/js/jquery.min.js}"></script>
+    <script th:src="@{/js/bootstrap.bundle.min.js}"></script>
+    <script th:src="@{/common/layout.js}"></script>
+    <script>
+    // ===== 全局状态 =====
+    var G = {
+        empId: null, empName: '',
+        yearMonth: document.getElementById('yearMonth').value,
+        projectId: document.getElementById('projectId').value || '',
+        calDate: null,            // Date 对象，当前日历年月
+        attendances: [],          // 当前员工当月所有考勤记录
+        selectedDate: null,       // 当前选中的日期字符串 yyyy-MM-dd
+        modal: null
+    };
+
+    document.addEventListener('DOMContentLoaded', function() {
+        G.modal = new bootstrap.Modal(document.getElementById('attendanceModal'));
+        G.msgModal = new bootstrap.Modal(document.getElementById('msgModal'));
+        // 初始化日历日期为当前筛选月
+        var ym = G.yearMonth.split('-');
+        G.calDate = new Date(parseInt(ym[0]), parseInt(ym[1]) - 1, 1);
+        // 自动选中第一个员工
+        var first = document.querySelector('.emp-item');
+        if (first) selectEmployee(first);
+        // 加载月度考勤状态
+        loadMonthStatus();
+        // 加载所有员工左侧列表天数
+        loadAllEmpDays();
+    });
+
+    // ===== 员工选择 =====
+    function selectEmployee(el) {
+        document.querySelectorAll('.emp-item').forEach(function(e){ e.classList.remove('active'); });
+        el.classList.add('active');
+        G.empId = parseInt(el.getAttribute('data-emp-id'));
+        G.empName = el.getAttribute('data-emp-name');
+        G.empSalaryType = parseInt(el.getAttribute('data-emp-salary-type')) || 2; // 默认月薪
+        document.getElementById('currentEmpName').textContent = G.empName;
+
+        // 重置选中日期
+        G.selectedDate = null;
+
+        // 显示日历
+        document.getElementById('emptyHint').style.display = 'none';
+        document.getElementById('calendarWrap').style.display = 'block';
+
+        loadMonthData();
+    }
+
+    // ===== 加载当月数据（考勤记录 + 统计）=====
+    function loadMonthData() {
+        if (!G.empId) return;
+        var ym = G.yearMonth;
+        var pid = G.projectId;
+        var url = '/attendance/calendar/' + G.empId + '?yearMonth=' + ym + (pid ? '&projectId=' + pid : '');
+        fetch(url).then(r => r.json()).then(function(data) {
+            G.attendances = data;
+            renderCalendar();
+            loadSummary();
+            renderDetail(G.selectedDate);
+        });
+    }
+
+    // ===== 加载全部员工出勤天数（左侧列表徽章）=====
+    function loadAllEmpDays() {
+        var items = document.querySelectorAll('.emp-item[data-emp-id]');
+        items.forEach(function(el) {
+            var empId = el.getAttribute('data-emp-id');
+            var badge = document.getElementById('empDays-' + empId);
+            if (!badge) return;
+            badge.className = 'emp-days-badge loading';
+            badge.textContent = '…';
+            var url = '/attendance/summary/' + empId + '?yearMonth=' + G.yearMonth
+                    + (G.projectId ? '&projectId=' + G.projectId : '');
+            fetch(url).then(function(r) { return r.json(); }).then(function(s) {
+                var days = s.normalDays != null ? s.normalDays : 0;
+                badge.textContent = days + '天';
+                badge.className = days > 0 ? 'emp-days-badge' : 'emp-days-badge loading';
+            }).catch(function() {
+                badge.textContent = '-';
+                badge.className = 'emp-days-badge loading';
+            });
+        });
+    }
+
+    // ===== 汇总统计 =====
+    function loadSummary() {
+        if (!G.empId) return;
+        var url = '/attendance/summary/' + G.empId + '?yearMonth=' + G.yearMonth
+                + (G.projectId ? '&projectId=' + G.projectId : '');
+        fetch(url).then(r => r.json()).then(function(s) {
+            document.getElementById('statNormalDays').textContent    = (s.normalDays || 0) + '天';
+            document.getElementById('statNormalHours').textContent   = (s.normalHours || 0) + 'h';
+            // 分类型加班工时
+            document.getElementById('statWeekdayOvertimeHours').textContent  = (s.weekdayOvertimeHours || 0) + 'h';
+            document.getElementById('statRestdayOvertimeHours').textContent  = (s.restdayOvertimeHours || 0) + 'h';
+            document.getElementById('statHolidayOvertimeHours').textContent  = (s.holidayOvertimeHours || 0) + 'h';
+            document.getElementById('statLeaveHours').textContent    = (s.leaveHours || 0) + 'h';
+            document.getElementById('statLateHours').textContent     = (s.lateHours || 0) + 'h';
+            document.getElementById('statAbsentHours').textContent   = (s.absentHours || 0) + 'h';
+            // 同步左侧员工列表天数徽章
+            var days = s.normalDays != null ? s.normalDays : 0;
+            var badge = document.getElementById('empDays-' + G.empId);
+            if (badge) {
+                badge.textContent = days + '天';
+                badge.className = days > 0 ? 'emp-days-badge' : 'emp-days-badge loading';
+            }
+        });
+    }
+
+    // ===== 渲染月历 =====
+    function renderCalendar() {
+        // 日历始终显示筛选框选择的月份（不再允许切换）
+        var filterYm = G.yearMonth.split('-');
+        var year = parseInt(filterYm[0]);
+        var month = parseInt(filterYm[1]) - 1; // 0-based
+        var ym = G.yearMonth;
+
+        // 更新标题为 "2026年3月考勤"
+        document.getElementById('calMonthTitle').textContent = year + '年' + (month + 1) + '月考勤';
+
+        // 构建日期→考勤 map（只取当前日历显示的月份数据，但 G.attendances 只有筛选月数据）
+        var attMap = {};
+        G.attendances.forEach(function(a) {
+            if (!attMap[a.workDate]) attMap[a.workDate] = [];
+            attMap[a.workDate].push(a);
+        });
+
+        var today = new Date(); today.setHours(0,0,0,0);
+        var firstDay = new Date(year, month, 1);
+        var startCell = new Date(firstDay);
+        startCell.setDate(startCell.getDate() - firstDay.getDay());
+
+        var html = '';
+        for (var w = 0; w < 6; w++) {
+            html += '<tr>';
+            for (var d = 0; d < 7; d++) {
+                var cellDate = new Date(startCell);
+                cellDate.setDate(startCell.getDate() + w * 7 + d);
+                cellDate.setHours(0,0,0,0);
+                var dateStr = fmtDate(cellDate);
+                var isCurMonth = cellDate.getMonth() === month;
+                var isToday    = cellDate.getTime() === today.getTime();
+                var isFuture   = cellDate.getTime() > today.getTime();
+                var isWeekend  = (d === 0 || d === 6);
+                var isSelected = (dateStr === G.selectedDate);
+
+                var cls = 'cal-cell';
+                if (!isCurMonth) cls += ' other-month';
+                else if (isFuture) cls += ' future';
+                if (isToday) cls += ' today';
+                if (isSelected) cls += ' selected';
+                if (isCurMonth && !isFuture && attMap[dateStr] && attMap[dateStr].length > 0) cls += ' has-record';
+
+                var onclick = (isCurMonth && !isFuture)
+                    ? 'onclick="clickDay(\'' + dateStr + '\')"' : '';
+
+                var dayNumCls = 'day-num' + (isWeekend ? ' weekend' : '');
+                var dayNumHtml = isToday
+                    ? '<span class="today-num">' + cellDate.getDate() + '</span>'
+                    : cellDate.getDate();
+
+                var tagsHtml = '';
+                if (isCurMonth && attMap[dateStr]) {
+                    attMap[dateStr].forEach(function(a) {
+                        var tc = 't' + a.attendanceType;
+                        var txt = ['','出','加','假','缺','迟','旷'][a.attendanceType] || '?';
+                        var h = a.workHours ? a.workHours + 'h' : '';
+                        tagsHtml += '<span class="att-tag ' + tc + '">' + txt + (h ? ' ' + h : '') + '</span>';
+                    });
+                }
+
+                html += '<td class="' + cls + '" ' + onclick + '>';
+                html += '<div class="' + dayNumCls + '">' + dayNumHtml + '</div>';
+                html += '<div class="att-tags">' + tagsHtml + '</div>';
+                html += '</td>';
+            }
+            html += '</tr>';
+        }
+        document.getElementById('calBody').innerHTML = html;
+    }
+
+    // ===== 点击日期 =====
+    function clickDay(dateStr) {
+        G.selectedDate = dateStr;
+        renderCalendar();
+        renderDetail(dateStr);
+    }
+
+    // ===== 渲染右侧详情 =====
+    function renderDetail(dateStr) {
+        var panel = document.getElementById('detailPanel');
+        if (!dateStr) {
+            panel.innerHTML = '<div class="no-record-hint"><i class="bi bi-calendar3" style="font-size:28px; display:block; margin-bottom:8px;"></i>点击日历日期<br>查看当日考勤</div>';
+            return;
+        }
+
+        var dayAtts = G.attendances.filter(function(a){ return a.workDate === dateStr; });
+        var canEdit = document.getElementById('canAddAttendance').value === 'true'; // 有权限
+
+        var dateDisplay = dateStr.replace(/-/g, '/');
+        var html = '<div class="detail-date"><i class="bi bi-calendar-event me-1 text-primary"></i>' + dateDisplay + '</div>';
+
+        if (dayAtts.length === 0) {
+            html += '<div class="no-record-hint" style="padding:20px 0;"><i class="bi bi-inbox" style="font-size:24px;display:block;"></i>当日无考勤记录</div>';
+            if (canEdit) {
+                html += '<button class="btn btn-sm btn-outline-primary w-100" onclick="openAddModal(\'' + dateStr + '\')">' +
+                        '<i class="bi bi-plus-lg me-1"></i>新增考勤</button>';
+            }
+        } else {
+            dayAtts.forEach(function(a) {
+                var typeColor  = ['','success','warning','info','danger','secondary','dark'][a.attendanceType];
+                var typeName   = ['','出勤','加班','请假','缺勤','迟到','旷工'][a.attendanceType];
+                html += '<div class="record-item">';
+                html += '<div class="rec-type text-' + typeColor + '">' + typeName + '</div>';
+                html += '<div class="rec-hours">';
+                if (a.workHours) html += '<i class="bi bi-clock me-1"></i>' + a.workHours + ' 小时';
+                if (a.overtimeType) {
+                    var otName = ['','工作日','休息日','法定节假日'][a.overtimeType];
+                    html += '&nbsp;<span class="badge bg-light text-secondary">' + otName + '</span>';
+                }
+                html += '</div>';
+                if (a.remark) html += '<div style="font-size:11px;color:#6b7280;margin-top:3px;">' + a.remark + '</div>';
+                if (canEdit) {
+                    html += '<div class="rec-actions">';
+                    html += '<button class="btn btn-outline-secondary btn-rec" onclick="openEditModal(' + a.id + ')"><i class="bi bi-pencil"></i> 编辑</button>';
+                    html += '<button class="btn btn-outline-danger btn-rec" onclick="deleteRecord(' + a.id + ')"><i class="bi bi-trash"></i> 删除</button>';
+                    html += '</div>';
+                }
+                html += '</div>';
+            });
+            if (canEdit) {
+                html += '<button class="btn btn-sm btn-outline-primary w-100 mt-1" onclick="openAddModal(\'' + dateStr + '\')">' +
+                        '<i class="bi bi-plus-lg me-1"></i>继续添加</button>';
+            }
+        }
+        panel.innerHTML = html;
+    }
+
+    // ===== 消息提示函数（Bootstrap Modal）=====
+    function showMsg(msg, type) {
+        var title = type === 'success' ? '成功' : type === 'error' ? '错误' : '提示';
+        var headerClass = type === 'success' ? 'bg-success text-white' : type === 'error' ? 'bg-danger text-white' : 'bg-primary text-white';
+        document.getElementById('msgModalTitle').textContent = title;
+        document.getElementById('msgModalBody').textContent = msg;
+        document.getElementById('msgModalHeader').className = 'modal-header py-2 ' + headerClass;
+        G.msgModal.show();
+    }
+
+    // ===== 月份导航 =====
+    function navMonth(delta) {
+        G.calDate.setMonth(G.calDate.getMonth() + delta);
+        renderCalendar();
+    }
+
+    // ===== 切换项目/月份 =====
+    function changeProject() {
+        G.projectId = document.getElementById('projectId').value;
+        var ym = document.getElementById('yearMonth').value;
+        window.location.href = '/attendance/list?projectId=' + G.projectId + '&yearMonth=' + ym;
+    }
+    function changeMonth() {
+        G.yearMonth = document.getElementById('yearMonth').value;
+        var ym = G.yearMonth.split('-');
+        G.calDate = new Date(parseInt(ym[0]), parseInt(ym[1]) - 1, 1);
+        window.location.href = '/attendance/list?projectId=' + G.projectId + '&yearMonth=' + G.yearMonth;
+    }
+
+    // ===== 工时配置缓存（弹窗用）=====
+    G.workHourConfigs = [];
+
+    // 根据员工薪资类型设置计算方式：1-日薪→1-日薪计算，2/3-月薪/年薪→2-月薪计算
+    function setCalcTypeByEmployee() {
+        var sel = document.getElementById('attCalcType');
+        var dailyHoursInput = document.getElementById('attDailyHours');
+        var salaryType = G.empSalaryType || 2; // 默认月薪
+        var calcType = (salaryType === 1) ? 1 : 2; // 日薪→日薪计算，月薪/年薪→月薪计算
+        var calcTypeName = (calcType === 1) ? '日薪计算' : '月薪计算';
+        var defaultHours = '8';
+        
+        // 查找对应配置的每日工时
+        var config = G.workHourConfigs.find(function(c) { return c.calcType === calcType; });
+        if (config) {
+            defaultHours = config.dailyWorkHours || '8';
+        }
+        
+        // 设置下拉框（只有当前选项，且置灰禁用）
+        sel.innerHTML = '<option value="' + calcType + '">' + calcTypeName + '</option>';
+        sel.disabled = true;
+        sel.classList.add('bg-light');
+        
+        dailyHoursInput.value = defaultHours;
+    }
+
+    function loadWorkHourConfigs(callback) {
+        if (G.workHourConfigs.length > 0) { 
+            setCalcTypeByEmployee();
+            if (callback) callback(); 
+            return; 
+        }
+        fetch('/workhour/configs-for-select').then(r => r.json()).then(function(list) {
+            G.workHourConfigs = list;
+            setCalcTypeByEmployee();
+            if (callback) callback();
+        });
+    }
+
+    function onCalcTypeChange() {
+        var sel = document.getElementById('attCalcType');
+        var opt = sel.options[sel.selectedIndex];
+        var h = opt ? opt.getAttribute('data-hours') : '8';
+        document.getElementById('attDailyHours').value = h || '8';
+    }
+
+    // ===== 新增考勤弹窗 =====
+    function openAddModal(dateStr) {
+        document.getElementById('modalTitle').textContent = '新增考勤';
+        document.getElementById('attId').value = '';
+        document.getElementById('attEmpId').value = G.empId;
+        document.getElementById('attEmpName').value = G.empName;
+        document.getElementById('attProjId').value = G.projectId || '';
+        document.getElementById('attDate').value = dateStr || G.selectedDate || fmtDate(new Date());
+        document.getElementById('attType').value = '1';
+        document.getElementById('attRemark').value = '';
+        document.getElementById('overtimeTypeWrap').style.display = 'none';
+        loadWorkHourConfigs(function() {
+            onTypeChange(true); // 新增时强制设置默认工时
+            G.modal.show();
+        });
+    }
+
+    // ===== 编辑考勤弹窗 =====
+    function openEditModal(id) {
+        fetch('/attendance/get/' + id).then(r => r.json()).then(function(a) {
+            document.getElementById('modalTitle').textContent = '编辑考勤';
+            document.getElementById('attId').value = a.id;
+            document.getElementById('attEmpId').value = a.employeeId;
+            document.getElementById('attEmpName').value = G.empName;
+            document.getElementById('attProjId').value = a.projectId || '';
+            document.getElementById('attDate').value = a.workDate;
+            document.getElementById('attType').value = a.attendanceType;
+            document.getElementById('attHours').value = a.workHours || 8;
+            document.getElementById('attRemark').value = a.remark || '';
+            document.getElementById('attOvertimeType').value = a.overtimeType || '1';
+            loadWorkHourConfigs(function() {
+                onTypeChange(false); // 编辑时保持原有工时不覆盖
+                G.modal.show();
+            });
+        });
+    }
+
+    function onTypeChange(forceDefault) {
+        var t = document.getElementById('attType').value;
+        document.getElementById('overtimeTypeWrap').style.display = (t === '2') ? 'block' : 'none';
+        // 缺勤不需要工时
+        document.getElementById('attHours').closest('.col-6').style.opacity = (t === '4') ? '0.4' : '1';
+        // 根据工时配置设置默认工时（仅新增时强制设置，编辑时保持原值）
+        if (forceDefault) {
+            var dailyH = parseFloat(document.getElementById('attDailyHours').value) || 8;
+            if (t === '1') document.getElementById('attHours').value = dailyH;
+            if (t === '2') document.getElementById('attHours').value = 2;
+            if (t === '3') document.getElementById('attHours').value = Math.max(dailyH / 2, 1);
+            if (t === '5') document.getElementById('attHours').value = 0.5;
+            if (t === '6') document.getElementById('attHours').value = dailyH;
+        }
+    }
+
+    // ===== 保存考勤 =====
+    function saveAttendance() {
+        var type = parseInt(document.getElementById('attType').value);
+        var payload = {
+            id: document.getElementById('attId').value || null,
+            employeeId: parseInt(document.getElementById('attEmpId').value),
+            projectId: document.getElementById('attProjId').value ? parseInt(document.getElementById('attProjId').value) : null,
+            workDate: document.getElementById('attDate').value,
+            attendanceType: type,
+            workHours: parseFloat(document.getElementById('attHours').value) || 8,
+            remark: document.getElementById('attRemark').value,
+            status: 2
+        };
+        if (type === 2) payload.overtimeType = parseInt(document.getElementById('attOvertimeType').value);
+
+        if (!payload.workDate) { toast('请选择工作日期', 'danger'); return; }
+
+        fetch('/attendance/save', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(payload)
+        }).then(r => r.text()).then(function(res) {
+            if (res === 'success') {
+                G.modal.hide();
+                G.selectedDate = payload.workDate;
+                toast('保存成功', 'success');
+                loadMonthData();
+            } else {
+                toast(res, 'danger');
+            }
+        });
+    }
+
+    // ===== 删除记录 =====
+    function deleteRecord(id) {
+        if (!confirm('确定要删除这条考勤记录吗？')) return;
+        fetch('/attendance/delete/' + id, {method: 'POST'})
+            .then(r => r.text()).then(function(res) {
+                if (res === 'success') {
+                    toast('已删除', 'success');
+                    loadMonthData();
+                } else {
+                    toast(res, 'danger');
+                }
+            });
+    }
+
+    // ===== 工具函数 =====
+    function fmtDate(d) {
+        return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+    }
+
+    // ===== 消息提示函数（Bootstrap Modal）=====
+    function toast(msg, type) {
+        var title = type === 'success' ? '成功' : type === 'danger' ? '错误' : '提示';
+        var headerClass = type === 'success' ? 'bg-success text-white' : type === 'danger' ? 'bg-danger text-white' : 'bg-primary text-white';
+        document.getElementById('msgModalTitle').textContent = title;
+        document.getElementById('msgModalBody').textContent = msg;
+        document.getElementById('msgModalHeader').className = 'modal-header py-2 ' + headerClass;
+        G.msgModal.show();
+    }
+
+    // ==================== 月度考勤表状态管理 ====================
+    
+    // 当前月度状态
+    G.monthStatus = 0; // 默认草稿
+    G.monthStatusData = null;
+    
+    /**
+     * 加载月度考勤状态
+     */
+    function loadMonthStatus() {
+        var url = '/attendance/month/status?yearMonth=' + G.yearMonth + '&projectId=' + (G.projectId || '');
+        fetch(url).then(r => r.json()).then(function(data) {
+            console.log('月度状态数据:', data);
+            G.monthStatus = parseInt(data.status !== undefined ? data.status : 0);
+            G.monthStatusData = data;
+            renderMonthStatus(data);
+            updateUIBasedOnStatus(G.monthStatus);
+        }).catch(function(err) {
+            // 请求失败时，默认显示草稿状态和提交按钮
+            console.log('加载月度状态失败:', err);
+            var defaultData = {status: 0, statusText: '草稿', statusBadgeClass: 'bg-secondary'};
+            G.monthStatus = 0;
+            G.monthStatusData = defaultData;
+            renderMonthStatus(defaultData);
+            updateUIBasedOnStatus(0);
+        });
+    }
+    
+    /**
+     * 渲染月度状态显示
+     */
+    function renderMonthStatus(data) {
+        var badge = document.getElementById('monthStatusBadge');
+        var tip = document.getElementById('monthStatusTip');
+        var status = parseInt(data.status !== undefined ? data.status : 0);
+        var statusText = data.statusText || '草稿';
+        var statusBadgeClass = data.statusBadgeClass || 'bg-secondary';
+            
+        badge.className = 'badge ' + statusBadgeClass;
+        badge.textContent = statusText;
+            
+        var roleCode = document.getElementById('currentRoleCode').value;
+        var isBossOrRoot = (roleCode.toLowerCase() === 'boss' || roleCode.toLowerCase() === 'root');
+        var approverName = data.approverName || 'BOSS';
+            
+        // 提示文案
+        if (status === 1 && !isBossOrRoot) {
+            // 非审批人：显示"等待 BOSS 审批"
+            tip.textContent = '等待 BOSS 审批';
+            tip.style.display = 'inline';
+        } else if (status === 1 && isBossOrRoot) {
+            // 审批人：提示有待审批记录
+            tip.textContent = '有记录等待您审批';
+            tip.style.display = 'inline';
+        } else if ((status === 12 || status === 2) && data.approveRemark) {
+            tip.textContent = '驳回原因：' + data.approveRemark;
+            tip.style.display = 'inline';
+        } else {
+            tip.style.display = 'none';
+        }
+            
+        // 提交审批按鈕：草稿(0)或已驳回(12)状态显示
+        var btnSubmit = document.getElementById('btnSubmitAudit');
+        btnSubmit.style.display = (status === 0 || status === 12) ? 'inline-block' : 'none';
+            
+        // 审批通过/驳回按鈕：审批人且待审批(1)时显示
+        var btnPass = document.getElementById('btnApprovePass');
+        var btnReject = document.getElementById('btnApproveReject');
+        var showApproveBtn = isBossOrRoot && status === 1;
+        btnPass.style.display = showApproveBtn ? 'inline-block' : 'none';
+        btnReject.style.display = showApproveBtn ? 'inline-block' : 'none';
+    }
+    
+    /**
+     * 根据状态更新UI（控制编辑权限）
+     */
+    function updateUIBasedOnStatus(status) {
+        status = parseInt(status);
+        // 已审批锁定(5)或待审批(1)时，禁用编辑功能
+        var isLocked = (status === 5 || status === 1);
+        G.isMonthLocked = isLocked;
+        
+        // 更新权限标记（供详情面板使用）
+        var canAddAttendance = document.getElementById('canAddAttendance');
+        if (canAddAttendance && isLocked) {
+            canAddAttendance.value = 'false';
+        }
+        
+        // 如果当前有选中日期，刷新详情面板以更新按钮状态
+        if (G.selectedDate) {
+            renderDetail(G.selectedDate);
+        }
+    }
+    
+    /**
+     * 审批人审批或驳回考勤
+     */
+    function approveMonth(approved) {
+        var remark = '';
+        if (!approved) {
+            remark = prompt('请输入驳回原因：');
+            if (remark === null) return;
+        } else {
+            if (!confirm('确认审批通过本月考勤？')) return;
+        }
+        var params = new URLSearchParams();
+        params.append('yearMonth', G.yearMonth);
+        params.append('projectId', G.projectId || '');
+        params.append('approved', approved);
+        params.append('remark', remark || '');
+        fetch('/attendance/month/approve', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+            body: params
+        }).then(r => r.text()).then(function(res) {
+            if (res === 'success') {
+                toast(approved ? '审批通过！' : '已驳回', 'success');
+                loadMonthStatus();
+            } else {
+                toast(res, 'danger');
+            }
+        });
+    }
+
+    /**
+     * 提交月度考勤审批
+     */
+    function submitMonthAudit() {
+        
+        var remark = prompt('请输入审批备注（可选）：');
+        if (remark === null) return; // 用户取消
+        
+        var params = new URLSearchParams();
+        params.append('yearMonth', G.yearMonth);
+        params.append('projectId', G.projectId || '');
+        params.append('remark', remark || '');
+        
+        fetch('/attendance/month/submit', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+            body: params
+        }).then(r => r.text()).then(function(res) {
+            if (res === 'success') {
+                toast('提交审批成功', 'success');
+                loadMonthStatus();
+            } else {
+                toast(res, 'danger');
+            }
+        });
+    }
+    
+    /**
+     * 在切换项目或月份时重新加载状态
+     */
+    function changeProject() {
+        G.projectId = document.getElementById('projectId').value;
+        var ym = document.getElementById('yearMonth').value;
+        window.location.href = '/attendance/list?projectId=' + G.projectId + '&yearMonth=' + ym;
+    }
+    function changeMonth() {
+        G.yearMonth = document.getElementById('yearMonth').value;
+        var ym = G.yearMonth.split('-');
+        G.calDate = new Date(parseInt(ym[0]), parseInt(ym[1]) - 1, 1);
+        window.location.href = '/attendance/list?projectId=' + G.projectId + '&yearMonth=' + G.yearMonth;
+    }
+    </script>
+</div>

@@ -1,0 +1,1042 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{common/layout :: layout(~{::title}, ~{::#mainContent})}">
+<head>
+    <title>工时管理</title>
+</head>
+<body>
+    <div id="mainContent">
+        <div class="container-fluid py-4">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h5 class="mb-0">工时管理配置</h5>
+                <button type="button" id="addConfigBtn" class="btn btn-primary"
+                        th:if="${session.currentUser != null and session.currentUser.hasPermission('workhour:add')}">
+                    <i class="bi bi-plus-lg"></i> 新增配置
+                </button>
+            </div>
+            
+            <div class="card">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>计算方式</th>
+                                    <th>当月工作天数</th>
+                                    <th>工作时间（上午/下午）</th>
+                                    <th>工作日加班费率</th>
+                                    <th>休息日加班费率</th>
+                                    <th>节假日加班费率</th>
+                                    <th>状态</th>
+                                    <th>发起人</th>
+                                    <th>审批人</th>
+                                    <th>审批备注</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="config : ${configs}">
+                                    <td>
+                                        <span th:if="${config.calcType == 1}">日薪计算</span>
+                                        <span th:if="${config.calcType == 2}">月薪计算</span>
+                                    </td>
+                                    <td>
+                                        <span th:if="${config.calcType == 2}" th:text="${config.monthlyWorkDays} + '天'">22天</span>
+                                        <span th:if="${config.calcType == 1}">-</span>
+                                    </td>
+                                    <td>
+                                        <span th:text="'上午:' + ${config.morningStartTime} + '-' + ${config.morningEndTime}">上午:08:00-12:00</span><br>
+                                        <span th:text="'下午:' + ${config.afternoonStartTime} + '-' + ${config.afternoonEndTime}">下午:13:00-17:00</span>
+                                    </td>
+                                    <td th:text="${config.weekdayOvertimeRate} + '倍'">1.5倍</td>
+                                    <td th:text="${config.restdayOvertimeRate} + '倍'">2.0倍</td>
+                                    <td th:text="${config.holidayOvertimeRate} + '倍'">3.0倍</td>
+                                    <td>
+                                        <span class="badge bg-secondary" th:if="${config.status == 12}">未生效</span>
+                                        <span class="badge bg-warning text-dark" th:if="${config.status == 1}">审批中</span>
+                                        <span class="badge bg-success" th:if="${config.status == 5}">生效中</span>
+                                        <!-- 其他状态显示状态值 -->
+                                        <span class="badge bg-info" th:if="${config.status != null and config.status != 1 and config.status != 5 and config.status != 12}" th:text="'状态:' + ${config.status}"></span>
+                                    </td>
+                                    <td th:text="${config.createdByName} ?: '-'">张三</td>
+                                    <td th:text="${config.approvedByName} ?: '-'">李四</td>
+                                    <td>
+                                        <span th:if="${config.approveRemark != null and config.approveRemark != ''}" th:text="${config.approveRemark}">审批备注</span>
+                                        <span th:if="${config.approveRemark == null or config.approveRemark == ''}">-</span>
+                                    </td>
+                                    <td style="white-space: nowrap;">
+                                        <!-- 预览按钮：所有状态都可以预览 -->
+                                        <button type="button" class="btn btn-sm btn-outline-info" 
+                                                th:onclick="'viewDetail(' + ${config.id} + ')'"
+                                                style="padding: 4px 10px; font-size: 12px;">
+                                            <i class="bi bi-eye"></i> 预览
+                                        </button>
+                                        
+                                        <!-- 未生效状态 (12)：可编辑、可删除 -->
+                                        <button type="button" class="btn btn-sm btn-outline-primary ms-1" 
+                                                th:if="${config.status == 12 and session.currentUser != null and session.currentUser.hasPermission('workhour:edit')}" 
+                                                th:onclick="'editConfig(' + ${config.id} + ')'"
+                                                style="padding: 4px 10px; font-size: 12px;">编辑</button>
+                                        <button type="button" class="btn btn-sm btn-outline-danger ms-1" 
+                                                th:if="${config.status == 12 and session.currentUser != null and session.currentUser.hasPermission('workhour:delete')}" 
+                                                th:onclick="'deleteConfig(' + ${config.id} + ')'"
+                                                style="padding: 4px 10px; font-size: 12px;">
+                                            <i class="bi bi-trash"></i> 删除
+                                        </button>
+                                        <!-- 未生效状态 (12)：无权限显示提示 -->
+                                        <span class="text-muted small" th:if="${config.status == 12 and (session.currentUser == null or !session.currentUser.hasPermission('workhour:edit'))}">不可操作</span>
+                                                                            
+                                        <!-- 审批中状态：发起人可撤销 -->
+                                        <button type="button" class="btn btn-sm btn-outline-warning ms-1" 
+                                                th:if="${config.status == 1 and session.currentUser != null and config.createdById == session.currentUser.id}" 
+                                                th:onclick="'revokeConfig(' + ${config.id} + ')'"
+                                                style="padding: 4px 10px; font-size: 12px;">
+                                            <i class="bi bi-arrow-counterclockwise"></i> 撤销
+                                        </button>
+                                                                            
+                                        <!-- 审批中状态：具有审批权限且非发起人，可通过、拒绝 -->
+                                        <button type="button" class="btn btn-sm btn-success ms-1" 
+                                                th:if="${config.status == 1 and session.currentUser != null and session.currentUser.hasPermission('workhour:approve')}" 
+                                                th:onclick="'showApproveModal(' + ${config.id} + ')'"
+                                                style="padding: 4px 10px; font-size: 12px;">
+                                            <i class="bi bi-check-lg"></i> 通过
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-danger ms-1" 
+                                                th:if="${config.status == 1 and session.currentUser != null and session.currentUser.hasPermission('workhour:approve')}" 
+                                                th:onclick="'showRejectModal(' + ${config.id} + ')'"
+                                                style="padding: 4px 10px; font-size: 12px;">
+                                            <i class="bi bi-x-lg"></i> 拒绝
+                                        </button>
+                                                                            
+                                        <!-- 生效中状态 (5)：具有作废权限可作废 -->
+                                        <button type="button" class="btn btn-sm btn-outline-secondary ms-1" 
+                                                th:if="${config.status == 5 and session.currentUser != null and session.currentUser.hasPermission('workhour:invalidate')}" 
+                                                th:onclick="'invalidateConfig(' + ${config.id} + ')'"
+                                                style="padding: 4px 10px; font-size: 12px;">
+                                            <i class="bi bi-slash-circle"></i> 作废
+                                        </button>
+                                        <span class="text-muted small" th:if="${config.status == 5 and (session.currentUser == null or !session.currentUser.hasPermission('workhour:invalidate'))}">已生效，不可操作</span>
+                                                                            
+                                        <!-- 其他状态：具有删除权限可删除 -->
+                                        <button type="button" class="btn btn-sm btn-outline-danger ms-1" 
+                                                th:if="${config.status != null and config.status != 1 and config.status != 5 and config.status != 12 and session.currentUser != null and session.currentUser.hasPermission('workhour:delete')}" 
+                                                th:onclick="'deleteConfig(' + ${config.id} + ')'"
+                                                style="padding: 4px 10px; font-size: 12px;">
+                                            <i class="bi bi-trash"></i> 删除
+                                        </button>
+                                    </td>
+                                </tr>
+                                <tr th:if="${#lists.isEmpty(configs)}">
+                                    <td colspan="11" class="text-center text-muted">暂无配置</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 配置模态框 -->
+        <div class="modal fade" id="configModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-lg modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header bg-light">
+                        <h5 class="modal-title" id="modalTitle"><i class="bi bi-gear me-2 text-primary"></i>新增配置</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="configForm">
+                            <input type="hidden" id="configId">
+                            
+                            <!-- 基础配置 -->
+                            <div class="mb-4">
+                                <h6 class="text-primary border-bottom pb-2 mb-3"><i class="bi bi-sliders me-2"></i>基础配置</h6>
+                                <div class="d-flex align-items-center flex-wrap gap-3">
+                                    <div class="d-flex align-items-center">
+                                        <label class="form-label mb-0 me-2"><span class="text-danger">*</span> 计算方式：</label>
+                                        <select class="form-select" id="calcType" onchange="toggleMonthlyWorkDays()" required style="width: 130px; border: 1px solid #ced4da;">
+                                            <option value="2">月薪计算</option>
+                                            <option value="1">日薪计算</option>
+                                        </select>
+                                    </div>
+                                    <div class="d-flex align-items-center" id="monthlyWorkDaysDiv">
+                                        <label class="form-label mb-0 me-2"><span class="text-danger" id="monthlyWorkDaysRequired">*</span> 当月工作天数：</label>
+                                        <div class="input-group" style="width: 120px;">
+                                            <input type="number" class="form-control" id="monthlyWorkDays" value="22" style="border: 1px solid #ced4da;">
+                                            <span class="input-group-text">天</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- 工作时间配置 -->
+                            <div class="mb-4">
+                                <h6 class="text-success border-bottom pb-2 mb-3"><i class="bi bi-clock me-2"></i>工作时间配置</h6>
+                                <div class="mb-3">
+                                    <label class="form-label mb-2"><span class="text-danger">*</span> 工作时间：</label>
+                                    <div class="d-flex align-items-center flex-wrap gap-3">
+                                        <div class="d-flex align-items-center">
+                                            <span class="me-2 text-muted">上午</span>
+                                            <input type="time" class="form-control" id="morningStartTime" value="08:00" onchange="calculateDailyHours()" style="width: 100px; border: 1px solid #ced4da;">
+                                            <span class="mx-2">—</span>
+                                            <input type="time" class="form-control" id="morningEndTime" value="12:00" onchange="calculateDailyHours()" style="width: 100px; border: 1px solid #ced4da;">
+                                        </div>
+                                        <div class="d-flex align-items-center">
+                                            <span class="me-2 text-muted">下午</span>
+                                            <input type="time" class="form-control" id="afternoonStartTime" value="13:00" onchange="calculateDailyHours()" style="width: 100px; border: 1px solid #ced4da;">
+                                            <span class="mx-2">—</span>
+                                            <input type="time" class="form-control" id="afternoonEndTime" value="17:00" onchange="calculateDailyHours()" style="width: 100px; border: 1px solid #ced4da;">
+                                        </div>
+                                        <span class="text-muted">每日工时：<strong class="text-success" id="dailyWorkHours">8.0 小时</strong></span>
+                                    </div>
+                                </div>
+                                <div class="d-flex align-items-center">
+                                    <label class="form-label mb-0 me-2"><span class="text-danger">*</span> 最小加班时长：</label>
+                                    <div class="input-group" style="width: 120px;">
+                                        <input type="number" class="form-control" id="minOvertimeHours" step="0.5" value="0.5" required style="border: 1px solid #ced4da;">
+                                        <span class="input-group-text">小时</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- 加班费率配置 -->
+                            <div class="mb-4">
+                                <h6 class="text-warning border-bottom pb-2 mb-3"><i class="bi bi-percent me-2"></i>加班费率配置 <small class="text-muted">(必填)</small></h6>
+                                <div class="d-flex align-items-center flex-wrap gap-3">
+                                    <div class="d-flex align-items-center">
+                                        <label class="form-label mb-0 me-2">工作日费率：</label>
+                                        <div class="input-group" style="width: 130px;">
+                                            <input type="number" class="form-control" id="weekdayOvertimeRate" step="0.1" min="1" value="1.5" oninput="validateAndUpdateRate(this, 'weekday')" required style="border: 1px solid #ced4da;">
+                                            <span class="input-group-text">倍</span>
+                                        </div>
+                                    </div>
+                                    <div class="d-flex align-items-center">
+                                        <label class="form-label mb-0 me-2">休息日费率：</label>
+                                        <div class="input-group" style="width: 130px;">
+                                            <input type="number" class="form-control" id="restdayOvertimeRate" step="0.1" min="1" value="2.0" oninput="validateAndUpdateRate(this, 'restday')" required style="border: 1px solid #ced4da;">
+                                            <span class="input-group-text">倍</span>
+                                        </div>
+                                    </div>
+                                    <div class="d-flex align-items-center">
+                                        <label class="form-label mb-0 me-2">节假日费率：</label>
+                                        <div class="input-group" style="width: 130px;">
+                                            <input type="number" class="form-control" id="holidayOvertimeRate" step="0.1" min="1" value="3.0" oninput="validateAndUpdateRate(this, 'holiday')" required style="border: 1px solid #ced4da;">
+                                            <span class="input-group-text">倍</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <input type="hidden" id="weekdayOvertimeHourly">
+                                <input type="hidden" id="restdayOvertimeHourly">
+                                <input type="hidden" id="holidayOvertimeHourly">
+                            </div>
+                            
+                            <!-- 提交后由审批流程控制状态 -->
+                            <div class="alert alert-info py-2 mb-3">
+                                <small><i class="bi bi-info-circle me-1"></i>新增配置将进入审批流程，审批通过后生效</small>
+                            </div>
+                            
+                            <!-- 时薪计算预览（折叠区域） -->
+                            <div class="border-top pt-3 mt-3">
+                                <div class="d-flex align-items-center" data-bs-toggle="collapse" data-bs-target="#salaryCalcCollapse" style="cursor: pointer;">
+                                    <i class="bi bi-calculator text-secondary me-2"></i>
+                                    <span class="text-secondary" id="sampleSalaryLabel">示例薪资计算</span>
+                                    <i class="bi bi-chevron-down ms-auto"></i>
+                                </div>
+                                <div class="collapse mt-3" id="salaryCalcCollapse">
+                                    <div class="card card-body bg-light border-0">
+                                        <!-- 输入区域 -->
+                                        <div class="mb-3 pb-3 border-bottom">
+                                            <div class="d-flex align-items-center flex-wrap gap-2">
+                                                <label class="form-label mb-0 me-2 fw-medium" id="sampleSalaryInputLabel">月薪金额：</label>
+                                                <div class="input-group input-group-sm" style="width: 150px;">
+                                                    <input type="number" class="form-control" id="sampleSalary" oninput="calculateOvertimePay()" style="border: 1px solid #ced4da;">
+                                                    <span class="input-group-text">元</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- 计算公式 -->
+                                        <div class="mb-3">
+                                            <div class="small text-muted mb-2"><i class="bi bi-lightning me-1"></i>计算公式</div>
+                                            <div class="bg-white rounded p-2 border">
+                                                <div class="small mb-1" id="calcFormula">时薪 = 月薪 ÷ 当月工作天数 ÷ 每日工时</div>
+                                            </div>
+                                            <div class="row g-2 mt-1">
+                                                <div class="col-4">
+                                                    <div class="bg-white rounded p-2 border text-center">
+                                                        <div class="small text-muted">工作日</div>
+                                                        <div class="small fw-medium">时薪 × <span id="weekdayRateDisplay">1.5</span></div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-4">
+                                                    <div class="bg-white rounded p-2 border text-center">
+                                                        <div class="small text-muted">休息日</div>
+                                                        <div class="small fw-medium">时薪 × <span id="restdayRateDisplay">2.0</span></div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-4">
+                                                    <div class="bg-white rounded p-2 border text-center">
+                                                        <div class="small text-muted">节假日</div>
+                                                        <div class="small fw-medium">时薪 × <span id="holidayRateDisplay">3.0</span></div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- 计算结果 -->
+                                        <div class="mt-2">
+                                            <div class="small text-muted mb-2"><i class="bi bi-cash-coin me-1"></i>计算结果</div>
+                                            <div class="row g-2">
+                                                <div class="col-3">
+                                                    <div class="bg-white rounded p-2 border text-center">
+                                                        <div class="small text-muted">时薪</div>
+                                                        <div class="fw-bold text-primary" id="baseHourlyDisplay">--</div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-3">
+                                                    <div class="bg-white rounded p-2 border text-center">
+                                                        <div class="small text-muted">工作日加班</div>
+                                                        <div class="fw-bold text-warning" id="weekdayOvertimeHourlyDisplay">--</div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-3">
+                                                    <div class="bg-white rounded p-2 border text-center">
+                                                        <div class="small text-muted">休息日加班</div>
+                                                        <div class="fw-bold text-info" id="restdayOvertimeHourlyDisplay">--</div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-3">
+                                                    <div class="bg-white rounded p-2 border text-center">
+                                                        <div class="small text-muted">节假日加班</div>
+                                                        <div class="fw-bold text-danger" id="holidayOvertimeHourlyDisplay">--</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer bg-light">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                        <button type="button" class="btn btn-primary" onclick="saveConfig()">保存</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 审批通过弹窗 -->
+        <div class="modal fade" id="approveModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header bg-success text-white">
+                        <h5 class="modal-title"><i class="bi bi-check-circle me-2"></i>审批通过</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <input type="hidden" id="approveConfigId">
+                        <div class="mb-3">
+                            <label class="form-label">审批备注（可选）：</label>
+                            <textarea class="form-control" id="approveRemark" rows="3" placeholder="请输入审批备注..."></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                        <button type="button" class="btn btn-success" onclick="confirmApprove()">
+                            <i class="bi bi-check-lg"></i> 确认通过
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 审批拒绝弹窗 -->
+        <div class="modal fade" id="rejectModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header bg-danger text-white">
+                        <h5 class="modal-title"><i class="bi bi-x-circle me-2"></i>审批拒绝</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <input type="hidden" id="rejectConfigId">
+                        <div class="mb-3">
+                            <label class="form-label">拒绝原因（可选）：</label>
+                            <textarea class="form-control" id="rejectRemark" rows="3" placeholder="请输入拒绝原因..."></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                        <button type="button" class="btn btn-danger" onclick="confirmReject()">
+                            <i class="bi bi-x-lg"></i> 确认拒绝
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 确认弹窗 -->
+        <div class="modal fade" id="confirmModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered modal-sm">
+                <div class="modal-content">
+                    <div class="modal-header" id="confirmModalHeader">
+                        <h5 class="modal-title" id="confirmModalTitle"></h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body text-center">
+                        <i id="confirmModalIcon" class="bi" style="font-size: 48px;"></i>
+                        <p id="confirmModalMessage" class="mt-3 mb-0"></p>
+                    </div>
+                    <div class="modal-footer justify-content-center">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                        <button type="button" class="btn" id="confirmModalBtn">确定</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 详情弹窗 -->
+        <div class="modal fade" id="detailModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-lg modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header bg-light">
+                        <h5 class="modal-title"><i class="bi bi-eye me-2 text-primary"></i>配置详情</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <!-- 基础配置 -->
+                        <div class="mb-4">
+                            <h6 class="text-primary border-bottom pb-2 mb-3"><i class="bi bi-sliders me-2"></i>基础配置</h6>
+                            <div class="row">
+                                <div class="col-md-6 mb-2">
+                                    <label class="form-label text-muted mb-1">计算方式：</label>
+                                    <div id="detailCalcType" class="fw-bold"></div>
+                                </div>
+                                <div class="col-md-6 mb-2" id="detailMonthlyWorkDaysRow">
+                                    <label class="form-label text-muted mb-1">当月工作天数：</label>
+                                    <div id="detailMonthlyWorkDays" class="fw-bold"></div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 工作时间配置 -->
+                        <div class="mb-4">
+                            <h6 class="text-success border-bottom pb-2 mb-3"><i class="bi bi-clock me-2"></i>工作时间配置</h6>
+                            <div class="row">
+                                <div class="col-md-6 mb-2">
+                                    <label class="form-label text-muted mb-1">上午工作时间：</label>
+                                    <div id="detailMorningTime" class="fw-bold"></div>
+                                </div>
+                                <div class="col-md-6 mb-2">
+                                    <label class="form-label text-muted mb-1">下午工作时间：</label>
+                                    <div id="detailAfternoonTime" class="fw-bold"></div>
+                                </div>
+                                <div class="col-md-6 mb-2">
+                                    <label class="form-label text-muted mb-1">每日工时：</label>
+                                    <div id="detailDailyHours" class="fw-bold text-success"></div>
+                                </div>
+                                <div class="col-md-6 mb-2">
+                                    <label class="form-label text-muted mb-1">最小加班时长：</label>
+                                    <div id="detailMinOvertime" class="fw-bold"></div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 加班费率配置 -->
+                        <div class="mb-4">
+                            <h6 class="text-warning border-bottom pb-2 mb-3"><i class="bi bi-percent me-2"></i>加班费率配置</h6>
+                            <div class="row">
+                                <div class="col-md-4 mb-2">
+                                    <label class="form-label text-muted mb-1">工作日加班费率：</label>
+                                    <div id="detailWeekdayRate" class="fw-bold"></div>
+                                </div>
+                                <div class="col-md-4 mb-2">
+                                    <label class="form-label text-muted mb-1">休息日加班费率：</label>
+                                    <div id="detailRestdayRate" class="fw-bold"></div>
+                                </div>
+                                <div class="col-md-4 mb-2">
+                                    <label class="form-label text-muted mb-1">节假日加班费率：</label>
+                                    <div id="detailHolidayRate" class="fw-bold"></div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 发起人信息 -->
+                        <div class="mb-3">
+                            <h6 class="text-info border-bottom pb-2 mb-3"><i class="bi bi-person me-2"></i>发起信息</h6>
+                            <div class="row">
+                                <div class="col-md-6 mb-2">
+                                    <label class="form-label text-muted mb-1">发起人：</label>
+                                    <div id="detailCreatedBy" class="fw-bold"></div>
+                                </div>
+                                <div class="col-md-6 mb-2">
+                                    <label class="form-label text-muted mb-1">发起时间：</label>
+                                    <div id="detailCreatedTime" class="fw-bold"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 结果提示弹窗 -->
+        <div class="modal fade" id="resultModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered modal-sm">
+                <div class="modal-content">
+                    <div class="modal-header" id="resultModalHeader">
+                        <h5 class="modal-title" id="resultModalTitle"></h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body text-center">
+                        <i id="resultModalIcon" class="bi" style="font-size: 48px;"></i>
+                        <p id="resultModalMessage" class="mt-3 mb-0"></p>
+                    </div>
+                    <div class="modal-footer justify-content-center">
+                        <button type="button" class="btn btn-primary" data-bs-dismiss="modal" onclick="location.reload()">确定</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <script>
+            // 查看配置详情
+            function viewDetail(id) {
+                fetch('/workhour/get/' + id)
+                    .then(res => res.json())
+                    .then(data => {
+                        // 基础配置
+                        document.getElementById('detailCalcType').textContent = data.calcType == 1 ? '日薪计算' : '月薪计算';
+                        
+                        // 当月工作天数（仅月薪显示）
+                        var monthlyWorkDaysRow = document.getElementById('detailMonthlyWorkDaysRow');
+                        if (data.calcType == 2) {
+                            monthlyWorkDaysRow.style.display = '';
+                            document.getElementById('detailMonthlyWorkDays').textContent = (data.monthlyWorkDays || 22) + ' 天';
+                        } else {
+                            monthlyWorkDaysRow.style.display = 'none';
+                        }
+                        
+                        // 工作时间
+                        document.getElementById('detailMorningTime').textContent = 
+                            (data.morningStartTime || '08:00:00').substring(0, 5) + ' — ' + (data.morningEndTime || '12:00:00').substring(0, 5);
+                        document.getElementById('detailAfternoonTime').textContent = 
+                            (data.afternoonStartTime || '13:00:00').substring(0, 5) + ' — ' + (data.afternoonEndTime || '17:00:00').substring(0, 5);
+                        document.getElementById('detailDailyHours').textContent = (data.dailyWorkHours || 8) + ' 小时';
+                        document.getElementById('detailMinOvertime').textContent = (data.minOvertimeHours || 0.5) + ' 小时';
+                        
+                        // 加班费率
+                        document.getElementById('detailWeekdayRate').textContent = (data.weekdayOvertimeRate || 1.5) + ' 倍';
+                        document.getElementById('detailRestdayRate').textContent = (data.restdayOvertimeRate || 2.0) + ' 倍';
+                        document.getElementById('detailHolidayRate').textContent = (data.holidayOvertimeRate || 3.0) + ' 倍';
+                        
+                        // 发起人信息
+                        document.getElementById('detailCreatedBy').textContent = data.createdByName || '-';
+                        document.getElementById('detailCreatedTime').textContent = data.createdTime ? formatDateTime(data.createdTime) : '-';
+                        
+                        // 显示弹窗
+                        var modal = new bootstrap.Modal(document.getElementById('detailModal'));
+                        modal.show();
+                    });
+            }
+            
+            function formatDateTime(dateTimeStr) {
+                if (!dateTimeStr) return '-';
+                return dateTimeStr.replace('T', ' ').substring(0, 16);
+            }
+            
+            function showAddModal() {
+                var modalEl = document.getElementById('configModal');
+                var configId = document.getElementById('configId');
+                var modalTitle = document.getElementById('modalTitle');
+                
+                // 手动重置所有字段（确保彻底清除旧值）
+                if (configId) configId.value = '';
+                document.getElementById('calcType').value = '2';
+                // 新增时启用计算方式下拉框
+                document.getElementById('calcType').disabled = false;
+                document.getElementById('monthlyWorkDays').value = '22';
+                document.getElementById('morningStartTime').value = '08:00';
+                document.getElementById('morningEndTime').value = '12:00';
+                document.getElementById('afternoonStartTime').value = '13:00';
+                document.getElementById('afternoonEndTime').value = '17:00';
+                document.getElementById('minOvertimeHours').value = '0.5';
+                document.getElementById('weekdayOvertimeRate').value = '1.5';
+                document.getElementById('restdayOvertimeRate').value = '2.0';
+                document.getElementById('holidayOvertimeRate').value = '3.0';
+                document.getElementById('sampleSalary').value = '';
+                
+                // 重置显示文本
+                document.getElementById('dailyWorkHours').textContent = '8.0 小时';
+                document.getElementById('baseHourlyDisplay').textContent = '--';
+                document.getElementById('weekdayOvertimeHourlyDisplay').textContent = '--';
+                document.getElementById('restdayOvertimeHourlyDisplay').textContent = '--';
+                document.getElementById('holidayOvertimeHourlyDisplay').textContent = '--';
+                
+                // 重置费率显示
+                document.getElementById('weekdayRateDisplay').textContent = '1.5';
+                document.getElementById('restdayRateDisplay').textContent = '2.0';
+                document.getElementById('holidayRateDisplay').textContent = '3.0';
+                
+                if (modalTitle) modalTitle.textContent = '新增配置';
+                
+                if (modalEl) {
+                    var modal = bootstrap.Modal.getInstance(modalEl);
+                    if (!modal) {
+                        modal = new bootstrap.Modal(modalEl);
+                    }
+                    modal.show();
+                }
+                
+                // 根据计算方式显示/隐藏当月工作天数
+                toggleMonthlyWorkDays();
+            }
+            
+            // 根据计算方式显示/隐藏当月工作天数
+            function toggleMonthlyWorkDays() {
+                var calcType = document.getElementById('calcType').value;
+                var monthlyWorkDaysDiv = document.getElementById('monthlyWorkDaysDiv');
+                var monthlyWorkDaysInput = document.getElementById('monthlyWorkDays');
+                var sampleSalaryLabel = document.getElementById('sampleSalaryLabel');
+                var calcFormula = document.getElementById('calcFormula');
+                
+                if (calcType === '1') {
+                    // 日薪计算，隐藏当月工作天数
+                    monthlyWorkDaysDiv.classList.add('d-none');
+                    monthlyWorkDaysDiv.classList.remove('d-flex');
+                    if (sampleSalaryLabel) sampleSalaryLabel.textContent = '示例日薪计算';
+                    if (calcFormula) calcFormula.textContent = '时薪 = 日薪 ÷ 每日工时';
+                    // 更新示例金额标签
+                    var sampleSalaryInputLabel = document.getElementById('sampleSalaryInputLabel');
+                    if (sampleSalaryInputLabel) sampleSalaryInputLabel.textContent = '日薪金额：';
+                } else {
+                    // 月薪计算，显示当月工作天数
+                    monthlyWorkDaysDiv.classList.remove('d-none');
+                    monthlyWorkDaysDiv.classList.add('d-flex');
+                    if (sampleSalaryLabel) sampleSalaryLabel.textContent = '示例月薪计算';
+                    if (calcFormula) calcFormula.textContent = '时薪 = 月薪 ÷ 当月工作天数 ÷ 每日工时';
+                    // 更新示例金额标签
+                    var sampleSalaryInputLabel = document.getElementById('sampleSalaryInputLabel');
+                    if (sampleSalaryInputLabel) sampleSalaryInputLabel.textContent = '月薪金额：';
+                    
+                    // 如果当月工作天数为空或为默认值，自动获取当月工作日天数
+                    var currentValue = monthlyWorkDaysInput.value;
+                    if (!currentValue || currentValue === '22') {
+                        fetch('/workhour/workdays')
+                            .then(res => res.json())
+                            .then(data => {
+                                if (data.success && data.workDays) {
+                                    monthlyWorkDaysInput.value = data.workDays;
+                                    calculateOvertimePay();
+                                }
+                            });
+                    }
+                }
+                // 重新计算时薪
+                calculateOvertimePay();
+            }
+            
+            // 验证并更新费率
+            function validateAndUpdateRate(input, type) {
+                var value = parseFloat(input.value);
+                // 如果值小于1或为NaN，设置为1
+                if (isNaN(value) || value < 1) {
+                    input.value = 1;
+                    value = 1;
+                }
+                // 更新费率显示
+                var rateDisplay = document.getElementById(type + 'RateDisplay');
+                if (rateDisplay) {
+                    rateDisplay.textContent = value;
+                }
+                // 重新计算加班时薪
+                calculateOvertimePay();
+            }
+            
+            function calculateDailyHours() {
+                var morningStart = document.getElementById('morningStartTime').value;
+                var morningEnd = document.getElementById('morningEndTime').value;
+                var afternoonStart = document.getElementById('afternoonStartTime').value;
+                var afternoonEnd = document.getElementById('afternoonEndTime').value;
+                
+                var totalHours = 0;
+                
+                // 计算上午时长
+                if (morningStart && morningEnd) {
+                    var ms = morningStart.split(':');
+                    var me = morningEnd.split(':');
+                    var morningMinutes = (parseInt(me[0]) * 60 + parseInt(me[1])) - (parseInt(ms[0]) * 60 + parseInt(ms[1]));
+                    if (morningMinutes > 0) {
+                        totalHours += morningMinutes / 60;
+                    }
+                }
+                
+                // 计算下午时长
+                if (afternoonStart && afternoonEnd) {
+                    var as = afternoonStart.split(':');
+                    var ae = afternoonEnd.split(':');
+                    var afternoonMinutes = (parseInt(ae[0]) * 60 + parseInt(ae[1])) - (parseInt(as[0]) * 60 + parseInt(as[1]));
+                    if (afternoonMinutes > 0) {
+                        totalHours += afternoonMinutes / 60;
+                    }
+                }
+                
+                document.getElementById('dailyWorkHours').textContent = totalHours.toFixed(1) + ' 小时';
+                // 重新计算加班时薪
+                calculateOvertimePay();
+            }
+            
+            // 计算加班时薪
+            function calculateOvertimePay() {
+                var sampleSalary = parseFloat(document.getElementById('sampleSalary').value) || 0;
+                var calcType = document.getElementById('calcType').value;
+                var monthlyWorkDays = parseInt(document.getElementById('monthlyWorkDays').value) || 22;
+                var dailyHoursText = document.getElementById('dailyWorkHours').textContent;
+                var dailyHours = parseFloat(dailyHoursText.replace(' 小时', '')) || 8;
+                
+                var weekdayRate = parseFloat(document.getElementById('weekdayOvertimeRate').value) || 1.5;
+                var restdayRate = parseFloat(document.getElementById('restdayOvertimeRate').value) || 2.0;
+                var holidayRate = parseFloat(document.getElementById('holidayOvertimeRate').value) || 3.0;
+                
+                // 计算基础时薪
+                var baseHourly = 0;
+                if (sampleSalary > 0) {
+                    if (calcType === '1') {
+                        // 日薪计算
+                        baseHourly = sampleSalary / dailyHours;
+                    } else {
+                        // 月薪计算
+                        baseHourly = sampleSalary / monthlyWorkDays / dailyHours;
+                    }
+                }
+                
+                // 计算并显示各类加班时薪
+                var weekdayHourly = baseHourly * weekdayRate;
+                var restdayHourly = baseHourly * restdayRate;
+                var holidayHourly = baseHourly * holidayRate;
+                
+                var baseHourlyDisplay = document.getElementById('baseHourlyDisplay');
+                var weekdayDisplay = document.getElementById('weekdayOvertimeHourlyDisplay');
+                var restdayDisplay = document.getElementById('restdayOvertimeHourlyDisplay');
+                var holidayDisplay = document.getElementById('holidayOvertimeHourlyDisplay');
+                
+                if (sampleSalary > 0) {
+                    if (baseHourlyDisplay) baseHourlyDisplay.textContent = baseHourly.toFixed(2) + ' 元/小时';
+                    weekdayDisplay.textContent = weekdayHourly.toFixed(2) + ' 元/小时';
+                    restdayDisplay.textContent = restdayHourly.toFixed(2) + ' 元/小时';
+                    holidayDisplay.textContent = holidayHourly.toFixed(2) + ' 元/小时';
+                } else {
+                    if (baseHourlyDisplay) baseHourlyDisplay.textContent = '--';
+                    weekdayDisplay.textContent = '--';
+                    restdayDisplay.textContent = '--';
+                    holidayDisplay.textContent = '--';
+                }
+                
+                // 保存计算结果到隐藏字段
+                document.getElementById('weekdayOvertimeHourly').value = sampleSalary > 0 ? weekdayHourly.toFixed(2) : '';
+                document.getElementById('restdayOvertimeHourly').value = sampleSalary > 0 ? restdayHourly.toFixed(2) : '';
+                document.getElementById('holidayOvertimeHourly').value = sampleSalary > 0 ? holidayHourly.toFixed(2) : '';
+                
+                // 更新费率显示
+                var weekdayRateDisplay = document.getElementById('weekdayRateDisplay');
+                var restdayRateDisplay = document.getElementById('restdayRateDisplay');
+                var holidayRateDisplay = document.getElementById('holidayRateDisplay');
+                if (weekdayRateDisplay) weekdayRateDisplay.textContent = weekdayRate;
+                if (restdayRateDisplay) restdayRateDisplay.textContent = restdayRate;
+                if (holidayRateDisplay) holidayRateDisplay.textContent = holidayRate;
+            }
+            
+            function editConfig(id) {
+                fetch('/workhour/get/' + id)
+                    .then(res => res.json())
+                    .then(data => {
+                        document.getElementById('configId').value = data.id;
+                        document.getElementById('calcType').value = data.calcType || 2;
+                        // 编辑时禁用计算方式下拉框
+                        document.getElementById('calcType').disabled = true;
+                        document.getElementById('monthlyWorkDays').value = data.monthlyWorkDays || 22;
+                        toggleMonthlyWorkDays();
+                        // 时间值只取前 5 个字符（HH:MM 格式），兼容数据库返回的 HH:MM:SS 格式
+                        document.getElementById('morningStartTime').value = (data.morningStartTime || '08:00').substring(0, 5);
+                        document.getElementById('morningEndTime').value = (data.morningEndTime || '12:00').substring(0, 5);
+                        document.getElementById('afternoonStartTime').value = (data.afternoonStartTime || '13:00').substring(0, 5);
+                        document.getElementById('afternoonEndTime').value = (data.afternoonEndTime || '17:00').substring(0, 5);
+                        calculateDailyHours();
+                        document.getElementById('minOvertimeHours').value = data.minOvertimeHours || 0.5;
+                        document.getElementById('weekdayOvertimeRate').value = data.weekdayOvertimeRate || 1.5;
+                        document.getElementById('weekdayOvertimeHourly').value = data.weekdayOvertimeHourly || '';
+                        document.getElementById('restdayOvertimeRate').value = data.restdayOvertimeRate || 2.0;
+                        document.getElementById('restdayOvertimeHourly').value = data.restdayOvertimeHourly || '';
+                        document.getElementById('holidayOvertimeRate').value = data.holidayOvertimeRate || 3.0;
+                        document.getElementById('holidayOvertimeHourly').value = data.holidayOvertimeHourly || '';
+                                    
+                        // 更新费率显示
+                        document.getElementById('weekdayRateDisplay').textContent = data.weekdayOvertimeRate || 1.5;
+                        document.getElementById('restdayRateDisplay').textContent = data.restdayOvertimeRate || 2.0;
+                        document.getElementById('holidayRateDisplay').textContent = data.holidayOvertimeRate || 3.0;
+                                    
+                        document.getElementById('modalTitle').textContent = '编辑配置';
+                        var modalEl = document.getElementById('configModal');
+                        var modal = bootstrap.Modal.getInstance(modalEl);
+                        if (!modal) {
+                            modal = new bootstrap.Modal(modalEl);
+                        }
+                        modal.show();
+                        // 计算加班时薪
+                        calculateOvertimePay();
+                    });
+            }
+                        
+            // 编辑生效中的配置（需要确认）
+            function editActiveConfig(id) {
+                showConfirmModal('warning', '该配置已生效，编辑后需要重新提交审批。确定要继续吗？', function() {
+                    editConfig(id);
+                });
+            }
+            
+            function saveConfig() {
+                // 先计算每日工时
+                calculateDailyHours();
+                
+                var dailyHoursText = document.getElementById('dailyWorkHours').textContent;
+                var dailyHours = parseFloat(dailyHoursText.replace(' 小时', '')) || 8;
+                
+                var config = {
+                    id: document.getElementById('configId').value || null,
+                    calcType: parseInt(document.getElementById('calcType').value) || 2,
+                    monthlyWorkDays: parseInt(document.getElementById('monthlyWorkDays').value) || 22,
+                    morningStartTime: document.getElementById('morningStartTime').value + ':00',
+                    morningEndTime: document.getElementById('morningEndTime').value + ':00',
+                    afternoonStartTime: document.getElementById('afternoonStartTime').value + ':00',
+                    afternoonEndTime: document.getElementById('afternoonEndTime').value + ':00',
+                    dailyWorkHours: dailyHours,
+                    minOvertimeHours: parseFloat(document.getElementById('minOvertimeHours').value) || 0.5,
+                    weekdayOvertimeRate: parseFloat(document.getElementById('weekdayOvertimeRate').value) || 1.5,
+                    weekdayOvertimeHourly: parseFloat(document.getElementById('weekdayOvertimeHourly').value) || null,
+                    restdayOvertimeRate: parseFloat(document.getElementById('restdayOvertimeRate').value) || 2.0,
+                    restdayOvertimeHourly: parseFloat(document.getElementById('restdayOvertimeHourly').value) || null,
+                    holidayOvertimeRate: parseFloat(document.getElementById('holidayOvertimeRate').value) || 3.0,
+                    holidayOvertimeHourly: parseFloat(document.getElementById('holidayOvertimeHourly').value) || null
+                };
+                
+                fetch('/workhour/save', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(config)
+                })
+                .then(res => res.text())
+                .then(result => {
+                    if (result === 'success') {
+                        var configModal = bootstrap.Modal.getInstance(document.getElementById('configModal'));
+                        if (configModal) configModal.hide();
+                        showResultModal(true, '保存成功');
+                    } else {
+                        showResultModal(false, result);
+                    }
+                });
+            }
+            
+            function deactivateConfig(id) {
+                showConfirmModal('warning', '确定要禁用该配置吗？禁用后配置将变为未生效状态。', function() {
+                    fetch('/workhour/deactivate/' + id, {method: 'POST'})
+                        .then(res => res.text())
+                        .then(result => {
+                            if (result === 'success') {
+                                showResultModal(true, '已禁用');
+                            } else {
+                                showResultModal(false, result);
+                            }
+                        });
+                });
+            }
+            
+            function revokeConfig(id) {
+                showConfirmModal('warning', '确定要撤销该配置吗？撤销后需要重新提交审批。', function() {
+                    fetch('/workhour/revoke/' + id, {method: 'POST'})
+                        .then(res => res.text())
+                        .then(result => {
+                            if (result === 'success') {
+                                showResultModal(true, '已撤销');
+                            } else {
+                                showResultModal(false, result);
+                            }
+                        });
+                });
+            }
+            
+            // 删除未生效配置
+            function deleteConfig(id) {
+                showConfirmModal('danger', '确定要删除该配置吗？删除后无法恢复。', function() {
+                    fetch('/workhour/delete/' + id, {method: 'POST'})
+                        .then(res => res.text())
+                        .then(result => {
+                            if (result === 'success') {
+                                showResultModal(true, '已删除');
+                            } else {
+                                showResultModal(false, result);
+                            }
+                        });
+                });
+            }
+            
+            // 作废生效中的配置（BOSS 专用）
+            function invalidateConfig(id) {
+                showConfirmModal('warning', '确定要作废该配置吗？作废后配置将变为未生效状态，需要重新提交审批。', function() {
+                    fetch('/workhour/invalidate/' + id, {method: 'POST'})
+                        .then(res => res.text())
+                        .then(result => {
+                            if (result === 'success') {
+                                showResultModal(true, '已作废');
+                            } else {
+                                showResultModal(false, result);
+                            }
+                        });
+                });
+            }
+            
+            // 显示审批通过弹窗
+            function showApproveModal(id) {
+                document.getElementById('approveConfigId').value = id;
+                document.getElementById('approveRemark').value = '';
+                var modal = new bootstrap.Modal(document.getElementById('approveModal'));
+                modal.show();
+            }
+            
+            // 显示审批拒绝弹窗
+            function showRejectModal(id) {
+                document.getElementById('rejectConfigId').value = id;
+                document.getElementById('rejectRemark').value = '';
+                var modal = new bootstrap.Modal(document.getElementById('rejectModal'));
+                modal.show();
+            }
+            
+            // 确认审批通过
+            function confirmApprove() {
+                var id = document.getElementById('approveConfigId').value;
+                var remark = document.getElementById('approveRemark').value;
+                
+                var approveModal = bootstrap.Modal.getInstance(document.getElementById('approveModal'));
+                approveModal.hide();
+                
+                var formData = new FormData();
+                formData.append('remark', remark);
+                
+                fetch('/workhour/approve/' + id, {method: 'POST', body: formData})
+                    .then(res => res.text())
+                    .then(result => {
+                        if (result === 'success') {
+                            showResultModal(true, '审批通过成功');
+                        } else {
+                            showResultModal(false, result);
+                        }
+                    });
+            }
+            
+            // 确认审批拒绝
+            function confirmReject() {
+                var id = document.getElementById('rejectConfigId').value;
+                var remark = document.getElementById('rejectRemark').value;
+                
+                var rejectModal = bootstrap.Modal.getInstance(document.getElementById('rejectModal'));
+                rejectModal.hide();
+                
+                var formData = new FormData();
+                formData.append('remark', remark);
+                
+                fetch('/workhour/reject/' + id, {method: 'POST', body: formData})
+                    .then(res => res.text())
+                    .then(result => {
+                        if (result === 'success') {
+                            showResultModal(true, '已拒绝该配置');
+                        } else {
+                            showResultModal(false, result);
+                        }
+                    });
+            }
+            
+            // 显示确认弹窗
+            function showConfirmModal(type, message, onConfirm) {
+                var header = document.getElementById('confirmModalHeader');
+                var title = document.getElementById('confirmModalTitle');
+                var icon = document.getElementById('confirmModalIcon');
+                var msg = document.getElementById('confirmModalMessage');
+                var confirmBtn = document.getElementById('confirmModalBtn');
+                
+                if (type === 'warning') {
+                    header.className = 'modal-header bg-warning text-dark';
+                    title.innerHTML = '<i class="bi bi-exclamation-triangle me-2"></i>确认操作';
+                    icon.className = 'bi bi-exclamation-triangle-fill text-warning';
+                    confirmBtn.className = 'btn btn-warning';
+                } else if (type === 'danger') {
+                    header.className = 'modal-header bg-danger text-white';
+                    title.innerHTML = '<i class="bi bi-exclamation-circle me-2"></i>确认操作';
+                    icon.className = 'bi bi-exclamation-circle-fill text-danger';
+                    confirmBtn.className = 'btn btn-danger';
+                } else {
+                    header.className = 'modal-header bg-primary text-white';
+                    title.innerHTML = '<i class="bi bi-question-circle me-2"></i>确认操作';
+                    icon.className = 'bi bi-question-circle-fill text-primary';
+                    confirmBtn.className = 'btn btn-primary';
+                }
+                
+                msg.textContent = message;
+                confirmBtn.onclick = function() {
+                    var modal = bootstrap.Modal.getInstance(document.getElementById('confirmModal'));
+                    modal.hide();
+                    onConfirm();
+                };
+                
+                var modal = new bootstrap.Modal(document.getElementById('confirmModal'));
+                modal.show();
+            }
+            
+            // 显示结果弹窗
+            function showResultModal(success, message) {
+                var header = document.getElementById('resultModalHeader');
+                var title = document.getElementById('resultModalTitle');
+                var icon = document.getElementById('resultModalIcon');
+                var msg = document.getElementById('resultModalMessage');
+                
+                if (success) {
+                    header.className = 'modal-header bg-success text-white';
+                    title.innerHTML = '<i class="bi bi-check-circle me-2"></i>成功';
+                    icon.className = 'bi bi-check-circle-fill text-success';
+                } else {
+                    header.className = 'modal-header bg-danger text-white';
+                    title.innerHTML = '<i class="bi bi-x-circle me-2"></i>失败';
+                    icon.className = 'bi bi-x-circle-fill text-danger';
+                }
+                msg.textContent = message;
+                
+                var modal = new bootstrap.Modal(document.getElementById('resultModal'));
+                modal.show();
+            }
+            
+            // 绑定新增按钮事件
+            document.getElementById('addConfigBtn').addEventListener('click', function() {
+                showAddModal();
+            });
+            
+            // 弹窗关闭时清理数据
+            document.getElementById('configModal').addEventListener('hidden.bs.modal', function() {
+                // 重置所有字段到默认值
+                document.getElementById('configId').value = '';
+                document.getElementById('calcType').value = '2';
+                document.getElementById('monthlyWorkDays').value = '22';
+                document.getElementById('morningStartTime').value = '08:00';
+                document.getElementById('morningEndTime').value = '12:00';
+                document.getElementById('afternoonStartTime').value = '13:00';
+                document.getElementById('afternoonEndTime').value = '17:00';
+                document.getElementById('minOvertimeHours').value = '0.5';
+                document.getElementById('weekdayOvertimeRate').value = '1.5';
+                document.getElementById('restdayOvertimeRate').value = '2.0';
+                document.getElementById('holidayOvertimeRate').value = '3.0';
+                document.getElementById('sampleSalary').value = '';
+                document.getElementById('dailyWorkHours').textContent = '8.0 小时';
+            });
+        </script>
+    </div>

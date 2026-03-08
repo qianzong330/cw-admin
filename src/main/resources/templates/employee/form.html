@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{common/layout :: layout(${employee.id} ? '编辑员工' : '新增员工', ~{::content})}">
+<head>
+    <meta charset="UTF-8">
+</head>
+<body>
+    <div th:fragment="content">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0" th:text="${employee.id} ? '编辑员工' : '新增员工'">新增员工</h5>
+            </div>
+            <div class="card-body">
+                <form action="/employee/save" method="post" th:object="${employee}">
+                    <input type="hidden" th:field="*{id}">
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">姓名 <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" th:field="*{name}" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">角色 <span class="text-danger">*</span></label>
+                            <select class="form-select" th:field="*{roleId}" required>
+                                <option value="">请选择角色</option>
+                                <option th:each="role : ${roles}" th:value="${role.id}" th:text="${role.name}"></option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">手机号</label>
+                            <input type="text" class="form-control" th:field="*{phone}">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">工种</label>
+                            <select class="form-select" th:field="*{jobCategoryId}">
+                                <option value="">请选择工种</option>
+                                <option th:each="jc : ${jobCategories}" th:value="${jc.id}" th:text="${jc.name}"></option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">个人薪资</label>
+                            <input type="number" step="0.01" class="form-control" th:field="*{salaryAmount}">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">薪资类型</label>
+                            <select class="form-select" th:field="*{salaryType}">
+                                <option value="1">日薪</option>
+                                <option value="2">月薪</option>
+                                <option value="3">年薪</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">财务对接人</label>
+                            <select class="form-select" th:field="*{financeContactId}">
+                                <option value="">请选择</option>
+                                <option th:each="f : ${financeList}" th:value="${f.id}" th:text="${f.name}"></option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="row" th:if="${employee.id != null}">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">状态</label>
+                            <select class="form-select" th:field="*{status}">
+                                <option value="1">在职</option>
+                                <option value="0">离职</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">保存</button>
+                        <a href="/employee/list" class="btn btn-secondary">返回</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.hello.mapper.CategoryMapper">
+
+    <resultMap id="BaseResultMap" type="com.example.hello.entity.Category">
+        <id column="id" property="id"/>
+        <result column="name" property="name"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <select id="findById" resultMap="BaseResultMap">
+        SELECT * FROM tb_category WHERE id = #{id}
+    </select>
+
+    <select id="findByName" resultMap="BaseResultMap">
+        SELECT * FROM tb_category WHERE name = #{name} LIMIT 1
+    </select>
+
+    <select id="findAll" resultMap="BaseResultMap">
+        SELECT * FROM tb_category ORDER BY create_time DESC
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO tb_category (name) VALUES (#{name})
+    </insert>
+
+    <update id="update">
+        UPDATE tb_category SET name = #{name} WHERE id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        DELETE FROM tb_category WHERE id = #{id}
+    </delete>
+
+</mapper>

@@ -1,0 +1,333 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report-3.0.xsd" version="3.0" name="com.example.hello.HelloApplicationTests" time="10.37" tests="1" errors="0" skipped="0" failures="0">
+  <properties>
+    <property name="java.specification.version" value="17"/>
+    <property name="sun.jnu.encoding" value="ANSI_X3.4-1968"/>
+    <property name="java.class.path" value="/home/devbox/project/target/test-classes:/home/devbox/project/target/classes:/home/devbox/.m2/repository/org/springframework/boot/spring-boot-starter-web/3.3.2/spring-boot-starter-web-3.3.2.jar:/home/devbox/.m2/repository/org/springframework/boot/spring-boot-starter/3.3.2/spring-boot-starter-3.3.2.jar:/home/devbox/.m2/repository/org/springframework/boot/spring-boot/3.3.2/spring-boot-3.3.2.jar:/home/devbox/.m2/repository/org/springframework/boot/spring-boot-autoconfigure/3.3.2/spring-boot-autoconfigure-3.3.2.jar:/home/devbox/.m2/repository/org/springframework/boot/spring-boot-starter-logging/3.3.2/spring-boot-starter-logging-3.3.2.jar:/home/devbox/.m2/repository/ch/qos/logback/logback-classic/1.5.6/logback-classic-1.5.6.jar:/home/devbox/.m2/repository/ch/qos/logback/logback-core/1.5.6/logback-core-1.5.6.jar:/home/devbox/.m2/repository/org/apache/logging/log4j/log4j-to-slf4j/2.23.1/log4j-to-slf4j-2.23.1.jar:/home/devbox/.m2/repository/org/apache/logging/log4j/log4j-api/2.23.1/log4j-api-2.23.1.jar:/home/devbox/.m2/repository/org/slf4j/jul-to-slf4j/2.0.13/jul-to-slf4j-2.0.13.jar:/home/devbox/.m2/repository/jakarta/annotation/jakarta.annotation-api/2.1.1/jakarta.annotation-api-2.1.1.jar:/home/devbox/.m2/repository/org/yaml/snakeyaml/2.2/snakeyaml-2.2.jar:/home/devbox/.m2/repository/org/springframework/boot/spring-boot-starter-json/3.3.2/spring-boot-starter-json-3.3.2.jar:/home/devbox/.m2/repository/com/fasterxml/jackson/core/jackson-databind/2.17.2/jackson-databind-2.17.2.jar:/home/devbox/.m2/repository/com/fasterxml/jackson/core/jackson-annotations/2.17.2/jackson-annotations-2.17.2.jar:/home/devbox/.m2/repository/com/fasterxml/jackson/core/jackson-core/2.17.2/jackson-core-2.17.2.jar:/home/devbox/.m2/repository/com/fasterxml/jackson/datatype/jackson-datatype-jdk8/2.17.2/jackson-datatype-jdk8-2.17.2.jar:/home/devbox/.m2/repository/com/fasterxml/jackson/datatype/jackson-datatype-jsr310/2.17.2/jackson-datatype-jsr310-2.17.2.jar:/home/devbox/.m2/repository/com/fasterxml/jackson/module/jackson-module-parameter-names/2.17.2/jackson-module-parameter-names-2.17.2.jar:/home/devbox/.m2/repository/org/springframework/boot/spring-boot-starter-tomcat/3.3.2/spring-boot-starter-tomcat-3.3.2.jar:/home/devbox/.m2/repository/org/apache/tomcat/embed/tomcat-embed-core/10.1.26/tomcat-embed-core-10.1.26.jar:/home/devbox/.m2/repository/org/apache/tomcat/embed/tomcat-embed-websocket/10.1.26/tomcat-embed-websocket-10.1.26.jar:/home/devbox/.m2/repository/org/springframework/spring-web/6.1.11/spring-web-6.1.11.jar:/home/devbox/.m2/repository/org/springframework/spring-beans/6.1.11/spring-beans-6.1.11.jar:/home/devbox/.m2/repository/io/micrometer/micrometer-observation/1.13.2/micrometer-observation-1.13.2.jar:/home/devbox/.m2/repository/io/micrometer/micrometer-commons/1.13.2/micrometer-commons-1.13.2.jar:/home/devbox/.m2/repository/org/springframework/spring-webmvc/6.1.11/spring-webmvc-6.1.11.jar:/home/devbox/.m2/repository/org/springframework/spring-aop/6.1.11/spring-aop-6.1.11.jar:/home/devbox/.m2/repository/org/springframework/spring-context/6.1.11/spring-context-6.1.11.jar:/home/devbox/.m2/repository/org/springframework/spring-expression/6.1.11/spring-expression-6.1.11.jar:/home/devbox/.m2/repository/org/springframework/boot/spring-boot-starter-thymeleaf/3.3.2/spring-boot-starter-thymeleaf-3.3.2.jar:/home/devbox/.m2/repository/org/thymeleaf/thymeleaf-spring6/3.1.2.RELEASE/thymeleaf-spring6-3.1.2.RELEASE.jar:/home/devbox/.m2/repository/org/thymeleaf/thymeleaf/3.1.2.RELEASE/thymeleaf-3.1.2.RELEASE.jar:/home/devbox/.m2/repository/org/attoparser/attoparser/2.0.7.RELEASE/attoparser-2.0.7.RELEASE.jar:/home/devbox/.m2/repository/org/unbescape/unbescape/1.1.6.RELEASE/unbescape-1.1.6.RELEASE.jar:/home/devbox/.m2/repository/org/slf4j/slf4j-api/2.0.13/slf4j-api-2.0.13.jar:/home/devbox/.m2/repository/de/mkammerer/argon2-jvm/2.11/argon2-jvm-2.11.jar:/home/devbox/.m2/repository/de/mkammerer/argon2-jvm-nolibs/2.11/argon2-jvm-nolibs-2.11.jar:/home/devbox/.m2/repository/net/java/dev/jna/jna/5.13.0/jna-5.13.0.jar:/home/devbox/.m2/repository/org/mybatis/spring/boot/mybatis-spring-boot-starter/3.0.3/mybatis-spring-boot-starter-3.0.3.jar:/home/devbox/.m2/repository/org/mybatis/spring/boot/mybatis-spring-boot-autoconfigure/3.0.3/mybatis-spring-boot-autoconfigure-3.0.3.jar:/home/devbox/.m2/repository/org/mybatis/mybatis/3.5.14/mybatis-3.5.14.jar:/home/devbox/.m2/repository/org/mybatis/mybatis-spring/3.0.3/mybatis-spring-3.0.3.jar:/home/devbox/.m2/repository/com/mysql/mysql-connector-j/8.3.0/mysql-connector-j-8.3.0.jar:/home/devbox/.m2/repository/org/springframework/boot/spring-boot-starter-validation/3.3.2/spring-boot-starter-validation-3.3.2.jar:/home/devbox/.m2/repository/org/apache/tomcat/embed/tomcat-embed-el/10.1.26/tomcat-embed-el-10.1.26.jar:/home/devbox/.m2/repository/org/hibernate/validator/hibernate-validator/8.0.1.Final/hibernate-validator-8.0.1.Final.jar:/home/devbox/.m2/repository/jakarta/validation/jakarta.validation-api/3.0.2/jakarta.validation-api-3.0.2.jar:/home/devbox/.m2/repository/org/jboss/logging/jboss-logging/3.5.3.Final/jboss-logging-3.5.3.Final.jar:/home/devbox/.m2/repository/com/fasterxml/classmate/1.7.0/classmate-1.7.0.jar:/home/devbox/.m2/repository/org/springframework/boot/spring-boot-starter-jdbc/3.3.2/spring-boot-starter-jdbc-3.3.2.jar:/home/devbox/.m2/repository/com/zaxxer/HikariCP/5.1.0/HikariCP-5.1.0.jar:/home/devbox/.m2/repository/org/springframework/spring-jdbc/6.1.11/spring-jdbc-6.1.11.jar:/home/devbox/.m2/repository/org/springframework/spring-tx/6.1.11/spring-tx-6.1.11.jar:/home/devbox/.m2/repository/org/springframework/boot/spring-boot-starter-test/3.3.2/spring-boot-starter-test-3.3.2.jar:/home/devbox/.m2/repository/org/springframework/boot/spring-boot-test/3.3.2/spring-boot-test-3.3.2.jar:/home/devbox/.m2/repository/org/springframework/boot/spring-boot-test-autoconfigure/3.3.2/spring-boot-test-autoconfigure-3.3.2.jar:/home/devbox/.m2/repository/com/jayway/jsonpath/json-path/2.9.0/json-path-2.9.0.jar:/home/devbox/.m2/repository/jakarta/xml/bind/jakarta.xml.bind-api/4.0.2/jakarta.xml.bind-api-4.0.2.jar:/home/devbox/.m2/repository/jakarta/activation/jakarta.activation-api/2.1.3/jakarta.activation-api-2.1.3.jar:/home/devbox/.m2/repository/net/minidev/json-smart/2.5.1/json-smart-2.5.1.jar:/home/devbox/.m2/repository/net/minidev/accessors-smart/2.5.1/accessors-smart-2.5.1.jar:/home/devbox/.m2/repository/org/ow2/asm/asm/9.6/asm-9.6.jar:/home/devbox/.m2/repository/org/assertj/assertj-core/3.25.3/assertj-core-3.25.3.jar:/home/devbox/.m2/repository/net/bytebuddy/byte-buddy/1.14.18/byte-buddy-1.14.18.jar:/home/devbox/.m2/repository/org/awaitility/awaitility/4.2.1/awaitility-4.2.1.jar:/home/devbox/.m2/repository/org/hamcrest/hamcrest/2.2/hamcrest-2.2.jar:/home/devbox/.m2/repository/org/junit/jupiter/junit-jupiter/5.10.3/junit-jupiter-5.10.3.jar:/home/devbox/.m2/repository/org/junit/jupiter/junit-jupiter-api/5.10.3/junit-jupiter-api-5.10.3.jar:/home/devbox/.m2/repository/org/opentest4j/opentest4j/1.3.0/opentest4j-1.3.0.jar:/home/devbox/.m2/repository/org/junit/platform/junit-platform-commons/1.10.3/junit-platform-commons-1.10.3.jar:/home/devbox/.m2/repository/org/apiguardian/apiguardian-api/1.1.2/apiguardian-api-1.1.2.jar:/home/devbox/.m2/repository/org/junit/jupiter/junit-jupiter-params/5.10.3/junit-jupiter-params-5.10.3.jar:/home/devbox/.m2/repository/org/junit/jupiter/junit-jupiter-engine/5.10.3/junit-jupiter-engine-5.10.3.jar:/home/devbox/.m2/repository/org/junit/platform/junit-platform-engine/1.10.3/junit-platform-engine-1.10.3.jar:/home/devbox/.m2/repository/org/mockito/mockito-core/5.11.0/mockito-core-5.11.0.jar:/home/devbox/.m2/repository/net/bytebuddy/byte-buddy-agent/1.14.18/byte-buddy-agent-1.14.18.jar:/home/devbox/.m2/repository/org/objenesis/objenesis/3.3/objenesis-3.3.jar:/home/devbox/.m2/repository/org/mockito/mockito-junit-jupiter/5.11.0/mockito-junit-jupiter-5.11.0.jar:/home/devbox/.m2/repository/org/skyscreamer/jsonassert/1.5.3/jsonassert-1.5.3.jar:/home/devbox/.m2/repository/com/vaadin/external/google/android-json/0.0.20131108.vaadin1/android-json-0.0.20131108.vaadin1.jar:/home/devbox/.m2/repository/org/springframework/spring-core/6.1.11/spring-core-6.1.11.jar:/home/devbox/.m2/repository/org/springframework/spring-jcl/6.1.11/spring-jcl-6.1.11.jar:/home/devbox/.m2/repository/org/springframework/spring-test/6.1.11/spring-test-6.1.11.jar:/home/devbox/.m2/repository/org/xmlunit/xmlunit-core/2.9.1/xmlunit-core-2.9.1.jar:"/>
+    <property name="java.vm.vendor" value="Oracle Corporation"/>
+    <property name="sun.arch.data.model" value="64"/>
+    <property name="java.vendor.url" value="https://java.oracle.com/"/>
+    <property name="user.timezone" value="Etc/UTC"/>
+    <property name="org.jboss.logging.provider" value="slf4j"/>
+    <property name="os.name" value="Linux"/>
+    <property name="java.vm.specification.version" value="17"/>
+    <property name="sun.java.launcher" value="SUN_STANDARD"/>
+    <property name="user.country" value="US"/>
+    <property name="sun.boot.library.path" value="/usr/lib/jvm/java-17-openjdk-amd64/lib"/>
+    <property name="sun.java.command" value="/home/devbox/project/target/surefire/surefirebooter-20260308131258531_3.jar /home/devbox/project/target/surefire 2026-03-08T13-12-58_336-jvmRun1 surefire-20260308131258531_1tmp surefire_0-20260308131258531_2tmp"/>
+    <property name="jdk.debug" value="release"/>
+    <property name="surefire.test.class.path" value="/home/devbox/project/target/test-classes:/home/devbox/project/target/classes:/home/devbox/.m2/repository/org/springframework/boot/spring-boot-starter-web/3.3.2/spring-boot-starter-web-3.3.2.jar:/home/devbox/.m2/repository/org/springframework/boot/spring-boot-starter/3.3.2/spring-boot-starter-3.3.2.jar:/home/devbox/.m2/repository/org/springframework/boot/spring-boot/3.3.2/spring-boot-3.3.2.jar:/home/devbox/.m2/repository/org/springframework/boot/spring-boot-autoconfigure/3.3.2/spring-boot-autoconfigure-3.3.2.jar:/home/devbox/.m2/repository/org/springframework/boot/spring-boot-starter-logging/3.3.2/spring-boot-starter-logging-3.3.2.jar:/home/devbox/.m2/repository/ch/qos/logback/logback-classic/1.5.6/logback-classic-1.5.6.jar:/home/devbox/.m2/repository/ch/qos/logback/logback-core/1.5.6/logback-core-1.5.6.jar:/home/devbox/.m2/repository/org/apache/logging/log4j/log4j-to-slf4j/2.23.1/log4j-to-slf4j-2.23.1.jar:/home/devbox/.m2/repository/org/apache/logging/log4j/log4j-api/2.23.1/log4j-api-2.23.1.jar:/home/devbox/.m2/repository/org/slf4j/jul-to-slf4j/2.0.13/jul-to-slf4j-2.0.13.jar:/home/devbox/.m2/repository/jakarta/annotation/jakarta.annotation-api/2.1.1/jakarta.annotation-api-2.1.1.jar:/home/devbox/.m2/repository/org/yaml/snakeyaml/2.2/snakeyaml-2.2.jar:/home/devbox/.m2/repository/org/springframework/boot/spring-boot-starter-json/3.3.2/spring-boot-starter-json-3.3.2.jar:/home/devbox/.m2/repository/com/fasterxml/jackson/core/jackson-databind/2.17.2/jackson-databind-2.17.2.jar:/home/devbox/.m2/repository/com/fasterxml/jackson/core/jackson-annotations/2.17.2/jackson-annotations-2.17.2.jar:/home/devbox/.m2/repository/com/fasterxml/jackson/core/jackson-core/2.17.2/jackson-core-2.17.2.jar:/home/devbox/.m2/repository/com/fasterxml/jackson/datatype/jackson-datatype-jdk8/2.17.2/jackson-datatype-jdk8-2.17.2.jar:/home/devbox/.m2/repository/com/fasterxml/jackson/datatype/jackson-datatype-jsr310/2.17.2/jackson-datatype-jsr310-2.17.2.jar:/home/devbox/.m2/repository/com/fasterxml/jackson/module/jackson-module-parameter-names/2.17.2/jackson-module-parameter-names-2.17.2.jar:/home/devbox/.m2/repository/org/springframework/boot/spring-boot-starter-tomcat/3.3.2/spring-boot-starter-tomcat-3.3.2.jar:/home/devbox/.m2/repository/org/apache/tomcat/embed/tomcat-embed-core/10.1.26/tomcat-embed-core-10.1.26.jar:/home/devbox/.m2/repository/org/apache/tomcat/embed/tomcat-embed-websocket/10.1.26/tomcat-embed-websocket-10.1.26.jar:/home/devbox/.m2/repository/org/springframework/spring-web/6.1.11/spring-web-6.1.11.jar:/home/devbox/.m2/repository/org/springframework/spring-beans/6.1.11/spring-beans-6.1.11.jar:/home/devbox/.m2/repository/io/micrometer/micrometer-observation/1.13.2/micrometer-observation-1.13.2.jar:/home/devbox/.m2/repository/io/micrometer/micrometer-commons/1.13.2/micrometer-commons-1.13.2.jar:/home/devbox/.m2/repository/org/springframework/spring-webmvc/6.1.11/spring-webmvc-6.1.11.jar:/home/devbox/.m2/repository/org/springframework/spring-aop/6.1.11/spring-aop-6.1.11.jar:/home/devbox/.m2/repository/org/springframework/spring-context/6.1.11/spring-context-6.1.11.jar:/home/devbox/.m2/repository/org/springframework/spring-expression/6.1.11/spring-expression-6.1.11.jar:/home/devbox/.m2/repository/org/springframework/boot/spring-boot-starter-thymeleaf/3.3.2/spring-boot-starter-thymeleaf-3.3.2.jar:/home/devbox/.m2/repository/org/thymeleaf/thymeleaf-spring6/3.1.2.RELEASE/thymeleaf-spring6-3.1.2.RELEASE.jar:/home/devbox/.m2/repository/org/thymeleaf/thymeleaf/3.1.2.RELEASE/thymeleaf-3.1.2.RELEASE.jar:/home/devbox/.m2/repository/org/attoparser/attoparser/2.0.7.RELEASE/attoparser-2.0.7.RELEASE.jar:/home/devbox/.m2/repository/org/unbescape/unbescape/1.1.6.RELEASE/unbescape-1.1.6.RELEASE.jar:/home/devbox/.m2/repository/org/slf4j/slf4j-api/2.0.13/slf4j-api-2.0.13.jar:/home/devbox/.m2/repository/de/mkammerer/argon2-jvm/2.11/argon2-jvm-2.11.jar:/home/devbox/.m2/repository/de/mkammerer/argon2-jvm-nolibs/2.11/argon2-jvm-nolibs-2.11.jar:/home/devbox/.m2/repository/net/java/dev/jna/jna/5.13.0/jna-5.13.0.jar:/home/devbox/.m2/repository/org/mybatis/spring/boot/mybatis-spring-boot-starter/3.0.3/mybatis-spring-boot-starter-3.0.3.jar:/home/devbox/.m2/repository/org/mybatis/spring/boot/mybatis-spring-boot-autoconfigure/3.0.3/mybatis-spring-boot-autoconfigure-3.0.3.jar:/home/devbox/.m2/repository/org/mybatis/mybatis/3.5.14/mybatis-3.5.14.jar:/home/devbox/.m2/repository/org/mybatis/mybatis-spring/3.0.3/mybatis-spring-3.0.3.jar:/home/devbox/.m2/repository/com/mysql/mysql-connector-j/8.3.0/mysql-connector-j-8.3.0.jar:/home/devbox/.m2/repository/org/springframework/boot/spring-boot-starter-validation/3.3.2/spring-boot-starter-validation-3.3.2.jar:/home/devbox/.m2/repository/org/apache/tomcat/embed/tomcat-embed-el/10.1.26/tomcat-embed-el-10.1.26.jar:/home/devbox/.m2/repository/org/hibernate/validator/hibernate-validator/8.0.1.Final/hibernate-validator-8.0.1.Final.jar:/home/devbox/.m2/repository/jakarta/validation/jakarta.validation-api/3.0.2/jakarta.validation-api-3.0.2.jar:/home/devbox/.m2/repository/org/jboss/logging/jboss-logging/3.5.3.Final/jboss-logging-3.5.3.Final.jar:/home/devbox/.m2/repository/com/fasterxml/classmate/1.7.0/classmate-1.7.0.jar:/home/devbox/.m2/repository/org/springframework/boot/spring-boot-starter-jdbc/3.3.2/spring-boot-starter-jdbc-3.3.2.jar:/home/devbox/.m2/repository/com/zaxxer/HikariCP/5.1.0/HikariCP-5.1.0.jar:/home/devbox/.m2/repository/org/springframework/spring-jdbc/6.1.11/spring-jdbc-6.1.11.jar:/home/devbox/.m2/repository/org/springframework/spring-tx/6.1.11/spring-tx-6.1.11.jar:/home/devbox/.m2/repository/org/springframework/boot/spring-boot-starter-test/3.3.2/spring-boot-starter-test-3.3.2.jar:/home/devbox/.m2/repository/org/springframework/boot/spring-boot-test/3.3.2/spring-boot-test-3.3.2.jar:/home/devbox/.m2/repository/org/springframework/boot/spring-boot-test-autoconfigure/3.3.2/spring-boot-test-autoconfigure-3.3.2.jar:/home/devbox/.m2/repository/com/jayway/jsonpath/json-path/2.9.0/json-path-2.9.0.jar:/home/devbox/.m2/repository/jakarta/xml/bind/jakarta.xml.bind-api/4.0.2/jakarta.xml.bind-api-4.0.2.jar:/home/devbox/.m2/repository/jakarta/activation/jakarta.activation-api/2.1.3/jakarta.activation-api-2.1.3.jar:/home/devbox/.m2/repository/net/minidev/json-smart/2.5.1/json-smart-2.5.1.jar:/home/devbox/.m2/repository/net/minidev/accessors-smart/2.5.1/accessors-smart-2.5.1.jar:/home/devbox/.m2/repository/org/ow2/asm/asm/9.6/asm-9.6.jar:/home/devbox/.m2/repository/org/assertj/assertj-core/3.25.3/assertj-core-3.25.3.jar:/home/devbox/.m2/repository/net/bytebuddy/byte-buddy/1.14.18/byte-buddy-1.14.18.jar:/home/devbox/.m2/repository/org/awaitility/awaitility/4.2.1/awaitility-4.2.1.jar:/home/devbox/.m2/repository/org/hamcrest/hamcrest/2.2/hamcrest-2.2.jar:/home/devbox/.m2/repository/org/junit/jupiter/junit-jupiter/5.10.3/junit-jupiter-5.10.3.jar:/home/devbox/.m2/repository/org/junit/jupiter/junit-jupiter-api/5.10.3/junit-jupiter-api-5.10.3.jar:/home/devbox/.m2/repository/org/opentest4j/opentest4j/1.3.0/opentest4j-1.3.0.jar:/home/devbox/.m2/repository/org/junit/platform/junit-platform-commons/1.10.3/junit-platform-commons-1.10.3.jar:/home/devbox/.m2/repository/org/apiguardian/apiguardian-api/1.1.2/apiguardian-api-1.1.2.jar:/home/devbox/.m2/repository/org/junit/jupiter/junit-jupiter-params/5.10.3/junit-jupiter-params-5.10.3.jar:/home/devbox/.m2/repository/org/junit/jupiter/junit-jupiter-engine/5.10.3/junit-jupiter-engine-5.10.3.jar:/home/devbox/.m2/repository/org/junit/platform/junit-platform-engine/1.10.3/junit-platform-engine-1.10.3.jar:/home/devbox/.m2/repository/org/mockito/mockito-core/5.11.0/mockito-core-5.11.0.jar:/home/devbox/.m2/repository/net/bytebuddy/byte-buddy-agent/1.14.18/byte-buddy-agent-1.14.18.jar:/home/devbox/.m2/repository/org/objenesis/objenesis/3.3/objenesis-3.3.jar:/home/devbox/.m2/repository/org/mockito/mockito-junit-jupiter/5.11.0/mockito-junit-jupiter-5.11.0.jar:/home/devbox/.m2/repository/org/skyscreamer/jsonassert/1.5.3/jsonassert-1.5.3.jar:/home/devbox/.m2/repository/com/vaadin/external/google/android-json/0.0.20131108.vaadin1/android-json-0.0.20131108.vaadin1.jar:/home/devbox/.m2/repository/org/springframework/spring-core/6.1.11/spring-core-6.1.11.jar:/home/devbox/.m2/repository/org/springframework/spring-jcl/6.1.11/spring-jcl-6.1.11.jar:/home/devbox/.m2/repository/org/springframework/spring-test/6.1.11/spring-test-6.1.11.jar:/home/devbox/.m2/repository/org/xmlunit/xmlunit-core/2.9.1/xmlunit-core-2.9.1.jar:"/>
+    <property name="sun.cpu.endian" value="little"/>
+    <property name="user.home" value="/home/devbox"/>
+    <property name="user.language" value="en"/>
+    <property name="java.specification.vendor" value="Oracle Corporation"/>
+    <property name="java.version.date" value="2021-09-14"/>
+    <property name="java.home" value="/usr/lib/jvm/java-17-openjdk-amd64"/>
+    <property name="file.separator" value="/"/>
+    <property name="basedir" value="/home/devbox/project"/>
+    <property name="java.vm.compressedOopsMode" value="32-bit"/>
+    <property name="line.separator" value="&#10;"/>
+    <property name="java.specification.name" value="Java Platform API Specification"/>
+    <property name="java.vm.specification.vendor" value="Oracle Corporation"/>
+    <property name="FILE_LOG_CHARSET" value="US-ASCII"/>
+    <property name="java.awt.headless" value="true"/>
+    <property name="surefire.real.class.path" value="/home/devbox/project/target/surefire/surefirebooter-20260308131258531_3.jar"/>
+    <property name="sun.management.compiler" value="HotSpot 64-Bit Tiered Compilers"/>
+    <property name="java.runtime.version" value="17+35-2724"/>
+    <property name="user.name" value="devbox"/>
+    <property name="path.separator" value=":"/>
+    <property name="os.version" value="5.15.0-124-generic"/>
+    <property name="java.runtime.name" value="OpenJDK Runtime Environment"/>
+    <property name="file.encoding" value="ANSI_X3.4-1968"/>
+    <property name="jnidispatch.path" value="/home/devbox/.cache/JNA/temp/jna15093949504034370346.tmp"/>
+    <property name="java.vm.name" value="OpenJDK 64-Bit Server VM"/>
+    <property name="localRepository" value="/home/devbox/.m2/repository"/>
+    <property name="jna.loaded" value="true"/>
+    <property name="java.vendor.url.bug" value="https://bugreport.java.com/bugreport/"/>
+    <property name="java.io.tmpdir" value="/tmp"/>
+    <property name="com.zaxxer.hikari.pool_number" value="1"/>
+    <property name="java.version" value="17"/>
+    <property name="user.dir" value="/home/devbox/project"/>
+    <property name="os.arch" value="amd64"/>
+    <property name="java.vm.specification.name" value="Java Virtual Machine Specification"/>
+    <property name="PID" value="2433"/>
+    <property name="CONSOLE_LOG_CHARSET" value="US-ASCII"/>
+    <property name="native.encoding" value="ANSI_X3.4-1968"/>
+    <property name="java.library.path" value="/usr/java/packages/lib:/usr/lib64:/lib64:/lib:/usr/lib"/>
+    <property name="java.vm.info" value="mixed mode, sharing"/>
+    <property name="java.vendor" value="Oracle Corporation"/>
+    <property name="java.vm.version" value="17+35-2724"/>
+    <property name="sun.io.unicode.encoding" value="UnicodeLittle"/>
+    <property name="java.class.version" value="61.0"/>
+    <property name="LOGGED_APPLICATION_NAME" value="[accounting] "/>
+  </properties>
+  <testcase name="contextLoads" classname="com.example.hello.HelloApplicationTests" time="1.303">
+    <system-out><![CDATA[13:13:00.065 [main] INFO org.springframework.test.context.support.AnnotationConfigContextLoaderUtils -- Could not detect default configuration classes for test class [com.example.hello.HelloApplicationTests]: HelloApplicationTests does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+13:13:00.331 [main] INFO org.springframework.boot.test.context.SpringBootTestContextBootstrapper -- Found @SpringBootConfiguration com.example.hello.HelloApplication for test class com.example.hello.HelloApplicationTests
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+
+ :: Spring Boot ::                (v3.3.2)
+
+2026-03-08T13:13:01.069Z  INFO 2433 --- [accounting] [           main] c.example.hello.HelloApplicationTests    : Starting HelloApplicationTests using Java 17 with PID 2433 (started by devbox in /home/devbox/project)
+2026-03-08T13:13:01.070Z  INFO 2433 --- [accounting] [           main] c.example.hello.HelloApplicationTests    : No active profile set, falling back to 1 default profile: "default"
+Logging initialized using 'class org.apache.ibatis.logging.stdout.StdOutImpl' adapter.
+2026-03-08T13:13:05.257Z  INFO 2433 --- [accounting] [           main] o.s.b.a.w.s.WelcomePageHandlerMapping    : Adding welcome page template: index
+2026-03-08T13:13:06.565Z  INFO 2433 --- [accounting] [           main] c.example.hello.HelloApplicationTests    : Started HelloApplicationTests in 6.0 seconds (process running for 7.916)
+========== 开始表名迁移 ==========
+2026-03-08T13:13:06.636Z  INFO 2433 --- [accounting] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2026-03-08T13:13:07.360Z  INFO 2433 --- [accounting] [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection com.mysql.cj.jdbc.ConnectionImpl@112530c3
+2026-03-08T13:13:07.363Z  INFO 2433 --- [accounting] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+表 attendance 不存在，跳过
+表 salary_slip 不存在，跳过
+表 salary_item 不存在，跳过
+========== 表名迁移完成 ==========
+========== 开始修复考勤数据 ==========
+考勤表总记录数: 0
+=== 所有必要权限已存在，跳过迁移 ===
+=== V12菜单权限迁移已完成，跳过 ===
+=== 开始清理重复的工时配置数据 ===
+Creating a new SqlSession
+SqlSession [org.apache.ibatis.session.defaults.DefaultSqlSession@2cf88901] was not registered for synchronization because synchronization is not active
+JDBC Connection [HikariProxyConnection@1540140763 wrapping com.mysql.cj.jdbc.ConnectionImpl@112530c3] will not be managed by Spring
+==>  Preparing: SELECT * FROM tb_work_hour_config ORDER BY status DESC, calc_type ASC, id ASC
+==> Parameters: 
+<==    Columns: id, calc_type, monthly_work_days, morning_start_time, morning_end_time, afternoon_start_time, afternoon_end_time, daily_work_hours, overtime_start_time, min_overtime_hours, weekday_overtime_rate, weekday_overtime_hourly, restday_overtime_rate, restday_overtime_hourly, holiday_overtime_rate, holiday_overtime_hourly, status, created_by_id, created_by_name, approved_by_id, approved_by_name, approved_time, approve_remark, remark, created_time, updated_time
+<==        Row: 1, 1, 22, 08:00:00, 12:00:00, 14:00:00, 18:00:00, 8.0, null, 0.5, 1.0, null, 2.0, null, 3.0, null, 1, 5, admin, null, null, null, null, null, 2026-03-07 21:34:39, 2026-03-07 21:34:39
+<==      Total: 1
+Closing non transactional SqlSession [org.apache.ibatis.session.defaults.DefaultSqlSession@2cf88901]
+=== 清理完成，共删除 0 条重复数据 ===
+
+========== 财务角色权限检查 ==========
+角色编码 | 角色名称 | 菜单编码 | 菜单名称 | 类型
+--------|---------|---------|---------|-----
+finance | 财务       |                          |                     | [未知]
+finance | 财务       | jobcategory:delete       | 删除工种                | [按钮]
+finance | 财务       | jobcategory:edit         | 编辑工种                | [按钮]
+finance | 财务       | jobcategory:add          | 新增工种                | [按钮]
+finance | 财务       | employee                 | 员工管理                | [菜单]
+finance | 财务       | feeitem:list             | 费用项管理               | [菜单]
+finance | 财务       | workhour:config          | 工时配置                | [菜单]
+finance | 财务       | salary:add               | 新增工资条               | [按钮]
+finance | 财务       | attendance:add           | 新增考勤                | [按钮]
+finance | 财务       | employee:add             | 新增员工                | [按钮]
+finance | 财务       | project:add              | 新增项目                | [按钮]
+finance | 财务       | category:add             | 新增分类                | [按钮]
+finance | 财务       | workhour:add             | 新增配置                | [按钮]
+finance | 财务       | jobcategory              | 工种管理                | [菜单]
+finance | 财务       | project:edit             | 编辑项目                | [按钮]
+finance | 财务       | category:edit            | 编辑分类                | [按钮]
+finance | 财务       | employee:edit            | 编辑员工                | [按钮]
+finance | 财务       | salary:edit              | 编辑工资条               | [按钮]
+finance | 财务       | attendance:edit          | 编辑考勤                | [按钮]
+finance | 财务       | account:add              | 新增记账                | [按钮]
+finance | 财务       | account:edit             | 编辑帐条                | [按钮]
+finance | 财务       | category                 | 记账分类                | [菜单]
+finance | 财务       | attendance               | 考勤管理                | [菜单]
+finance | 财务       | workhour:edit            | 编辑配置                | [按钮]
+finance | 财务       | attendance:delete        | 删除考勤                | [按钮]
+finance | 财务       | salary:delete            | 删除工资条               | [按钮]
+finance | 财务       | account:delete           | 删除帐条                | [按钮]
+finance | 财务       | employee:delete          | 删除员工                | [按钮]
+finance | 财务       | project:delete           | 删除项目                | [按钮]
+finance | 财务       | salary                   | 工资条管理               | [菜单]
+finance | 财务       | workhour:delete          | 删除配置                | [按钮]
+finance | 财务       | category:delete          | 删除分类                | [按钮]
+finance | 财务       | account                  | 记账管理                | [菜单]
+finance | 财务       | project:assign           | 关联员工                | [按钮]
+finance | 财务       | workhour:approve         | 审批配置                | [按钮]
+finance | 财务       | salary:pay               | 发放工资条               | [按钮]
+finance | 财务       | workhour:invalidate      | 作废配置                | [按钮]
+finance | 财务       | home                     | 首页                  | [菜单]
+finance | 财务       | basic_config             | 基础配置                | [目录]
+finance | 财务       | project_dir              | 工程管理                | [目录]
+
+总计：40 个权限
+======================================
+
+=== 开始检查并修复菜单 URL ===
+  ✓ 修复菜单: account -> /account/list
+  ✓ 修复菜单: attendance -> /attendance/list
+  ✓ 修复菜单: salary -> /salary/list
+  ✓ 修复菜单: workhour:config -> /workhour/config
+  ✗ 菜单不存在: role
+  ✓ 修复菜单: employee -> /employee/list
+  ✓ 修复菜单: category -> /category/list
+  ✓ 修复菜单: jobcategory -> /jobcategory/list
+  ✗ 菜单不存在: project
+=== 菜单 URL 修复完成，共修复 7 个菜单 ===
+=== 当前导航菜单状态 ===
+  account | url=/account/list | icon=bi-journal-text
+  attendance | url=/attendance/list | icon=bi-calendar-check
+  category | url=/category/list | icon=bi-tags
+  employee | url=/employee/list | icon=bi-people
+  jobcategory | url=/jobcategory/list | icon=bi-hammer
+  salary | url=/salary/list | icon=bi-cash-stack
+  workhour:config | url=/workhour/config | icon=bi-clock
+=== 没有找到 role 菜单，无需删除 ===
+=== 检查工时配置相关表 ===
+  ✓ 表已存在: tb_work_hour_config
+=== 工时配置表检查完成 ===
+=== 基础配置菜单已存在，ID: 59
+=== 系统设置菜单已存在，ID: 60
+=== 创建角色管理菜单成功, id=181
+=== boss 角色已分配系统设置权限
+=== 更新菜单 jobcategory -> 基础配置
+=== 更新菜单 category -> 基础配置
+=== workhour:config 将由 CreateProjectMenu 归入工程目录 ===
+=== 费用项管理菜单已存在，已确保权限和链接 ===
+=== 菜单初始化完成（基础配置 + 系统设置）===
+=== 开始创建工程目录菜单 ===
+=== 工程目录菜单已存在，ID: 68 ===
+=== 找到 0 个需要移动的独立页面 ===
+  - 已确保首页为独立菜单（parent_id=NULL）
+  - 已将 工时配置 (workhour:config) 移到工程目录下
+=== 工程目录菜单配置完成 ===
+=== 检查并加密明文密码 ===
+=== 密码加密完成 ===
+
+=== tb_role 表已存在 ===
+=== role_code 字段已存在 ===
+=== 角色数据初始化完成 ===
+=== 工时配置权限分配完成，共分配 7 个菜单权限 ===
+=== BOSS 审批菜单权限分配完成，共分配 0 个 ===
+=== 财务角色考勤权限分配完成，共分配 4 个菜单权限 ===
+=== BOSS 员工管理按钮权限分配完成，共分配 3 个 ===
+=== BOSS 考勤管理按钮权限分配完成，共分配 3 个 ===
+=== BOSS 基础配置菜单权限分配完成，共分配 4 个 ===
+tb_work_hour_config 表已存在，跳过创建
+tb_attendance_month_status 表已存在，跳过创建
+tb_salary_month_status 表已存在，跳过创建
+审批管理菜单已清理
+=== BOSS 审批权限分配完成，共分配 0 个 ===
+=== 财务考勤权限分配完成，共分配 4 个 ===
+=== 费用项表 tb_fee_item 初始化完成 ===
+]]></system-out>
+    <system-err><![CDATA[修复考勤数据失败: StatementCallback; bad SQL grammar [SELECT COUNT(*) FROM tb_attendance WHERE status IS NOT NULL]
+org.springframework.jdbc.BadSqlGrammarException: StatementCallback; bad SQL grammar [SELECT COUNT(*) FROM tb_attendance WHERE status IS NOT NULL]
+	at org.springframework.jdbc.support.SQLExceptionSubclassTranslator.doTranslate(SQLExceptionSubclassTranslator.java:103)
+	at org.springframework.jdbc.support.AbstractFallbackSQLExceptionTranslator.translate(AbstractFallbackSQLExceptionTranslator.java:107)
+	at org.springframework.jdbc.core.JdbcTemplate.translateException(JdbcTemplate.java:1548)
+	at org.springframework.jdbc.core.JdbcTemplate.execute(JdbcTemplate.java:408)
+	at org.springframework.jdbc.core.JdbcTemplate.query(JdbcTemplate.java:476)
+	at org.springframework.jdbc.core.JdbcTemplate.query(JdbcTemplate.java:486)
+	at org.springframework.jdbc.core.JdbcTemplate.queryForObject(JdbcTemplate.java:519)
+	at org.springframework.jdbc.core.JdbcTemplate.queryForObject(JdbcTemplate.java:526)
+	at com.example.hello.config.AttendanceDataFix.run(AttendanceDataFix.java:33)
+	at org.springframework.boot.SpringApplication.lambda$callRunner$5(SpringApplication.java:790)
+	at org.springframework.util.function.ThrowingConsumer$1.acceptWithException(ThrowingConsumer.java:83)
+	at org.springframework.util.function.ThrowingConsumer.accept(ThrowingConsumer.java:60)
+	at org.springframework.util.function.ThrowingConsumer$1.accept(ThrowingConsumer.java:88)
+	at org.springframework.boot.SpringApplication.callRunner(SpringApplication.java:798)
+	at org.springframework.boot.SpringApplication.callRunner(SpringApplication.java:789)
+	at org.springframework.boot.SpringApplication.lambda$callRunners$3(SpringApplication.java:774)
+	at java.base/java.util.stream.ForEachOps$ForEachOp$OfRef.accept(ForEachOps.java:183)
+	at java.base/java.util.stream.SortedOps$SizedRefSortingSink.end(SortedOps.java:357)
+	at java.base/java.util.stream.AbstractPipeline.copyInto(AbstractPipeline.java:510)
+	at java.base/java.util.stream.AbstractPipeline.wrapAndCopyInto(AbstractPipeline.java:499)
+	at java.base/java.util.stream.ForEachOps$ForEachOp.evaluateSequential(ForEachOps.java:150)
+	at java.base/java.util.stream.ForEachOps$ForEachOp$OfRef.evaluateSequential(ForEachOps.java:173)
+	at java.base/java.util.stream.AbstractPipeline.evaluate(AbstractPipeline.java:234)
+	at java.base/java.util.stream.ReferencePipeline.forEach(ReferencePipeline.java:596)
+	at org.springframework.boot.SpringApplication.callRunners(SpringApplication.java:774)
+	at org.springframework.boot.SpringApplication.run(SpringApplication.java:342)
+	at org.springframework.boot.test.context.SpringBootContextLoader.lambda$loadContext$3(SpringBootContextLoader.java:137)
+	at org.springframework.util.function.ThrowingSupplier.get(ThrowingSupplier.java:58)
+	at org.springframework.util.function.ThrowingSupplier.get(ThrowingSupplier.java:46)
+	at org.springframework.boot.SpringApplication.withHook(SpringApplication.java:1463)
+	at org.springframework.boot.test.context.SpringBootContextLoader$ContextLoaderHook.run(SpringBootContextLoader.java:553)
+	at org.springframework.boot.test.context.SpringBootContextLoader.loadContext(SpringBootContextLoader.java:137)
+	at org.springframework.boot.test.context.SpringBootContextLoader.loadContext(SpringBootContextLoader.java:108)
+	at org.springframework.test.context.cache.DefaultCacheAwareContextLoaderDelegate.loadContextInternal(DefaultCacheAwareContextLoaderDelegate.java:225)
+	at org.springframework.test.context.cache.DefaultCacheAwareContextLoaderDelegate.loadContext(DefaultCacheAwareContextLoaderDelegate.java:152)
+	at org.springframework.test.context.support.DefaultTestContext.getApplicationContext(DefaultTestContext.java:130)
+	at org.springframework.test.context.web.ServletTestExecutionListener.setUpRequestContextIfNecessary(ServletTestExecutionListener.java:191)
+	at org.springframework.test.context.web.ServletTestExecutionListener.prepareTestInstance(ServletTestExecutionListener.java:130)
+	at org.springframework.test.context.TestContextManager.prepareTestInstance(TestContextManager.java:260)
+	at org.springframework.test.context.junit.jupiter.SpringExtension.postProcessTestInstance(SpringExtension.java:163)
+	at org.junit.jupiter.engine.descriptor.ClassBasedTestDescriptor.lambda$invokeTestInstancePostProcessors$10(ClassBasedTestDescriptor.java:378)
+	at org.junit.jupiter.engine.descriptor.ClassBasedTestDescriptor.executeAndMaskThrowable(ClassBasedTestDescriptor.java:383)
+	at org.junit.jupiter.engine.descriptor.ClassBasedTestDescriptor.lambda$invokeTestInstancePostProcessors$11(ClassBasedTestDescriptor.java:378)
+	at java.base/java.util.stream.ReferencePipeline$3$1.accept(ReferencePipeline.java:197)
+	at java.base/java.util.stream.ReferencePipeline$2$1.accept(ReferencePipeline.java:179)
+	at java.base/java.util.ArrayList$ArrayListSpliterator.forEachRemaining(ArrayList.java:1625)
+	at java.base/java.util.stream.AbstractPipeline.copyInto(AbstractPipeline.java:509)
+	at java.base/java.util.stream.AbstractPipeline.wrapAndCopyInto(AbstractPipeline.java:499)
+	at java.base/java.util.stream.StreamSpliterators$WrappingSpliterator.forEachRemaining(StreamSpliterators.java:310)
+	at java.base/java.util.stream.Streams$ConcatSpliterator.forEachRemaining(Streams.java:735)
+	at java.base/java.util.stream.Streams$ConcatSpliterator.forEachRemaining(Streams.java:734)
+	at java.base/java.util.stream.ReferencePipeline$Head.forEach(ReferencePipeline.java:762)
+	at org.junit.jupiter.engine.descriptor.ClassBasedTestDescriptor.invokeTestInstancePostProcessors(ClassBasedTestDescriptor.java:377)
+	at org.junit.jupiter.engine.descriptor.ClassBasedTestDescriptor.lambda$instantiateAndPostProcessTestInstance$6(ClassBasedTestDescriptor.java:290)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73)
+	at org.junit.jupiter.engine.descriptor.ClassBasedTestDescriptor.instantiateAndPostProcessTestInstance(ClassBasedTestDescriptor.java:289)
+	at org.junit.jupiter.engine.descriptor.ClassBasedTestDescriptor.lambda$testInstancesProvider$4(ClassBasedTestDescriptor.java:279)
+	at java.base/java.util.Optional.orElseGet(Optional.java:364)
+	at org.junit.jupiter.engine.descriptor.ClassBasedTestDescriptor.lambda$testInstancesProvider$5(ClassBasedTestDescriptor.java:278)
+	at org.junit.jupiter.engine.execution.TestInstancesProvider.getTestInstances(TestInstancesProvider.java:31)
+	at org.junit.jupiter.engine.descriptor.TestMethodTestDescriptor.lambda$prepare$0(TestMethodTestDescriptor.java:106)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73)
+	at org.junit.jupiter.engine.descriptor.TestMethodTestDescriptor.prepare(TestMethodTestDescriptor.java:105)
+	at org.junit.jupiter.engine.descriptor.TestMethodTestDescriptor.prepare(TestMethodTestDescriptor.java:69)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$prepare$2(NodeTestTask.java:123)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.prepare(NodeTestTask.java:123)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.execute(NodeTestTask.java:90)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1511)
+	at org.junit.platform.engine.support.hierarchical.SameThreadHierarchicalTestExecutorService.invokeAll(SameThreadHierarchicalTestExecutorService.java:41)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$6(NodeTestTask.java:155)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$8(NodeTestTask.java:141)
+	at org.junit.platform.engine.support.hierarchical.Node.around(Node.java:137)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$9(NodeTestTask.java:139)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.executeRecursively(NodeTestTask.java:138)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.execute(NodeTestTask.java:95)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1511)
+	at org.junit.platform.engine.support.hierarchical.SameThreadHierarchicalTestExecutorService.invokeAll(SameThreadHierarchicalTestExecutorService.java:41)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$6(NodeTestTask.java:155)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$8(NodeTestTask.java:141)
+	at org.junit.platform.engine.support.hierarchical.Node.around(Node.java:137)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$9(NodeTestTask.java:139)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.executeRecursively(NodeTestTask.java:138)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.execute(NodeTestTask.java:95)
+	at org.junit.platform.engine.support.hierarchical.SameThreadHierarchicalTestExecutorService.submit(SameThreadHierarchicalTestExecutorService.java:35)
+	at org.junit.platform.engine.support.hierarchical.HierarchicalTestExecutor.execute(HierarchicalTestExecutor.java:57)
+	at org.junit.platform.engine.support.hierarchical.HierarchicalTestEngine.execute(HierarchicalTestEngine.java:54)
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.execute(EngineExecutionOrchestrator.java:198)
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.execute(EngineExecutionOrchestrator.java:169)
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.execute(EngineExecutionOrchestrator.java:93)
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.lambda$execute$0(EngineExecutionOrchestrator.java:58)
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.withInterceptedStreams(EngineExecutionOrchestrator.java:141)
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.execute(EngineExecutionOrchestrator.java:57)
+	at org.junit.platform.launcher.core.DefaultLauncher.execute(DefaultLauncher.java:103)
+	at org.junit.platform.launcher.core.DefaultLauncher.execute(DefaultLauncher.java:85)
+	at org.junit.platform.launcher.core.DelegatingLauncher.execute(DelegatingLauncher.java:47)
+	at org.apache.maven.surefire.junitplatform.LazyLauncher.execute(LazyLauncher.java:56)
+	at org.apache.maven.surefire.junitplatform.JUnitPlatformProvider.execute(JUnitPlatformProvider.java:184)
+	at org.apache.maven.surefire.junitplatform.JUnitPlatformProvider.invokeAllTests(JUnitPlatformProvider.java:148)
+	at org.apache.maven.surefire.junitplatform.JUnitPlatformProvider.invoke(JUnitPlatformProvider.java:122)
+	at org.apache.maven.surefire.booter.ForkedBooter.runSuitesInProcess(ForkedBooter.java:385)
+	at org.apache.maven.surefire.booter.ForkedBooter.execute(ForkedBooter.java:162)
+	at org.apache.maven.surefire.booter.ForkedBooter.run(ForkedBooter.java:507)
+	at org.apache.maven.surefire.booter.ForkedBooter.main(ForkedBooter.java:495)
+Caused by: java.sql.SQLSyntaxErrorException: Unknown column 'status' in 'where clause'
+	at com.mysql.cj.jdbc.exceptions.SQLError.createSQLException(SQLError.java:121)
+	at com.mysql.cj.jdbc.exceptions.SQLExceptionsMapping.translateException(SQLExceptionsMapping.java:122)
+	at com.mysql.cj.jdbc.StatementImpl.executeQuery(StatementImpl.java:1208)
+	at com.zaxxer.hikari.pool.ProxyStatement.executeQuery(ProxyStatement.java:110)
+	at com.zaxxer.hikari.pool.HikariProxyStatement.executeQuery(HikariProxyStatement.java)
+	at org.springframework.jdbc.core.JdbcTemplate$1QueryStatementCallback.doInStatement(JdbcTemplate.java:463)
+	at org.springframework.jdbc.core.JdbcTemplate.execute(JdbcTemplate.java:393)
+	... 104 more
+添加 overtime_type 字段失败: StatementCallback; bad SQL grammar [ALTER TABLE attendance ADD COLUMN overtime_type TINYINT COMMENT '加班类型：1-工作日加班，2-休息日加班，3-法定假期加班' AFTER attendance_type]
+]]></system-err>
+  </testcase>
+</testsuite>

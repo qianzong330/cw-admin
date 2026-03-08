@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{common/layout :: layout(~{::title}, ~{::#mainContent})}">
+<head>
+    <title>工资条管理</title>
+</head>
+<body>
+<div id="mainContent">
+<style>
+    .salary-container { padding: 16px; }
+    
+    /* 顶部工具栏 */
+    .top-bar {
+        display: flex; align-items: center; gap: 12px; margin-bottom: 16px;
+        padding: 12px 16px; background: #f8f9fa; border-radius: 8px;
+    }
+    .top-bar h5 { margin: 0; font-weight: 600; }
+    
+    /* 工资条表格 */
+    .salary-table-wrap { 
+        border: 1px solid #dee2e6; border-radius: 8px; overflow: hidden;
+        margin-bottom: 16px;
+    }
+    .salary-table { width: 100%; border-collapse: collapse; }
+    .salary-table th {
+        background: #f8f9fa; padding: 10px 12px; font-size: 13px; font-weight: 600;
+        border-bottom: 1px solid #dee2e6; text-align: left;
+    }
+    .salary-table td {
+        padding: 12px; font-size: 13px; border-bottom: 1px solid #f0f0f0;
+        vertical-align: middle;
+    }
+    .salary-table tr:hover { background: #f8f9fa; }
+    .salary-table tr.expanded { background: #f0f7ff; }
+    
+    .amount-cell { font-family: 'Courier New', monospace; text-align: right; font-size: 14px; font-weight: 600; }
+    .amount-plain { color: #374151; }
+    .amount-plus  { color: #16a34a; }
+    .amount-minus { color: #dc2626; }
+    .amount-total {
+        color: #1d4ed8;
+        font-size: 15px;
+        font-weight: 700;
+        letter-spacing: 0.3px;
+    }
+    /* 应付工资列特殊高亮 */
+    .salary-table td.payable-cell {
+        background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+        border-left: 3px solid #3b82f6;
+    }
+    
+    .status-badge {
+        display: inline-block; padding: 2px 8px; border-radius: 4px;
+        font-size: 12px; font-weight: 500;
+    }
+    .status-0 { background: #e5e7eb; color: #374151; }
+    .status-1 { background: #fef3c7; color: #92400e; }
+    .status-5 { background: #d1fae5; color: #065f46; }
+    .status-12 { background: #fee2e2; color: #991b1b; }
+    
+    /* 展开按钮 */
+    .btn-expand {
+        padding: 4px 12px; font-size: 12px; border-radius: 4px;
+        border: 1px solid #d1d5db; background: #fff; color: #374151;
+        cursor: pointer; white-space: nowrap;
+    }
+    .btn-expand:hover { background: #f3f4f6; border-color: #9ca3af; }
+    .btn-expand i { margin-left: 4px; transition: transform 0.2s; }
+    .btn-expand.expanded i { transform: rotate(180deg); }
+    
+    /* 工资条行隐藏 */
+    .salary-table tr.slip-row {
+        transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+    .salary-table tr.slip-row.fading-out {
+        display: none;
+    }
+    
+    /* 展开的费用明细行 */
+    .fee-detail-row { background: #fafafa; }
+    .fee-detail-row td { padding: 0; border-bottom: 1px solid #dee2e6; }
+    .fee-detail-content {
+        padding: 20px;
+        animation: fadeSlideIn 0.3s ease;
+        min-height: calc(100vh - 280px);
+    }
+    @keyframes fadeSlideIn {
+        from { opacity: 0; transform: translateY(-8px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+    
+    /* 费用明细表格布局 */
+    .fee-table { width: 100%; font-size: 13px; }
+    .fee-table-header {
+        display: grid; grid-template-columns: 1fr 1fr;
+        gap: 8px; padding: 10px 0; border-bottom: 1px solid #e5e7eb;
+        font-weight: 600; color: #6b7280; margin-bottom: 8px;
+        align-items: center;
+    }
+    .fee-table-header .col-plus { color: #16a34a; }
+    .fee-table-header .col-minus { color: #dc2626; }
+    
+    .fee-table-row {
+        display: grid; grid-template-columns: 1fr 80px 40px 1fr 80px 40px;
+        gap: 8px; padding: 8px 0; border-bottom: 1px dashed #f0f0f0;
+        align-items: center;
+    }
+    .fee-table-row:first-child {
+        border-bottom: 1px solid #e5e7eb;
+        padding-bottom: 12px;
+        margin-bottom: 8px;
+    }
+    .fee-table-row:last-child { border-bottom: none; }
+    
+    .fee-col-name { color: #374151; }
+    .fee-col-amt { 
+        font-family: 'Courier New', monospace; text-align: right;
+        padding: 2px 6px; border-radius: 4px;
+        font-weight: 700; font-size: 14px;
+    }
+    .fee-col-amt.editable { cursor: pointer; }
+    .fee-col-amt.editable:hover { background: #f3f4f6; }
+    .fee-col-amt.plus { color: #16a34a; }
+    .fee-col-amt.minus { color: #dc2626; }
+    .fee-col-del { text-align: center; }
+    .fee-col-del i { 
+        color: #d1d5db; cursor: pointer; font-size: 14px;
+        padding: 4px; border-radius: 4px;
+    }
+    .fee-col-del i:hover { color: #dc2626; background: #fee2e2; }
+    
+    /* 新增按钮 */
+    .btn-fee-add {
+        display: inline-flex; align-items: center; gap: 4px;
+        padding: 4px 10px; font-size: 12px; border-radius: 4px;
+        border: 1px solid; cursor: pointer; font-weight: 500;
+        margin-left: 8px;
+    }
+    .btn-fee-add.plus {
+        background: #f0fdf4; border-color: #86efac; color: #166534;
+    }
+    .btn-fee-add.plus:hover { background: #dcfce7; border-color: #4ade80; }
+    .btn-fee-add.minus {
+        background: #fef2f2; border-color: #fecaca; color: #991b1b;
+    }
+    .btn-fee-add.minus:hover { background: #fee2e2; border-color: #f87171; }
+    
+    .fee-empty { color: #9ca3af; font-size: 13px; padding: 16px 0; text-align: center; grid-column: span 6; }
+    
+    /* 编辑输入框 */
+    .edit-amt-input {
+        width: 90px; padding: 4px 8px; font-size: 13px;
+        border: 1px solid #3b82f6; border-radius: 4px;
+        font-family: monospace; text-align: right;
+        outline: none;
+    }
+    
+    .empty-hint {
+        text-align: center; padding: 60px 20px; color: #6b7280;
+    }
+</style>
+
+<div class="salary-container">
+    <!-- 顶部工具栏 -->
+    <div class="top-bar">
+        <h5><i class="bi bi-cash-coin me-2"></i>工资条管理</h5>
+        
+        <div class="d-flex align-items-center gap-2">
+            <label class="text-muted mb-0" style="font-size:13px;">项目</label>
+            <select class="form-select form-select-sm" id="projectId" style="width:150px;" onchange="changeFilter()">
+                <option th:each="proj : ${projects}" th:value="${proj.id}" th:text="${proj.name}"
+                        th:selected="${proj.id == projectId}"></option>
+            </select>
+        </div>
+        
+        <div class="d-flex align-items-center gap-2">
+            <label class="text-muted mb-0" style="font-size:13px;">月份</label>
+            <input type="month" class="form-control form-control-sm" id="salaryPeriod" style="width:130px;"
+                   th:value="${salaryPeriod}" onchange="changeFilter()">
+        </div>
+        
+        <div class="ms-auto d-flex align-items-center gap-2">
+            <span class="text-muted" style="font-size:13px;">工资条状态：</span>
+            <span id="monthStatusBadge" class="badge bg-secondary">草稿</span>
+            <span id="statusTip" class="text-muted" style="font-size:12px;display:none;"></span>
+            <button class="btn btn-sm btn-primary" id="btnSubmit" onclick="submitMonth()">
+                <i class="bi bi-send me-1"></i>提交审批
+            </button>
+            <!-- BOSS/root 审批按钮区域，待审批时显示 -->
+            <div id="btnApproveArea" style="display:none; gap:8px; align-items:center;">
+                <button class="btn btn-sm btn-success" onclick="approveMonth(true)">
+                    <i class="bi bi-check-lg me-1"></i>审批通过
+                </button>
+                <button class="btn btn-sm btn-danger" onclick="approveMonth(false)">
+                    <i class="bi bi-x-lg me-1"></i>审批驳回
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 工资条表格 -->
+    <div class="salary-table-wrap">
+        <table class="salary-table">
+            <thead>
+                <tr>
+                    <th style="width:80px;">姓名</th>
+                    <th style="width:120px;">身份证号</th>
+                    <th style="width:100px;">工种</th>
+                    <th style="width:80px;">薪资类型</th>
+                    <th style="width:70px; text-align:right;">薪资</th>
+                    <th style="width:65px; text-align:right; white-space:nowrap;">出勤天数</th>
+                    <th style="width:70px; text-align:right;">考勤工资</th>
+                    <th style="width:60px; text-align:right;" class="amount-plus">费用+</th>
+                    <th style="width:60px; text-align:right;" class="amount-minus">费用-</th>
+                    <th style="width:80px; text-align:right;">应付工资</th>
+                    <th style="width:100px;">操作</th>
+                </tr>
+            </thead>
+            <tbody id="salaryTableBody">
+                <!-- JS填充 -->
+            </tbody>
+        </table>
+        <div id="emptyHint" class="empty-hint" style="display:none;">
+            <i class="bi bi-inbox fs-1 text-muted"></i>
+            <p class="mt-2">暂无工资条数据</p>
+        </div>
+    </div>
+</div>
+
+<!-- 新增费用弹窗 -->
+<!-- 新增费用 Modal -->
+<div class="modal fade" id="feeModal" tabindex="-1">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="feeModalTitle">新增费用</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">费用类型</label>
+                    <select class="form-select" id="feeDirType" onchange="onFeeDirTypeChange()">
+                        <option value="plus">费用加项</option>
+                        <option value="minus">费用减项</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">类型</label>
+                    <select class="form-select" id="feeType" onchange="onFeeTypeChange()">
+                    </select>
+                    <input type="text" class="form-control mt-2" id="feeTypeCustom" placeholder="请输入自定义类型" style="display:none;">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">金额（元）</label>
+                    <input type="number" class="form-control" id="feeAmount" placeholder="0.00" step="0.01">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="saveFeeItem()">确定</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 审批通过确认 Modal -->
+<div class="modal fade" id="approveModal" tabindex="-1">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">审批通过</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-0">确认审批通过本月工资条？</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-success" onclick="confirmApprove()">确认通过</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 审批驳回 Modal -->
+<div class="modal fade" id="rejectModal" tabindex="-1">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">审批驳回</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">驳回原因</label>
+                    <textarea class="form-control" id="rejectRemark" rows="3" placeholder="请输入驳回原因"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-danger" onclick="confirmReject()">确认驳回</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 驳回原因查看 Modal -->
+<div class="modal fade" id="rejectReasonModal" tabindex="-1">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">驳回原因</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p id="rejectReasonText" class="mb-0" style="white-space:pre-wrap;"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 提交审批确认 Modal -->
+<div class="modal fade" id="submitModal" tabindex="-1">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">提交审批</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-0">提交后将发起审批流程，审批通过后工资条将锁定不可编辑。</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="confirmSubmit()">确认提交</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script th:inline="javascript">
+    var projectId = /*[[${projectId}]]*/ 1;
+    var salaryPeriod = /*[[${salaryPeriod}]]*/ '2026-03';
+    var employees = /*[[${employees}]]*/ [];
+    var currentUserRoleCode = /*[[${session.currentUser != null ? session.currentUser.roleCode : ''}]]*/ '';
+    var salarySlips = [];
+    var currentSlip = null;
+    var currentFeeDir = null;
+    var expandedSlipId = null;
+    
+    var PLUS_TYPES = [];
+    var MINUS_TYPES = [];
+    
+    // 加载费用项配置
+    function loadFeeItems() {
+        fetch('/feeitem/api/list')
+            .then(r => r.json())
+            .then(function(data) {
+                PLUS_TYPES = data.filter(function(i) { return i.type == 1; }).map(function(i) { return i.name; });
+                MINUS_TYPES = data.filter(function(i) { return i.type == 2; }).map(function(i) { return i.name; });
+                if (PLUS_TYPES.length == 0) PLUS_TYPES = ['其它'];
+                if (MINUS_TYPES.length == 0) MINUS_TYPES = ['其它'];
+            })
+            .catch(function(e) {
+                console.error('加载费用项失败', e);
+                PLUS_TYPES = ['其它'];
+                MINUS_TYPES = ['其它'];
+            });
+    }
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        loadFeeItems();
+        loadSalarySlips();
+    });
+    
+    function changeFilter() {
+        projectId = document.getElementById('projectId').value;
+        salaryPeriod = document.getElementById('salaryPeriod').value;
+        window.location.href = '/salary/list?projectId=' + projectId + '&salaryPeriod=' + salaryPeriod;
+    }
+    
+    function loadSalarySlips() {
+        fetch('/salary/api/list?projectId=' + projectId + '&salaryPeriod=' + salaryPeriod)
+            .then(r => r.json())
+            .then(function(data) {
+                salarySlips = data.slips || [];
+                expandedSlipId = null; // 数据刷新时清除展开状态
+                updateMonthStatus(data.monthStatus, data);
+                renderTable();
+            })
+            .catch(function(e) {
+                console.error('加载失败', e);
+            });
+    }
+    
+    // 全局状态对象
+    var G = { monthStatus: 0, monthStatusData: null, rejectRemark: '' };
+    
+    function updateMonthStatus(status, data) {
+        G.monthStatus = status || 0; // 保存到全局，供renderTable使用
+        G.monthStatusData = data || {};
+        var badge = document.getElementById('monthStatusBadge');
+        var btnSubmit = document.getElementById('btnSubmit');
+        var btnApproveArea = document.getElementById('btnApproveArea');
+        var statusTip = document.getElementById('statusTip');
+        var isBoss = (currentUserRoleCode === 'boss' || currentUserRoleCode === 'root');
+        
+        // 隐藏审批按钮区域（默认）
+        if (btnApproveArea) btnApproveArea.style.display = 'none';
+        if (statusTip) statusTip.style.display = 'none';
+        
+        if (status == null || status == 0) {
+            badge.className = 'badge bg-secondary';
+            badge.textContent = '草稿';
+            btnSubmit.style.display = 'inline-block';
+        } else if (status == 1) {
+            badge.className = 'badge bg-warning text-dark';
+            badge.textContent = '待审批';
+            btnSubmit.style.display = 'none';
+            // 显示等待谁审批
+            if (statusTip && data.bosses && data.bosses.length > 0) {
+                var bossNames = data.bosses.map(function(b) { return b.name; }).join('、');
+                statusTip.textContent = '等待 ' + bossNames + ' 审批';
+                statusTip.style.display = 'inline';
+            }
+            // BOSS/root 显示审批按钮
+            if (isBoss && btnApproveArea) btnApproveArea.style.display = 'inline-flex';
+        } else if (status == 5) {
+            badge.className = 'badge bg-success';
+            badge.textContent = '已锁定';
+            btnSubmit.style.display = 'none';
+        } else if (status == 12) {
+            badge.className = 'badge bg-danger';
+            badge.textContent = '\u5df2\u9a73\u56de';
+            btnSubmit.style.display = 'inline-block';
+            // 有驳回原因才显示按钮
+            G.rejectRemark = data.approveRemark || '';
+            if (statusTip && data.approveRemark) {
+                statusTip.innerHTML = '<button class="btn btn-sm btn-outline-danger" style="padding:2px 8px;font-size:12px;" onclick="showRejectReason()"><i class="bi bi-chat-text me-1"></i>驳回原因</button>';
+                statusTip.style.display = 'inline';
+            }
+        }
+    }
+    
+    function renderTable() {
+        var tbody = document.getElementById('salaryTableBody');
+        var emptyHint = document.getElementById('emptyHint');
+        
+        if (salarySlips.length == 0) {
+            tbody.innerHTML = '';
+            emptyHint.style.display = '';
+            return;
+        }
+        emptyHint.style.display = 'none';
+        
+        // 获取当前月份状态（从全局变量或通过updateMonthStatus传递）
+        var monthStatus = G.monthStatus || 0;
+        var editable = (monthStatus == 0 || monthStatus == 12); // 草稿或已驳回时可编辑
+        
+        var html = '';
+        salarySlips.forEach(function(s) {
+            var salaryTypeText = s.salaryType == 1 ? '日薪' : '月薪';
+            
+            // 主行
+            html += '<tr data-slip-id="' + s.id + '" class="slip-row">' +
+                '<td>' + esc(s.employeeName) + '</td>' +
+                '<td style="font-size:12px;color:#6b7280;">' + esc(s.idCard || '-') + '</td>' +
+                '<td>' + esc(s.jobCategoryName || '-') + '</td>' +
+                '<td>' + salaryTypeText + '</td>' +
+                '<td class="amount-cell amount-plain">' + fmt(s.baseSalary) + '</td>' +
+                '<td class="amount-cell" style="color:#374151;">' + (s.attendanceDays || 0) + '</td>' +
+                '<td class="amount-cell" style="color:#374151;">' + fmt(s.baseAmount) + '</td>' +
+                '<td class="amount-cell amount-plus">' + fmt(s.additionAmount) + '</td>' +
+                '<td class="amount-cell amount-minus">' + fmt(s.deductionAmount) + '</td>' +
+                '<td class="amount-cell amount-total payable-cell">' + fmt(s.payableAmount) + '</td>' +
+                '<td style="white-space:nowrap;">' +
+                    (editable ? '<button class="btn btn-sm btn-outline-primary me-1" onclick="openAddFeeModal(' + s.id + ')" style="padding:4px 10px;font-size:12px;"><i class="bi bi-plus-minus"></i>加减费用</button>' : '') +
+                    '<button class="btn btn-sm btn-outline-secondary" onclick="toggleExpand(' + s.id + ')" style="padding:4px 10px;font-size:12px;">' +
+                    '费用明细<i class="bi bi-chevron-down"></i></button></td>' +
+                '</tr>';
+        });
+        
+        tbody.innerHTML = html;
+    }
+    
+    function renderFeeDetailHtml(slip, editable) {
+        var items = slip.items || [];
+        var plusItems = items.filter(function(i) { return i.itemType == 1; });
+        var minusItems = items.filter(function(i) { return i.itemType == 2; });
+        var maxRows = Math.max(plusItems.length, minusItems.length);
+        
+        // 计算说明
+        var salaryType = slip.salaryType == 1 ? '日薪' : '月薪';
+        var calcLines = []; // 每行说明，最终拼到 html
+        if (salaryType == '日薪') {
+            var dh = slip.dailyWorkHours ? parseFloat(slip.dailyWorkHours) : null;
+            var ah = slip.attendanceHours != null ? parseFloat(slip.attendanceHours) : null;
+            var wot = slip.weekdayOTHours != null ? parseFloat(slip.weekdayOTHours) : 0;
+            var rot = slip.restdayOTHours != null ? parseFloat(slip.restdayOTHours) : 0;
+            var hot = slip.holidayOTHours != null ? parseFloat(slip.holidayOTHours) : 0;
+            if (dh && ah !== null) {
+                // 出勤天数计算说明（文字公式 + 具体数值代入）
+                var wr = slip.weekdayOTRate != null ? parseFloat(slip.weekdayOTRate) : 1;
+                var rr = slip.restdayOTRate != null ? parseFloat(slip.restdayOTRate) : 1;
+                var hr = slip.holidayOTRate != null ? parseFloat(slip.holidayOTRate) : 1;
+                
+                // 第1行：计算公式说明
+                calcLines.push('<i class="bi bi-info-circle me-1"></i>出勤天数计算公式：（出勤工时 ÷ 每日工时）+（工作日加班工时 × 工作日加班费率 ÷ 每日工时）+（休息日加班工时 × 休息日加班费率 ÷ 每日工时）+（节假日加班工时 × 节假日加班费率 ÷ 每日工时）');
+                
+                // 第2行：具体数值说明
+                var valueLine = '每日标准工时：' + dh.toFixed(0) + 'h，当月出勤总工时 ' + ah.toFixed(1) + 'h';
+                if (wot > 0) valueLine += '，当月工作日加班总工时 ' + wot.toFixed(1) + 'h，加班费率' + wr.toFixed(1);
+                if (rot > 0) valueLine += '，当月休息日加班总工时 ' + rot.toFixed(1) + 'h，加班费率' + rr.toFixed(1);
+                if (hot > 0) valueLine += '，当月节假日加班总工时 ' + hot.toFixed(1) + 'h，加班费率' + hr.toFixed(1);
+                calcLines.push('<i class="bi bi-clock me-1"></i>' + valueLine);
+                
+                // 第3行：代入计算
+                var calcParts = [];
+                calcParts.push('（' + ah.toFixed(1) + ' ÷ ' + dh.toFixed(0) + '）');
+                if (wot > 0) calcParts.push('（' + wot.toFixed(1) + ' × ' + wr.toFixed(1) + ' ÷ ' + dh.toFixed(0) + '）');
+                if (rot > 0) calcParts.push('（' + rot.toFixed(1) + ' × ' + rr.toFixed(1) + ' ÷ ' + dh.toFixed(0) + '）');
+                if (hot > 0) calcParts.push('（' + hot.toFixed(1) + ' × ' + hr.toFixed(1) + ' ÷ ' + dh.toFixed(0) + '）');
+                calcLines.push('<i class="bi bi-calculator me-1"></i>出勤天数：' + calcParts.join(' + ') + ' = <b style="color:#374151;font-size:13px;">' + fmt(slip.attendanceDays) + ' 天</b>');
+                // 考勤工资
+                calcLines.push('<i class="bi bi-calculator me-1"></i>考勤工资 = 日薪（' + fmt(slip.baseSalary) + ' 元）× 出勤天数（' + fmt(slip.attendanceDays) + ' 天）= <b style="color:#16a34a;font-size:13px;">' + fmt(slip.baseAmount) + ' 元</b>');
+            } else if (dh && parseFloat(dh) === -1) {
+                // 降级模式：无工时配置，直接按考勤条数计数
+                var days = ah !== null ? parseFloat(ah) : parseFloat(slip.attendanceDays || 0);
+                calcLines.push('<i class="bi bi-clock me-1"></i>本月共有 <b>' + days + ' 条</b>考勤记录（未配置工时标准，每条记录计 1 天）');
+                calcLines.push('<i class="bi bi-info-circle me-1"></i>出勤天数 = 考勤条数 = <b style="color:#374151;font-size:13px;">' + fmt(slip.attendanceDays) + ' 天</b>');
+                calcLines.push('<i class="bi bi-calculator me-1"></i>考勤工资 = 日薪（' + fmt(slip.baseSalary) + ' 元）× 出勤天数（' + fmt(slip.attendanceDays) + ' 天）= <b style="color:#16a34a;font-size:13px;">' + fmt(slip.baseAmount) + ' 元</b>');
+            } else {
+                // 工时数据未返回（旧数据兴许没有重算），加载完成后展示天数结果
+                calcLines.push('<i class="bi bi-info-circle me-1"></i>出勤天数 = 出勤工时 ÷ 每日工时 = <b style="color:#374151;font-size:13px;">' + fmt(slip.attendanceDays) + ' 天</b>');
+                calcLines.push('<i class="bi bi-calculator me-1"></i>考勤工资 = 日薪（' + fmt(slip.baseSalary) + ' 元）× 出勤天数（' + fmt(slip.attendanceDays) + ' 天）= <b style="color:#16a34a;font-size:13px;">' + fmt(slip.baseAmount) + ' 元</b>');
+            }
+        } else {
+            calcLines.push('<i class="bi bi-info-circle me-1"></i>月薪制，考勤工资直接取月薪');
+            calcLines.push('<i class="bi bi-calculator me-1"></i>考勤工资 = 月薪 <b style="color:#16a34a;font-size:13px;">' + fmt(slip.baseSalary) + ' 元</b>');
+        }
+        // 应付工资说明（每项名称都展示）
+        calcLines.push('<i class="bi bi-cash-stack me-1"></i>应付工资 = 考勤工资（' + fmt(slip.baseAmount) + ' 元）+ 费用加项（' + fmt(slip.additionAmount) + ' 元）− 费用减项（' + fmt(slip.deductionAmount) + ' 元）= <b style="color:#1d4ed8;font-size:14px;">' + fmt(slip.payableAmount) + ' 元</b>');
+        
+        var html = '<div class="fee-table">' +
+            '<div style="background:#f8f9fa;border-radius:6px;padding:10px 12px;margin-bottom:10px;font-size:12px;color:#6b7280;line-height:1.9;">' +
+            calcLines.map(function(line) { return '<div>' + line + '</div>'; }).join('') +
+            '</div>' +
+            '<div class="fee-table-header" style="grid-template-columns: 1fr 1fr;">' +
+            '<span class="col-plus">费用加项</span>' +
+            '<span class="col-minus">费用减项</span>' +
+            '</div>';
+        
+        // 数据行
+        if (maxRows == 0) {
+            html += '<div class="fee-table-row"><div class="fee-empty">暂无费用明细</div></div>';
+        } else {
+            for (var i = 0; i < maxRows; i++) {
+                var plus = plusItems[i];
+                var minus = minusItems[i];
+                
+                html += '<div class="fee-table-row">';
+                
+                // 费用加项
+                if (plus) {
+                    html += '<span class="fee-col-name">' + esc(plus.itemName) + '</span>' +
+                        '<span class="fee-col-amt plus' + (editable ? ' editable' : '') + '"' +
+                        (editable ? ' onclick="editFeeItem(' + plus.id + ', ' + plus.amount + ', this)"' : '') + '>' + fmt(plus.amount) + '</span>' +
+                        '<span class="fee-col-del">' + (editable ? '<i class="bi bi-trash3" onclick="delFeeItem(' + plus.id + ')"></i>' : '') + '</span>';
+                } else {
+                    html += '<span></span><span></span><span></span>';
+                }
+                
+                // 费用减项
+                if (minus) {
+                    html += '<span class="fee-col-name">' + esc(minus.itemName) + '</span>' +
+                        '<span class="fee-col-amt minus' + (editable ? ' editable' : '') + '"' +
+                        (editable ? ' onclick="editFeeItem(' + minus.id + ', ' + minus.amount + ', this)"' : '') + '>' + fmt(minus.amount) + '</span>' +
+                        '<span class="fee-col-del">' + (editable ? '<i class="bi bi-trash3" onclick="delFeeItem(' + minus.id + ')"></i>' : '') + '</span>';
+                } else {
+                    html += '<span></span><span></span><span></span>';
+                }
+                
+                html += '</div>';
+            }
+        }
+        
+        html += '</div>';
+        return html;
+    }
+    
+    function toggleExpand(slipId) {
+        var tbody = document.getElementById('salaryTableBody');
+        var isClosing = (expandedSlipId == slipId);
+
+        if (isClosing) {
+            // 收起：删除明细行、恢复其他行
+            var detailRow = tbody.querySelector('.fee-detail-row');
+            if (detailRow) {
+                var content = detailRow.querySelector('.fee-detail-content');
+                if (content) {
+                    content.style.transition = 'opacity 0.25s ease, transform 0.25s ease';
+                    content.style.opacity = '0';
+                    content.style.transform = 'translateY(-6px)';
+                }
+                setTimeout(function() {
+                    if (detailRow.parentNode) detailRow.parentNode.removeChild(detailRow);
+                    // 恢复其他行显示
+                    tbody.querySelectorAll('tr.slip-row.fading-out').forEach(function(tr) {
+                        tr.classList.remove('fading-out');
+                    });
+                    // 按原始顺序重排行
+                    salarySlips.forEach(function(s) {
+                        var tr = tbody.querySelector('tr.slip-row[data-slip-id="' + s.id + '"]');
+                        if (tr) tbody.appendChild(tr);
+                    });
+                    // 移除展开高亮状态
+                    var expandedRow = tbody.querySelector('tr.slip-row.expanded');
+                    if (expandedRow) expandedRow.classList.remove('expanded');
+                    var btn = tbody.querySelector('.btn-fee-expand.active');
+                    if (btn) btn.classList.remove('active');
+                }, 250);
+            }
+            expandedSlipId = null;
+        } else {
+            // 展开：先隐藏其他行，再插入明细行
+            var prevDetailRow = tbody.querySelector('.fee-detail-row');
+            if (prevDetailRow) {
+                // 先移除旧的明细行
+                if (prevDetailRow.parentNode) prevDetailRow.parentNode.removeChild(prevDetailRow);
+                var oldExpanded = tbody.querySelector('tr.slip-row.expanded');
+                if (oldExpanded) oldExpanded.classList.remove('expanded');
+            }
+            expandedSlipId = slipId;
+
+            // 隐藏其他行
+            var monthStatus = G.monthStatus || 0;
+            var editable = (monthStatus == 0 || monthStatus == 12);
+            tbody.querySelectorAll('tr.slip-row').forEach(function(tr) {
+                if (tr.getAttribute('data-slip-id') != slipId) {
+                    tr.classList.add('fading-out');
+                }
+            });
+
+            // 找到目标行，标记为展开状态
+            var targetRow = tbody.querySelector('tr.slip-row[data-slip-id="' + slipId + '"]');
+            if (targetRow) {
+                targetRow.classList.add('expanded');
+                // 置顶：移到 tbody 第一行
+                tbody.insertBefore(targetRow, tbody.firstChild);
+            }
+
+            // 延迟一小段等渐隐完成后插入明细行
+            setTimeout(function() {
+                var slip = salarySlips.find(function(s) { return s.id == slipId; });
+                if (!slip || !targetRow) return;
+
+                var detailTr = document.createElement('tr');
+                detailTr.className = 'fee-detail-row';
+                detailTr.innerHTML = '<td colspan="11"><div class="fee-detail-content">' +
+                    renderFeeDetailHtml(slip, editable) + '</div></td>';
+                targetRow.parentNode.insertBefore(detailTr, targetRow.nextSibling);
+            }, 50);
+        }
+    }
+    
+    // 打开新增费用对话框（新接口）
+    function openAddFeeModal(slipId) {
+        currentSlip = salarySlips.find(function(s) { return s.id == slipId; });
+        // 默认选择费用加项
+        document.getElementById('feeDirType').value = 'plus';
+        onFeeDirTypeChange();
+        document.getElementById('feeTypeCustom').style.display = 'none';
+        document.getElementById('feeAmount').value = '';
+        document.getElementById('feeModalTitle').textContent = '新增费用';
+        new bootstrap.Modal(document.getElementById('feeModal')).show();
+    }
+    
+    // 费用方向类型切换（加项/减项）
+    function onFeeDirTypeChange() {
+        var dir = document.getElementById('feeDirType').value;
+        currentFeeDir = dir;
+        var types = dir == 'plus' ? PLUS_TYPES : MINUS_TYPES;
+        // 添加"其它"选项
+        var allTypes = types.concat(['其它']);
+        var select = document.getElementById('feeType');
+        select.innerHTML = allTypes.map(function(t) { return '<option value="' + t + '">' + t + '</option>'; }).join('');
+        document.getElementById('feeTypeCustom').style.display = 'none';
+    }
+    
+    // 兼容旧接口
+    function openAddFee(slipId, dir) {
+        currentSlip = salarySlips.find(function(s) { return s.id == slipId; });
+        currentFeeDir = dir;
+        document.getElementById('feeDirType').value = dir;
+        onFeeDirTypeChange();
+        document.getElementById('feeTypeCustom').style.display = 'none';
+        document.getElementById('feeAmount').value = '';
+        document.getElementById('feeModalTitle').textContent = dir == 'plus' ? '新增费用加项' : '新增费用减项';
+        new bootstrap.Modal(document.getElementById('feeModal')).show();
+    }
+    
+    function onFeeTypeChange() {
+        var val = document.getElementById('feeType').value;
+        document.getElementById('feeTypeCustom').style.display = val == '其它' ? '' : 'none';
+    }
+    
+    function saveFeeItem() {
+        var typeVal = document.getElementById('feeType').value;
+        if (typeVal == '其它') {
+            typeVal = document.getElementById('feeTypeCustom').value.trim();
+            if (!typeVal) { alert('请输入自定义类型'); return; }
+        }
+        var amount = parseFloat(document.getElementById('feeAmount').value);
+        if (!amount || amount <= 0) { alert('请输入有效金额'); return; }
+        
+        var payload = {
+            salarySlipId: currentSlip.id,
+            itemName: typeVal,
+            amount: amount,
+            itemType: currentFeeDir == 'plus' ? 1 : 2
+        };
+        fetch('/salary/item/add', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(payload)
+        }).then(r => r.text()).then(function(res) {
+            if (res === 'success') {
+                bootstrap.Modal.getInstance(document.getElementById('feeModal')).hide();
+                loadSalarySlips();
+            } else {
+                alert('新增失败：' + res);
+            }
+        });
+    }
+    
+    function editFeeItem(itemId, currentAmount, element) {
+        // 如果已经在编辑中，不重复创建
+        if (element.querySelector('input')) return;
+        
+        var originalText = element.textContent;
+        element.innerHTML = '<input type="number" class="edit-amt-input" value="' + currentAmount + '" step="0.01" onblur="saveEditFeeItem(' + itemId + ', this)" onkeydown="if(event.key==\'Enter\')this.blur()">';
+        var input = element.querySelector('input');
+        input.focus();
+        input.select();
+    }
+    
+    function saveEditFeeItem(itemId, input) {
+        var newAmount = parseFloat(input.value);
+        if (!newAmount || newAmount < 0) {
+            alert('请输入有效金额');
+            loadSalarySlips();
+            return;
+        }
+        
+        fetch('/salary/item/update/' + itemId + '?amount=' + newAmount, {method: 'POST'})
+            .then(r => r.text()).then(function(res) {
+                if (res === 'success') {
+                    loadSalarySlips();
+                } else {
+                    alert('更新失败：' + res);
+                    loadSalarySlips();
+                }
+            });
+    }
+    
+    function delFeeItem(itemId) {
+        if (!confirm('确认删除该费用项？')) return;
+        fetch('/salary/item/delete/' + itemId, {method:'POST'})
+            .then(r => r.text()).then(function(res) {
+                if (res === 'success') {
+                    loadSalarySlips();
+                } else {
+                    alert('删除失败：' + res);
+                }
+            });
+    }
+    
+    // 查看驳回原因
+    function showRejectReason() {
+        var remark = G.rejectRemark || '';
+        document.getElementById('rejectReasonText').textContent = remark || '（未填写驳回原因）';
+        new bootstrap.Modal(document.getElementById('rejectReasonModal')).show();
+    }
+    
+    // 审批通过 - 打开确认 Modal
+    function approvePass() {
+        new bootstrap.Modal(document.getElementById('approveModal')).show();
+    }
+    
+    // 确认审批通过
+    function confirmApprove() {
+        bootstrap.Modal.getInstance(document.getElementById('approveModal')).hide();
+        doApprove(true, '');
+    }
+    
+    // 审批驳回 - 打开 Bootstrap Modal 输入原因
+    function approveReject() {
+        document.getElementById('rejectRemark').value = '';
+        new bootstrap.Modal(document.getElementById('rejectModal')).show();
+    }
+    
+    // 确认驳回
+    function confirmReject() {
+        var remark = document.getElementById('rejectRemark').value.trim();
+        bootstrap.Modal.getInstance(document.getElementById('rejectModal')).hide();
+        doApprove(false, remark);
+    }
+    
+    // 执行审批
+    function doApprove(approved, remark) {
+        fetch('/salary/month/approve?projectId=' + projectId + '&salaryPeriod=' + salaryPeriod + '&approved=' + approved + '&remark=' + encodeURIComponent(remark), {method:'POST'})
+            .then(function(r) { return r.text(); })
+            .then(function(res) {
+                if (res === 'success') {
+                    loadSalarySlips();
+                    refreshPendingBadge(); // 立即刷新菜单徽章
+                } else {
+                    alert('审批失败：' + res);
+                }
+            });
+    }
+    
+    // 刷新菜单待审批徽章
+    function refreshPendingBadge() {
+        fetch('/api/pending/salary/count')
+            .then(function(r) { return r.json(); })
+            .then(function(count) {
+                // 找到所有工资条菜单徽章元素并更新
+                document.querySelectorAll('.salary-pending-badge').forEach(function(el) {
+                    if (count > 0) {
+                        el.textContent = count;
+                        el.style.display = '';
+                    } else {
+                        el.style.display = 'none';
+                    }
+                });
+            })
+            .catch(function() {}); // 失败静默处理
+    }
+    
+    // 兼容旧接口
+    function approveMonth(approved) {
+        if (approved) {
+            approvePass();
+        } else {
+            approveReject();
+        }
+    }
+    
+    // 提交审批 - 打开确认 Modal
+    function submitMonth() {
+        new bootstrap.Modal(document.getElementById('submitModal')).show();
+    }
+    
+    // 确认提交审批
+    function confirmSubmit() {
+        bootstrap.Modal.getInstance(document.getElementById('submitModal')).hide();
+        fetch('/salary/month/submit', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+            body: 'projectId=' + projectId + '&salaryPeriod=' + salaryPeriod
+        }).then(function(r) { return r.text(); })
+        .then(function(res) {
+            if (res === 'success') {
+                loadSalarySlips();
+            } else {
+                alert('提交失败：' + res);
+            }
+        });
+    }
+    
+    function fmt(n) {
+        if (n == null || n == undefined) return '0.00';
+        return parseFloat(n).toFixed(2);
+    }
+    function esc(s) {
+        if (!s) return '';
+        return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+</script>
+</div>

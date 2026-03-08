@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{common/layout :: layout(${menu != null and menu.id != null ? '编辑菜单' : '新增菜单'}, ~{::content})}">
+<head>
+    <meta charset="UTF-8">
+</head>
+<body>
+    <div th:fragment="content">
+        <div class="container-fluid mt-4">
+            <div class="row">
+                <main class="col-md-12 px-md-4">
+                    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                        <h1 class="h2" th:text="${menu != null and menu.id != null ? '编辑菜单' : '新增菜单'}"></h1>
+                        <div>
+                            <a th:href="@{/menu/list}" class="btn btn-secondary btn-sm">
+                                <i class="bi bi-arrow-left"></i> 返回列表
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header bg-primary text-white">
+                            <i class="bi bi-menu-button"></i> 菜单信息
+                        </div>
+                        <div class="card-body">
+                            <form id="menuForm">
+                                <input type="hidden" id="menuId" th:value="${menu != null ? menu.id : ''}">
+                                
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">菜单名称 <span class="text-danger">*</span></label>
+                                        <input type="text" class="form-control" id="menuName" 
+                                               th:value="${menu != null ? menu.menu_name : ''}" placeholder="如：员工管理" required>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">菜单编码 <span class="text-danger">*</span></label>
+                                        <input type="text" class="form-control" id="menuCode" 
+                                               th:value="${menu != null ? menu.menu_code : ''}" placeholder="如：employee、attendance:add" required>
+                                        <div class="form-text">用于系统内部标识，建议使用小写英文</div>
+                                    </div>
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">菜单类型 <span class="text-danger">*</span></label>
+                                        <select class="form-select" id="menuType" required onchange="onMenuTypeChange()">
+                                            <option value="1" th:selected="${menu != null and menu.menu_type == 1}">目录（一级菜单）</option>
+                                            <option value="2" th:selected="${menu != null and menu.menu_type == 2}">页面（二级菜单）</option>
+                                            <option value="3" th:selected="${menu != null and menu.menu_type == 3}">按钮（操作权限）</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">父菜单</label>
+                                        <select class="form-select" id="parentId">
+                                            <option value="0">无（顶级）</option>
+                                            <option th:each="p : ${parentMenus}" th:value="${p.id}" 
+                                                    th:selected="${menu != null and menu.id != null and menu.parent_id != null and p.id != null and p.id.toString() == menu.parent_id.toString()}"
+                                                    th:text="${p.menu_name} + ' (' + ${p.menu_type == 1 ? '目录' : '页面'} + ')'">
+                                            </option>
+                                        </select>
+                                    </div>
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">菜单图标</label>
+                                        <input type="text" class="form-control" id="menuIcon" 
+                                               th:value="${menu != null ? menu.menu_icon : ''}" placeholder="如：bi-people、bi-calendar">
+                                        <div class="form-text">使用 Bootstrap Icons 图标类名，留空则不显示图标</div>
+                                    </div>
+                                    <div class="col-md-6 mb-3" id="urlField">
+                                        <label class="form-label">菜单路径</label>
+                                        <input type="text" class="form-control" id="menuUrl" 
+                                               th:value="${menu != null ? menu.menu_url : ''}" placeholder="如：/employee/list">
+                                        <div class="form-text">页面类型必填，按钮类型留空</div>
+                                    </div>
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">排序号</label>
+                                        <input type="number" class="form-control" id="sortOrder" 
+                                               th:value="${menu != null and menu.sort_order != null ? menu.sort_order : 0}" value="0">
+                                        <div class="form-text">数字越小排越前</div>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">状态</label>
+                                        <select class="form-select" id="status">
+                                            <option value="1" th:selected="${menu == null or menu.status == null or menu.status == 1}">启用</option>
+                                            <option value="0" th:selected="${menu != null and menu.status != null and menu.status == 0}">禁用</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                
+                                <div class="alert alert-info">
+                                    <i class="bi bi-info-circle"></i> 说明：
+                                    <ul class="mb-0 mt-2">
+                                        <li><strong>目录</strong>：一级菜单，用于分组，不可点击</li>
+                                        <li><strong>页面</strong>：二级菜单，对应具体页面</li>
+                                        <li><strong>按钮</strong>：操作权限，如新增、编辑、删除，需挂在页面下</li>
+                                    </ul>
+                                </div>
+                                
+                                <div class="text-end">
+                                    <button type="button" class="btn btn-primary" onclick="saveMenu()">
+                                        <i class="bi bi-save"></i> 保存菜单
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </main>
+            </div>
+        </div>
+        
+        <script th:src="@{/js/jquery.min.js}"></script>
+        <script th:src="@{/js/bootstrap.bundle.min.js}"></script>
+        <script th:src="@{/common/layout.js}"></script>
+        
+        <script>
+            function onMenuTypeChange() {
+                var menuType = document.getElementById('menuType').value;
+                var urlField = document.getElementById('urlField');
+                
+                if (menuType == '3') {
+                    // 按钮类型不需要路径
+                    urlField.style.display = 'none';
+                } else {
+                    urlField.style.display = 'block';
+                }
+            }
+            
+            // 页面加载时检查
+            onMenuTypeChange();
+            
+            function saveMenu() {
+                var menuId = document.getElementById('menuId').value;
+                var menuName = document.getElementById('menuName').value.trim();
+                var menuCode = document.getElementById('menuCode').value.trim();
+                var menuType = document.getElementById('menuType').value;
+                var parentId = document.getElementById('parentId').value;
+                var menuIcon = document.getElementById('menuIcon').value.trim();
+                var menuUrl = document.getElementById('menuUrl').value.trim();
+                var sortOrder = document.getElementById('sortOrder').value;
+                var status = document.getElementById('status').value;
+                
+                if (!menuName) {
+                    alert('请输入菜单名称');
+                    return;
+                }
+                if (!menuCode) {
+                    alert('请输入菜单编码');
+                    return;
+                }
+                
+                // 验证编码格式
+                if (!/^[a-z0-9_:]+$/.test(menuCode)) {
+                    alert('菜单编码只能包含小写字母、数字、下划线和冒号');
+                    return;
+                }
+                
+                var data = {
+                    menuName: menuName,
+                    menuCode: menuCode,
+                    menuType: parseInt(menuType),
+                    parentId: parseInt(parentId) || 0,
+                    menuIcon: menuIcon,
+                    menuUrl: menuUrl,
+                    sortOrder: parseInt(sortOrder) || 0,
+                    status: parseInt(status)
+                };
+                
+                var url = menuId ? '/menu/update/' + menuId : '/menu/add';
+                
+                fetch(url, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(data)
+                })
+                .then(function(res) { return res.json(); })
+                .then(function(result) {
+                    if (result.success) {
+                        alert('保存成功！');
+                        window.location.href = '/menu/list';
+                    } else {
+                        alert(result.message);
+                    }
+                })
+                .catch(function() {
+                    alert('网络错误，请稍后重试');
+                });
+            }
+        </script>
+    </div>
+</body>
+</html>

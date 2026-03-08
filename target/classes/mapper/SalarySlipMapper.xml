@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.hello.mapper.SalarySlipMapper">
+
+    <resultMap id="BaseResultMap" type="com.example.hello.entity.SalarySlip">
+        <id     column="id"               property="id"/>
+        <result column="employee_id"      property="employeeId"/>
+        <result column="employee_name"    property="employeeName"/>
+        <result column="id_card"          property="idCard"/>
+        <result column="job_category_name" property="jobCategoryName"/>
+        <result column="salary_period"    property="salaryPeriod"/>
+        <result column="salary_type"      property="salaryType"/>
+        <result column="base_salary"      property="baseSalary"/>
+        <result column="attendance_days"  property="attendanceDays"/>
+        <result column="base_amount"      property="baseAmount"/>
+        <result column="addition_amount"  property="additionAmount"/>
+        <result column="deduction_amount" property="deductionAmount"/>
+        <result column="payable_amount"   property="payableAmount"/>
+        <result column="remark"           property="remark"/>
+        <result column="approve_remark"   property="approveRemark"/>
+        <result column="created_by"       property="createdBy"/>
+        <result column="approved_by"      property="approvedBy"/>
+        <result column="approved_time"    property="approvedTime"/>
+        <result column="created_time"     property="createdTime"/>
+        <result column="updated_time"     property="updatedTime"/>
+    </resultMap>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO tb_salary
+            (employee_id, id_card, job_category_name, salary_period, salary_type,
+             base_salary, attendance_days, base_amount,
+             addition_amount, deduction_amount, payable_amount,
+             remark, approve_remark, created_by)
+        VALUES
+            (#{employeeId}, #{idCard}, #{jobCategoryName}, #{salaryPeriod}, #{salaryType},
+             #{baseSalary}, #{attendanceDays}, #{baseAmount},
+             #{additionAmount}, #{deductionAmount}, #{payableAmount},
+             #{remark}, #{approveRemark}, #{createdBy})
+    </insert>
+
+    <update id="update">
+        UPDATE tb_salary SET
+            employee_id      = #{employeeId},
+            id_card          = #{idCard},
+            job_category_name= #{jobCategoryName},
+            salary_period    = #{salaryPeriod},
+            salary_type      = #{salaryType},
+            base_salary      = #{baseSalary},
+            attendance_days  = #{attendanceDays},
+            base_amount      = #{baseAmount},
+            addition_amount  = #{additionAmount},
+            deduction_amount = #{deductionAmount},
+            payable_amount   = #{payableAmount},
+            remark           = #{remark},
+            approve_remark   = #{approveRemark}
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateAmounts">
+        UPDATE tb_salary SET
+            addition_amount  = #{additionAmount},
+            deduction_amount = #{deductionAmount},
+            payable_amount   = #{payableAmount}
+        WHERE id = #{id}
+    </update>
+
+    <!-- 工资条本身无状态，以下方法已废弃 -->
+    <update id="updateStatus">
+        SELECT 1
+    </update>
+
+    <update id="updateApprove">
+        SELECT 1
+    </update>
+
+    <delete id="deleteById">
+        DELETE FROM tb_salary WHERE id = #{id}
+    </delete>
+
+    <!-- 按项目和工资期删除工资条（用于考勤驳回时清理） -->
+    <delete id="deleteByProjectAndPeriod">
+        DELETE s FROM tb_salary s
+        INNER JOIN tb_employee_project ep ON s.employee_id = ep.employee_id
+        WHERE ep.project_id = #{projectId}
+          AND s.salary_period = #{salaryPeriod}
+    </delete>
+
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT s.*,
+               e.name           AS employee_name,
+               jc.name          AS job_category_name
+        FROM tb_salary s
+        LEFT JOIN tb_employee e  ON s.employee_id = e.id
+        LEFT JOIN tb_job_category jc ON e.job_category_id = jc.id
+        WHERE s.id = #{id}
+    </select>
+
+    <select id="selectList" resultMap="BaseResultMap">
+        SELECT s.*,
+               e.name           AS employee_name,
+               jc.name          AS job_category_name
+        FROM tb_salary s
+        LEFT JOIN tb_employee e  ON s.employee_id = e.id
+        LEFT JOIN tb_job_category jc ON e.job_category_id = jc.id
+        <if test="projectId != null">
+        INNER JOIN tb_employee_project ep ON ep.employee_id = e.id AND ep.project_id = #{projectId}
+        </if>
+        WHERE 1=1
+        <if test="employeeId != null">
+            AND s.employee_id = #{employeeId}
+        </if>
+        <if test="salaryPeriod != null and salaryPeriod != ''">
+            AND s.salary_period = #{salaryPeriod}
+        </if>
+        ORDER BY s.salary_period DESC, e.name ASC
+    </select>
+
+    <select id="selectByEmployeeAndPeriod" resultMap="BaseResultMap">
+        SELECT s.*, e.name AS employee_name
+        FROM tb_salary s
+        LEFT JOIN tb_employee e ON s.employee_id = e.id
+        WHERE s.employee_id = #{employeeId}
+          AND s.salary_period = #{salaryPeriod}
+    </select>
+
+</mapper>

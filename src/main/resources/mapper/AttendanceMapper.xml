@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.hello.mapper.AttendanceMapper">
+
+    <resultMap id="BaseResultMap" type="com.example.hello.entity.Attendance">
+        <id column="id" property="id"/>
+        <result column="employee_id" property="employeeId"/>
+        <result column="employee_name" property="employeeName"/>
+        <result column="project_id" property="projectId"/>
+        <result column="project_name" property="projectName"/>
+        <result column="work_date" property="workDate"/>
+        <result column="attendance_type" property="attendanceType"/>
+        <result column="overtime_type" property="overtimeType"/>
+        <result column="work_hours" property="workHours"/>
+        <result column="remark" property="remark"/>
+        <result column="created_by" property="createdBy"/>
+        <result column="created_by_name" property="createdByName"/>
+        <result column="created_time" property="createdTime"/>
+        <result column="updated_time" property="updatedTime"/>
+    </resultMap>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO tb_attendance (employee_id, project_id, work_date, attendance_type, overtime_type, work_hours, remark, created_by)
+        VALUES (#{employeeId}, #{projectId}, #{workDate}, #{attendanceType}, #{overtimeType}, #{workHours}, #{remark}, #{createdBy})
+    </insert>
+
+    <update id="update">
+        UPDATE tb_attendance
+        SET employee_id = #{employeeId},
+            project_id = #{projectId},
+            work_date = #{workDate},
+            attendance_type = #{attendanceType},
+            overtime_type = #{overtimeType},
+            work_hours = #{workHours},
+            remark = #{remark}
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        DELETE FROM tb_attendance WHERE id = #{id}
+    </delete>
+
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT a.*, e.name as employee_name, p.name as project_name
+        FROM tb_attendance a
+        LEFT JOIN tb_employee e ON a.employee_id = e.id
+        LEFT JOIN tb_project p ON a.project_id = p.id
+        WHERE a.id = #{id}
+    </select>
+
+    <select id="selectList" resultMap="BaseResultMap">
+        SELECT a.*, e.name as employee_name, p.name as project_name
+        FROM tb_attendance a
+        LEFT JOIN tb_employee e ON a.employee_id = e.id
+        LEFT JOIN tb_project p ON a.project_id = p.id
+        WHERE 1=1
+        <if test="employeeId != null">
+            AND a.employee_id = #{employeeId}
+        </if>
+        <if test="projectId != null">
+            AND a.project_id = #{projectId}
+        </if>
+        <if test="startDate != null">
+            AND a.work_date &gt;= #{startDate}
+        </if>
+        <if test="endDate != null">
+            AND a.work_date &lt;= #{endDate}
+        </if>
+        ORDER BY a.work_date DESC, e.name ASC
+    </select>
+
+    <select id="countAttendanceDays" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM tb_attendance
+        WHERE employee_id = #{employeeId}
+        AND work_date &gt;= #{startDate}
+        AND work_date &lt;= #{endDate}
+        AND attendance_type IN (1, 2, 3)
+    </select>
+
+    <select id="countApprovedAttendanceDays" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM tb_attendance
+        WHERE employee_id = #{employeeId}
+        AND work_date &gt;= #{startDate}
+        AND work_date &lt;= #{endDate}
+        AND attendance_type IN (1, 2, 3)
+    </select>
+
+    <!-- 按考勤类型和加班类型汇总工时 -->
+    <select id="sumWorkHoursByType" resultType="java.math.BigDecimal">
+        SELECT COALESCE(SUM(work_hours), 0)
+        FROM tb_attendance
+        WHERE employee_id = #{employeeId}
+        AND work_date &gt;= #{startDate}
+        AND work_date &lt;= #{endDate}
+        AND attendance_type = #{attendanceType}
+        <if test="overtimeType != null">
+            AND overtime_type = #{overtimeType}
+        </if>
+        <if test="overtimeType == null">
+            AND (overtime_type IS NULL OR overtime_type = 0)
+        </if>
+    </select>
+
+    <select id="selectByEmployeeAndDate" resultMap="BaseResultMap">
+        SELECT a.*, e.name as employee_name, p.name as project_name
+        FROM tb_attendance a
+        LEFT JOIN tb_employee e ON a.employee_id = e.id
+        LEFT JOIN tb_project p ON a.project_id = p.id
+        WHERE a.employee_id = #{employeeId}
+        AND a.work_date = #{workDate}
+    </select>
+
+    <select id="selectByEmployeeAndDateAndType" resultMap="BaseResultMap">
+        SELECT a.*, e.name as employee_name, p.name as project_name
+        FROM tb_attendance a
+        LEFT JOIN tb_employee e ON a.employee_id = e.id
+        LEFT JOIN tb_project p ON a.project_id = p.id
+        WHERE a.employee_id = #{employeeId}
+        AND a.work_date = #{workDate}
+        AND a.attendance_type = #{attendanceType}
+    </select>
+
+    <select id="selectByEmployeeProjectAndMonth" resultMap="BaseResultMap">
+        SELECT a.*, e.name as employee_name, p.name as project_name
+        FROM tb_attendance a
+        LEFT JOIN tb_employee e ON a.employee_id = e.id
+        LEFT JOIN tb_project p ON a.project_id = p.id
+        WHERE a.employee_id = #{employeeId}
+        <if test="projectId != null">
+            AND a.project_id = #{projectId}
+        </if>
+        AND a.work_date &gt;= #{startDate}
+        AND a.work_date &lt;= #{endDate}
+        ORDER BY a.work_date ASC
+    </select>
+
+    <select id="selectByEmployeeAndDateRange" resultMap="BaseResultMap">
+        SELECT a.*, e.name as employee_name, p.name as project_name
+        FROM tb_attendance a
+        LEFT JOIN tb_employee e ON a.employee_id = e.id
+        LEFT JOIN tb_project p ON a.project_id = p.id
+        WHERE a.employee_id = #{employeeId}
+        AND a.work_date &gt;= #{startDate}
+        AND a.work_date &lt;= #{endDate}
+        ORDER BY a.work_date ASC
+    </select>
+
+</mapper>

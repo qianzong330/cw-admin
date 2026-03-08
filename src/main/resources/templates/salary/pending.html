@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{common/layout :: layout('工资条审批', ~{::#mainContent})}">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        .filter-bar {
+            background: linear-gradient(135deg, #4361ee 0%, #3a56d4 100%);
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        .page-title {
+            color: #fff;
+            font-weight: 600;
+            font-size: 1.25rem;
+        }
+        .amount-cell { font-weight: 600; color: #374151; }
+        .amount-plus  { color: #16a34a; }
+        .amount-minus { color: #dc2626; }
+        .amount-payable { color: #4361ee; font-size: 15px; }
+    </style>
+</head>
+<body>
+    <div id="mainContent">
+        <!-- 顶部标题栏 -->
+        <div class="filter-bar">
+            <div class="d-flex justify-content-between align-items-center">
+                <div class="page-title">
+                    <i class="bi bi-cash-coin me-2"></i>工资条审批
+                    <span class="badge bg-warning text-dark ms-2"
+                          th:text="${#lists.size(pendingList)} + ' 条待审批'">0 条待审批</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-body">
+                <!-- 空状态 -->
+                <div th:if="${#lists.isEmpty(pendingList)}" class="text-center text-muted py-5">
+                    <i class="bi bi-check-circle fs-1 text-success"></i>
+                    <p class="mt-2">暂无待审批的工资条</p>
+                </div>
+
+                <!-- 待审批列表 -->
+                <div th:if="${!#lists.isEmpty(pendingList)}" class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>员工姓名</th>
+                                <th>身份证</th>
+                                <th>工种</th>
+                                <th>工资月份</th>
+                                <th>薪资类型</th>
+                                <th>出勤天数</th>
+                                <th>汇总工资</th>
+                                <th>费用 +</th>
+                                <th>费用 -</th>
+                                <th>应付工资</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="slip : ${pendingList}">
+                                <td th:text="${slip.employeeName} ?: '-'">姓名</td>
+                                <td th:text="${slip.idCard} ?: '-'" style="font-size:12px;">身份证</td>
+                                <td th:text="${slip.jobCategoryName} ?: '-'">工种</td>
+                                <td th:text="${slip.salaryPeriod}">2026-03</td>
+                                <td>
+                                    <span th:if="${slip.salaryType == 1}" class="badge bg-info text-dark">日薪</span>
+                                    <span th:if="${slip.salaryType != 1}" class="badge bg-secondary">月薪</span>
+                                </td>
+                                <td th:text="${slip.attendanceDays} ?: '-'">0</td>
+                                <td class="amount-cell" th:text="'¥' + (slip.baseAmount != null ? #numbers.formatDecimal(slip.baseAmount, 1, 2) : '0.00')">¥0.00</td>
+                                <td class="amount-plus" th:text="'+¥' + (slip.additionAmount != null ? #numbers.formatDecimal(slip.additionAmount, 1, 2) : '0.00')">+¥0.00</td>
+                                <td class="amount-minus" th:text="'-¥' + (slip.deductionAmount != null ? #numbers.formatDecimal(slip.deductionAmount, 1, 2) : '0.00')">-¥0.00</td>
+                                <td class="amount-payable" th:text="'¥' + (slip.payableAmount != null ? #numbers.formatDecimal(slip.payableAmount, 1, 2) : '0.00')">¥0.00</td>
+                                <td style="white-space:nowrap;">
+                                    <button type="button" class="btn btn-success btn-sm"
+                                            th:data-id="${slip.id}"
+                                            th:data-name="${slip.employeeName}"
+                                            th:data-period="${slip.salaryPeriod}"
+                                            onclick="approveSlip(this.getAttribute('data-id'), this.getAttribute('data-name'), this.getAttribute('data-period'))">
+                                        <i class="bi bi-check-lg"></i> 通过
+                                    </button>
+                                    <button type="button" class="btn btn-danger btn-sm ms-1"
+                                            th:data-id="${slip.id}"
+                                            onclick="openReject(this.getAttribute('data-id'))">
+                                        <i class="bi bi-x-lg"></i> 驳回
+                                    </button>
+                                    <button type="button" class="btn btn-outline-primary btn-sm ms-1"
+                                            th:data-id="${slip.id}"
+                                            th:data-emp-id="${slip.employeeId}"
+                                            th:data-period="${slip.salaryPeriod}"
+                                            onclick="previewSlip(this.getAttribute('data-emp-id'), this.getAttribute('data-period'))">
+                                        <i class="bi bi-eye"></i> 查看
+                                    </button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- 驳回备注弹窗 -->
+        <div class="modal fade" id="rejectModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title"><i class="bi bi-x-circle text-danger me-2"></i>驳回工资条</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">驳回原因 <span class="text-danger">*</span></label>
+                            <textarea class="form-control" id="rejectRemark" rows="3" placeholder="请填写驳回原因，员工将看到此内容"></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                        <button type="button" class="btn btn-danger" onclick="confirmReject()">确认驳回</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 查看工资条弹窗 -->
+        <div class="modal fade" id="previewModal" tabindex="-1">
+            <div class="modal-dialog modal-xl">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title"><i class="bi bi-cash-coin me-2"></i>查看工资条</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body p-0">
+                        <iframe id="previewFrame" style="width:100%; height:640px; border:none;"></iframe>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            var pendingRejectId = null;
+
+            function approveSlip(id, name, period) {
+                if (!confirm('确认通过 ' + name + ' ' + period + ' 的工资条审批？通过后工资条将被锁定。')) return;
+                doApprove(id, true, '');
+            }
+
+            function openReject(id) {
+                pendingRejectId = id;
+                document.getElementById('rejectRemark').value = '';
+                new bootstrap.Modal(document.getElementById('rejectModal')).show();
+            }
+
+            function confirmReject() {
+                var remark = document.getElementById('rejectRemark').value.trim();
+                if (!remark) { alert('请填写驳回原因'); return; }
+                bootstrap.Modal.getInstance(document.getElementById('rejectModal')).hide();
+                doApprove(pendingRejectId, false, remark);
+            }
+
+            function doApprove(id, approved, remark) {
+                var params = new URLSearchParams();
+                params.append('approved', approved);
+                params.append('remark', remark);
+                fetch('/salary/approve/' + id, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                    body: params
+                }).then(r => r.text()).then(function(res) {
+                    if (res === 'success') {
+                        alert(approved ? '审批通过，工资条已锁定' : '已驳回');
+                        location.reload();
+                    } else {
+                        alert('操作失败：' + res);
+                    }
+                });
+            }
+
+            function previewSlip(empId, period) {
+                var projectId = document.querySelector('#projectId') ? document.querySelector('#projectId').value : '';
+                var url = '/salary/list?salaryPeriod=' + period;
+                if (projectId) url += '&projectId=' + projectId;
+                document.getElementById('previewFrame').src = url;
+                new bootstrap.Modal(document.getElementById('previewModal')).show();
+            }
+        </script>
+    </div>

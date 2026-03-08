@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{common/layout :: layout('项目管理', ~{::content})}">
+<head>
+    <meta charset="UTF-8">
+</head>
+<body>
+    <div th:fragment="content">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">项目列表</h5>
+                <button type="button" class="btn btn-outline-primary btn-sm"
+                        th:if="${session.currentUser != null and session.currentUser.hasPermission('project:add')}"
+                        onclick="openProjectModal()">
+                    <i class="bi bi-plus"></i> 新增项目
+                </button>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>项目名称</th>
+                                <th>创建时间</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="projectTableBody">
+                            <!-- 动态渲染项目列表 -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 提示弹窗 -->
+        <div class="modal fade" id="alertModal" tabindex="-1" aria-hidden="true" style="z-index: 99999;">
+            <div class="modal-dialog" style="max-width: 350px; margin-top: 80px;">
+                <div class="modal-content border-0 shadow-lg">
+                    <div class="modal-header py-2 bg-primary text-white">
+                        <h6 class="modal-title fw-bold" id="alertModalTitle">提示</h6>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body py-3">
+                        <p class="mb-0" id="alertModalContent"></p>
+                    </div>
+                    <div class="modal-footer py-2">
+                        <button type="button" class="btn btn-outline-primary btn-sm" data-bs-dismiss="modal">确定</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 确认弹窗 -->
+        <div class="modal fade" id="confirmModal" tabindex="-1" aria-hidden="true" style="z-index: 99999;">
+            <div class="modal-dialog" style="max-width: 350px; margin-top: 80px;">
+                <div class="modal-content border-0 shadow-lg">
+                    <div class="modal-header py-2 bg-warning text-dark">
+                        <h6 class="modal-title fw-bold" id="confirmModalTitle">确认</h6>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body py-3">
+                        <p class="mb-0" id="confirmModalContent"></p>
+                    </div>
+                    <div class="modal-footer py-2">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">取消</button>
+                        <button type="button" class="btn btn-outline-danger btn-sm" id="confirmModalBtn">确定</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 项目新增/编辑弹窗 -->
+        <div class="modal fade" id="projectModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered" style="max-width: 420px;">
+                <div class="modal-content">
+                    <div class="modal-header py-2">
+                        <h6 class="modal-title fw-bold" id="projectModalTitle">新增项目</h6>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body py-3">
+                        <form id="projectForm" action="/project/save" method="post">
+                            <input type="hidden" id="projectId" name="id">
+                            
+                            <div class="d-flex align-items-center gap-2">
+                                <label class="fw-bold text-nowrap mb-0" style="min-width: 70px; font-size: 14px;">项目名称<span class="text-danger">*</span></label>
+                                <input type="text" class="form-control form-control-sm" id="projectName" name="name" required style="flex: 1;">
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer py-2">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">取消</button>
+                        <button type="button" class="btn btn-outline-primary btn-sm" onclick="submitProjectForm()">保存</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 关联员工搜索弹窗 -->
+        <div class="modal fade" id="assignSearchModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered" style="max-width: 420px;">
+                <div class="modal-content">
+                    <div class="modal-header py-2">
+                        <h6 class="modal-title fw-bold">关联员工到项目</h6>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body py-3">
+                        <input type="hidden" id="assignProjectId">
+                        <div class="mb-3">
+                            <label class="form-label">请输入要关联的员工</label>
+                            <input type="text" class="form-control" id="searchEmployeeName" placeholder="请输入员工姓名">
+                        </div>
+                        <div id="searchResult" class="mt-2"></div>
+                    </div>
+                    <div class="modal-footer py-2">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">取消</button>
+                        <button type="button" class="btn btn-outline-primary btn-sm" onclick="searchAndAssignEmployee()">确认</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <script th:inline="javascript">
+            var projectsData = /*[[${projects}]]*/ [];
+            var employeesData = /*[[${employees}]]*/ [];
+            var projectEmployeesMap = {}; // 缓存项目已关联员工数据
+            
+            // 初始化项目列表
+            function renderProjectList() {
+                var html = '';
+                if (projectsData && projectsData.length > 0) {
+                    projectsData.forEach(function(proj) {
+                        html += '<tr id="projectRow_' + proj.id + '">' +
+                                '  <td>' + proj.id + '</td>' +
+                                '  <td>' + proj.name + '</td>' +
+                                '  <td>' + formatDate(proj.createTime) + '</td>' +
+                                '  <td>' +
+                                '    <button class="btn btn-outline-info btn-sm me-1" onclick="toggleProjectEmployees(' + proj.id + ')">' +
+                                '      <i class="bi bi-people"></i> <span id="toggleBtn_' + proj.id + '">查看已关联员工</span>' +
+                                '    </button>' +
+                                '    <button class="btn btn-outline-success btn-sm me-1" onclick="openAssignSearchModal(' + proj.id + ')">' +
+                                '      <i class="bi bi-link"></i> 关联员工' +
+                                '    </button>' +
+                                '    <button class="btn btn-outline-primary btn-sm me-1" onclick="openEditProjectModal(' + proj.id + ')">' +
+                                '      <i class="bi bi-pencil"></i> 编辑' +
+                                '    </button>' +
+                                '    <button class="btn btn-outline-danger btn-sm" onclick="showDeleteConfirm(' + proj.id + ')">' +
+                                '      <i class="bi bi-trash"></i> 删除' +
+                                '    </button>' +
+                                '  </td>' +
+                                '</tr>' +
+                                '<tr id="employeesRow_' + proj.id + '" style="display: none;">' +
+                                '  <td colspan="4" class="p-0">' +
+                                '    <div class="bg-light p-3">' +
+                                '      <h6 class="mb-2">已关联员工</h6>' +
+                                '      <div id="employeesList_' + proj.id + '">' +
+                                '        <div class="text-muted">加载中...</div>' +
+                                '      </div>' +
+                                '    </div>' +
+                                '  </td>' +
+                                '</tr>';
+                    });
+                } else {
+                    html = '<tr><td colspan="4" class="text-center text-muted py-3">暂无项目数据</td></tr>';
+                }
+                document.getElementById('projectTableBody').innerHTML = html;
+            }
+            
+            // 格式化日期
+            function formatDate(dateStr) {
+                if (!dateStr) return '-';
+                var date = new Date(dateStr);
+                return date.getFullYear() + '-' + 
+                       String(date.getMonth() + 1).padStart(2, '0') + '-' + 
+                       String(date.getDate()).padStart(2, '0') + ' ' +
+                       String(date.getHours()).padStart(2, '0') + ':' +
+                       String(date.getMinutes()).padStart(2, '0');
+            }
+            
+            // 切换项目员工列表展开/收起
+            function toggleProjectEmployees(projectId) {
+                var employeesRow = document.getElementById('employeesRow_' + projectId);
+                var toggleBtn = document.getElementById('toggleBtn_' + projectId);
+                
+                if (employeesRow.style.display === 'none') {
+                    // 展开
+                    employeesRow.style.display = '';
+                    toggleBtn.textContent = '收起';
+                    loadProjectEmployees(projectId);
+                } else {
+                    // 收起
+                    employeesRow.style.display = 'none';
+                    toggleBtn.textContent = '查看已关联员工';
+                }
+            }
+            
+            // 加载项目已关联员工
+            function loadProjectEmployees(projectId) {
+                var container = document.getElementById('employeesList_' + projectId);
+                
+                // 检查缓存
+                if (projectEmployeesMap[projectId]) {
+                    renderProjectEmployees(projectId, projectEmployeesMap[projectId]);
+                    return;
+                }
+                
+                fetch('/project/employees/' + projectId)
+                    .then(res => res.json())
+                    .then(data => {
+                        projectEmployeesMap[projectId] = data || [];
+                        renderProjectEmployees(projectId, projectEmployeesMap[projectId]);
+                    })
+                    .catch(() => {
+                        container.innerHTML = '<div class="text-muted">加载失败</div>';
+                    });
+            }
+            
+            // 渲染项目员工列表
+            function renderProjectEmployees(projectId, employees) {
+                var container = document.getElementById('employeesList_' + projectId);
+                var html = '';
+                
+                if (employees && employees.length > 0) {
+                    html = '<table class="table table-sm table-hover mb-0 bg-white">' +
+                           '<thead><tr><th>员工姓名</th><th>工种</th><th style="width:100px; white-space:nowrap;">操作</th></tr></thead>' +
+                           '<tbody>';
+                    employees.forEach(function(emp) {
+                        html += '<tr>' +
+                                '<td>' + emp.employeeName + '</td>' +
+                                '<td>' + (emp.jobCategoryName || '-') + '</td>' +
+                                '<td style="white-space:nowrap;"><button class="btn btn-outline-danger btn-sm py-0 px-2" onclick="confirmRemoveEmployee(' + emp.employeeId + ', ' + projectId + ', \'' + emp.employeeName + '\')"><i class="bi bi-x-lg"></i> 移除</button></td>' +
+                                '</tr>';
+                    });
+                    html += '</tbody></table>';
+                } else {
+                    html = '<div class="text-muted">暂无关联员工</div>';
+                }
+                
+                container.innerHTML = html;
+            }
+            
+            // 确认移除员工
+            function confirmRemoveEmployee(employeeId, projectId, employeeName) {
+                showConfirmModal('确认移除', '确定要将员工「' + employeeName + '」从该项目移除吗？', function() {
+                    var formData = new FormData();
+                    formData.append('employeeId', employeeId);
+                    formData.append('projectId', projectId);
+                    
+                    fetch('/project/remove', {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(res => res.text())
+                    .then(result => {
+                        if (result === 'success') {
+                            // 清除缓存，重新加载
+                            delete projectEmployeesMap[projectId];
+                            loadProjectEmployees(projectId);
+                        } else {
+                            showAlertModal('错误', '移除失败：' + result);
+                        }
+                    })
+                    .catch(() => {
+                        showAlertModal('错误', '移除失败');
+                    });
+                });
+            }
+            
+            // 打开关联员工搜索弹窗
+            function openAssignSearchModal(projectId) {
+                document.getElementById('assignProjectId').value = projectId;
+                document.getElementById('searchEmployeeName').value = '';
+                document.getElementById('searchResult').innerHTML = '';
+                new bootstrap.Modal(document.getElementById('assignSearchModal')).show();
+            }
+            
+            // 搜索并关联员工
+            function searchAndAssignEmployee() {
+                var projectId = document.getElementById('assignProjectId').value;
+                var searchName = document.getElementById('searchEmployeeName').value.trim();
+                var resultDiv = document.getElementById('searchResult');
+                
+                if (!searchName) {
+                    resultDiv.innerHTML = '<div class="text-warning">请输入员工姓名</div>';
+                    return;
+                }
+                
+                // 查找员工
+                var matchedEmployee = employeesData.find(function(emp) {
+                    return emp.name === searchName;
+                });
+                
+                if (!matchedEmployee) {
+                    resultDiv.innerHTML = '<div class="text-danger">未找到姓名为「' + searchName + '」的员工</div>';
+                    return;
+                }
+                
+                // 检查是否已关联
+                var cachedEmployees = projectEmployeesMap[projectId] || [];
+                var isAlreadyAssigned = cachedEmployees.some(function(emp) {
+                    return emp.employeeId == matchedEmployee.id;
+                });
+                
+                if (isAlreadyAssigned) {
+                    resultDiv.innerHTML = '<div class="text-warning">员工「' + searchName + '」已加入该项目</div>';
+                    return;
+                }
+                
+                // 执行关联
+                var formData = new FormData();
+                formData.append('employeeIds', matchedEmployee.id);
+                formData.append('projectId', projectId);
+                
+                fetch('/project/assign', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(res => res.text())
+                .then(result => {
+                    if (result === 'success' || result === 'partial') {
+                        resultDiv.innerHTML = '<div class="text-success">成功关联员工「' + searchName + '」到项目</div>';
+                        // 清除缓存，下次展开时重新加载
+                        delete projectEmployeesMap[projectId];
+                        // 如果当前正在展开状态，刷新显示
+                        var employeesRow = document.getElementById('employeesRow_' + projectId);
+                        if (employeesRow && employeesRow.style.display !== 'none') {
+                            loadProjectEmployees(projectId);
+                        }
+                        // 2秒后关闭弹窗
+                        setTimeout(function() {
+                            bootstrap.Modal.getInstance(document.getElementById('assignSearchModal')).hide();
+                        }, 1500);
+                    } else {
+                        resultDiv.innerHTML = '<div class="text-danger">关联失败</div>';
+                    }
+                })
+                .catch(() => {
+                    resultDiv.innerHTML = '<div class="text-danger">关联失败</div>';
+                });
+            }
+            
+            // 项目新增/编辑相关函数
+            function openProjectModal() {
+                document.getElementById('projectModalTitle').textContent = '新增项目';
+                document.getElementById('projectForm').reset();
+                document.getElementById('projectId').value = '';
+                new bootstrap.Modal(document.getElementById('projectModal')).show();
+            }
+            
+            function openEditProjectModal(id) {
+                var proj = projectsData.find(p => p.id == id);
+                if (!proj) return;
+                
+                document.getElementById('projectModalTitle').textContent = '编辑项目';
+                document.getElementById('projectId').value = proj.id;
+                document.getElementById('projectName').value = proj.name;
+                
+                new bootstrap.Modal(document.getElementById('projectModal')).show();
+            }
+            
+            var isSubmitting = false;
+            var deleteProjectId = null;
+            
+            // 通用提示弹窗
+            function showAlertModal(title, content) {
+                document.getElementById('alertModalTitle').textContent = title;
+                document.getElementById('alertModalContent').textContent = content;
+                var alertModalEl = document.getElementById('alertModal');
+                var modal = new bootstrap.Modal(alertModalEl);
+                modal.show();
+            }
+            
+            // 通用确认弹窗
+            var confirmCallback = null;
+            function showConfirmModal(title, content, callback) {
+                document.getElementById('confirmModalTitle').textContent = title;
+                document.getElementById('confirmModalContent').textContent = content;
+                confirmCallback = callback;
+                var confirmModalEl = document.getElementById('confirmModal');
+                var modal = new bootstrap.Modal(confirmModalEl);
+                modal.show();
+            }
+            
+            document.getElementById('confirmModalBtn').addEventListener('click', function() {
+                bootstrap.Modal.getInstance(document.getElementById('confirmModal')).hide();
+                if (confirmCallback) {
+                    confirmCallback();
+                    confirmCallback = null;
+                }
+            });
+            
+            function showDeleteConfirm(id) {
+                deleteProjectId = id;
+                showConfirmModal('确认删除', '确定要删除该项目吗？', function() {
+                    window.location.href = '/project/delete/' + deleteProjectId;
+                });
+            }
+            
+            function checkDuplicateName(name, currentId) {
+                return projectsData.some(p => p.name === name && p.id != currentId);
+            }
+            
+            function submitProjectForm() {
+                if (isSubmitting) return;
+                
+                var form = document.getElementById('projectForm');
+                var projectId = document.getElementById('projectId').value;
+                var projectName = document.getElementById('projectName').value.trim();
+                
+                if (!projectName) {
+                    showAlertModal('提示', '请输入项目名称');
+                    return;
+                }
+                
+                if (checkDuplicateName(projectName, projectId)) {
+                    showAlertModal('提示', '项目名称已存在，请使用其他名称');
+                    return;
+                }
+                
+                isSubmitting = true;
+                var formData = new FormData(form);
+                
+                fetch('/project/save', {
+                    method: 'POST',
+                    body: formData,
+                    redirect: 'manual'
+                })
+                .then(response => {
+                    window.location.href = '/project/list';
+                })
+                .catch(error => {
+                    window.location.href = '/project/list';
+                });
+            }
+            
+            // 页面加载时渲染项目列表
+            document.addEventListener('DOMContentLoaded', function() {
+                renderProjectList();
+            });
+        </script>
+    </div>
+</body>
+</html>

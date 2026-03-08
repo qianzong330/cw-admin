@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{common/layout :: layout('编辑菜单', ~{::content})}">
+<head>
+    <meta charset="UTF-8">
+</head>
+<body>
+    <div th:fragment="content">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-pencil-square"></i> 编辑菜单</h5>
+            </div>
+            <div class="card-body">
+                <form id="menuForm">
+                    <input type="hidden" id="menuId" th:value="${menu.id}">
+
+                    <div class="row mb-3">
+                        <label class="col-sm-2 col-form-label">菜单编码</label>
+                        <div class="col-sm-10">
+                            <input type="text" class="form-control" th:value="${menu.menu_code}" readonly>
+                            <div class="form-text">菜单编码不可修改</div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <label class="col-sm-2 col-form-label">菜单名称</label>
+                        <div class="col-sm-10">
+                            <input type="text" class="form-control" id="menuName" name="menuName" th:value="${menu.menu_name}" required>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <label class="col-sm-2 col-form-label">菜单类型</label>
+                        <div class="col-sm-10">
+                            <input type="text" class="form-control"
+                                   th:value="${menu.menu_type == 1} ? '目录' : '菜单'" readonly>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <label class="col-sm-2 col-form-label">父菜单</label>
+                        <div class="col-sm-10">
+                            <select class="form-select" id="parentId" name="parentId">
+                                <option value="0" th:selected="${menu.parent_id == null || menu.parent_id == 0}">顶级菜单（无父菜单）</option>
+                                <option th:each="pm : ${parentMenus}" th:value="${pm.id}"
+                                        th:text="${pm.menu_name}"
+                                        th:selected="${menu.parent_id != null && menu.parent_id == pm.id}">
+                                </option>
+                            </select>
+                            <div class="form-text">目录类型不能设置父菜单；菜单类型可以选择挂载在哪个目录下</div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <label class="col-sm-2 col-form-label">菜单路径</label>
+                        <div class="col-sm-10">
+                            <input type="text" class="form-control" id="menuUrl" name="menuUrl" th:value="${menu.menu_url}">
+                            <div class="form-text">目录类型可以留空；菜单类型必须填写路径（如 /project/list）</div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <label class="col-sm-2 col-form-label">菜单图标</label>
+                        <div class="col-sm-10">
+                            <input type="text" class="form-control" id="menuIcon" name="menuIcon" th:value="${menu.menu_icon}">
+                            <div class="form-text">Bootstrap Icons 类名，如 bi-folder、bi-clock 等</div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <label class="col-sm-2 col-form-label">排序号</label>
+                        <div class="col-sm-10">
+                            <input type="number" class="form-control" id="sortOrder" name="sortOrder" th:value="${menu.sort_order}" min="0" required>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <label class="col-sm-2 col-form-label">状态</label>
+                        <div class="col-sm-10">
+                            <select class="form-select" id="status" name="status">
+                                <option value="1" th:selected="${menu.status == null || menu.status == 1}">启用</option>
+                                <option value="0" th:selected="${menu.status != null && menu.status == 0}">禁用</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-sm-10 offset-sm-2">
+                            <button type="button" class="btn btn-primary" onclick="saveMenu()">
+                                <i class="bi bi-check-lg"></i> 保存
+                            </button>
+                            <a href="/menu/list" class="btn btn-secondary ms-2">
+                                <i class="bi bi-arrow-left"></i> 返回
+                            </a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <script th:src="@{/js/jquery.min.js}"></script>
+        <script th:src="@{/js/bootstrap.bundle.min.js}"></script>
+        <script th:src="@{/common/layout.js}"></script>
+        <script>
+            function saveMenu() {
+                var id = document.getElementById('menuId').value;
+                var menuName = document.getElementById('menuName').value.trim();
+                var parentId = document.getElementById('parentId').value;
+                var menuUrl = document.getElementById('menuUrl').value.trim();
+                var menuIcon = document.getElementById('menuIcon').value.trim();
+                var sortOrder = document.getElementById('sortOrder').value;
+                var status = document.getElementById('status').value;
+
+                if (!menuName) {
+                    showToast('请输入菜单名称');
+                    return;
+                }
+
+                var params = new URLSearchParams();
+                params.append('id', id);
+                params.append('menuName', menuName);
+                params.append('parentId', parentId);
+                params.append('menuUrl', menuUrl);
+                params.append('menuIcon', menuIcon);
+                params.append('sortOrder', sortOrder);
+                params.append('status', status);
+
+                fetch('/menu/update', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                    body: params.toString()
+                }).then(r => r.text()).then(res => {
+                    if (res === 'success') {
+                        showToast('保存成功', 'success');
+                        setTimeout(() => location.href = '/menu/list', 800);
+                    } else {
+                        showToast('保存失败：' + res);
+                    }
+                }).catch(() => {
+                    showToast('网络错误，请重试');
+                });
+            }
+
+            function showToast(msg, type) {
+                var color = type === 'success' ? '#198754' : '#dc3545';
+                var toast = document.createElement('div');
+                toast.style.cssText = 'position:fixed;bottom:24px;right:24px;background:' + color +
+                    ';color:#fff;padding:10px 20px;border-radius:6px;z-index:9999;font-size:14px;box-shadow:0 2px 8px rgba(0,0,0,.2)';
+                toast.textContent = msg;
+                document.body.appendChild(toast);
+                setTimeout(() => toast.remove(), 2500);
+            }
+        </script>
+    </div>
+</body>
+</html>

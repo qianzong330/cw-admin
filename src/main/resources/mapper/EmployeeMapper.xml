@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.hello.mapper.EmployeeMapper">
+
+    <resultMap id="BaseResultMap" type="com.example.hello.entity.Employee">
+        <id column="id" property="id"/>
+        <result column="name" property="name"/>
+        <result column="role_id" property="roleId"/>
+        <result column="phone" property="phone"/>
+        <result column="job_category_id" property="jobCategoryId"/>
+        <result column="salary_amount" property="salaryAmount"/>
+        <result column="salary_type" property="salaryType"/>
+        <result column="password" property="password"/>
+        <result column="finance_contact_id" property="financeContactId"/>
+        <result column="status" property="status"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="role_name" property="roleName"/>
+        <result column="role_code" property="roleCode"/>
+        <result column="job_category_name" property="jobCategoryName"/>
+        <result column="finance_contact_name" property="financeContactName"/>
+    </resultMap>
+
+    <select id="findById" resultMap="BaseResultMap">
+        SELECT e.*, r.role_name as role_name, r.role_code as role_code,
+               jc.name as job_category_name,
+               fe.name as finance_contact_name
+        FROM tb_employee e
+        LEFT JOIN tb_role r ON e.role_id = r.id
+        LEFT JOIN tb_job_category jc ON e.job_category_id = jc.id
+        LEFT JOIN tb_employee fe ON e.finance_contact_id = fe.id
+        WHERE e.id = #{id}
+    </select>
+
+    <select id="findByName" resultMap="BaseResultMap">
+        SELECT e.*
+        FROM tb_employee e
+        WHERE e.name = #{name}
+    </select>
+    
+    <select id="findByPhone" resultMap="BaseResultMap">
+        SELECT e.*
+        FROM tb_employee e
+        WHERE e.phone = #{phone}
+    </select>
+    
+    <select id="findByNameAndPassword" resultMap="BaseResultMap">
+        SELECT e.*
+        FROM tb_employee e
+        WHERE e.name = #{name} AND e.password = #{password} AND e.status = 1
+    </select>
+
+    <!-- 单独查询角色信息 -->
+    <select id="findRoleByEmployeeId" resultType="java.util.HashMap">
+        SELECT r.id, r.role_code, r.role_name
+        FROM tb_role r
+        INNER JOIN tb_employee e ON r.id = e.role_id
+        WHERE e.id = #{employeeId}
+    </select>
+
+    <select id="findAll" resultMap="BaseResultMap">
+        SELECT e.*, r.role_name as role_name, r.role_code as role_code,
+               jc.name as job_category_name,
+               fe.name as finance_contact_name
+        FROM tb_employee e
+        LEFT JOIN tb_role r ON e.role_id = r.id
+        LEFT JOIN tb_job_category jc ON e.job_category_id = jc.id
+        LEFT JOIN tb_employee fe ON e.finance_contact_id = fe.id
+        ORDER BY e.create_time DESC
+    </select>
+
+    <select id="findByRoleCode" resultMap="BaseResultMap">
+        SELECT e.*, r.role_name as role_name, r.role_code as role_code,
+               jc.name as job_category_name,
+               fe.name as finance_contact_name
+        FROM tb_employee e
+        LEFT JOIN tb_role r ON e.role_id = r.id
+        LEFT JOIN tb_job_category jc ON e.job_category_id = jc.id
+        LEFT JOIN tb_employee fe ON e.finance_contact_id = fe.id
+        WHERE r.role_code = #{roleCode} AND e.status = 1
+    </select>
+
+    <select id="findFinanceList" resultMap="BaseResultMap">
+        SELECT e.*, r.role_name as role_name, r.role_code as role_code,
+               jc.name as job_category_name,
+               fe.name as finance_contact_name
+        FROM tb_employee e
+        LEFT JOIN tb_role r ON e.role_id = r.id
+        LEFT JOIN tb_job_category jc ON e.job_category_id = jc.id
+        LEFT JOIN tb_employee fe ON e.finance_contact_id = fe.id
+        WHERE LOWER(r.role_code) = 'finance' AND e.status = 1
+    </select>
+
+    <select id="findByProjectId" resultMap="BaseResultMap">
+        SELECT e.*, r.role_name as role_name, r.role_code as role_code,
+               jc.name as job_category_name,
+               fe.name as finance_contact_name
+        FROM tb_employee e
+        INNER JOIN tb_employee_project ep ON e.id = ep.employee_id
+        LEFT JOIN tb_role r ON e.role_id = r.id
+        LEFT JOIN tb_job_category jc ON e.job_category_id = jc.id
+        LEFT JOIN tb_employee fe ON e.finance_contact_id = fe.id
+        WHERE ep.project_id = #{projectId}
+        ORDER BY e.create_time DESC
+    </select>
+
+    <select id="findProjectNamesByEmployeeId" resultType="java.lang.String">
+        SELECT p.name
+        FROM tb_project p
+        INNER JOIN tb_employee_project ep ON p.id = ep.project_id
+        WHERE ep.employee_id = #{employeeId}
+        ORDER BY p.name ASC
+    </select>
+
+    <select id="findProjectIdsByEmployeeId" resultType="java.lang.Long">
+        SELECT ep.project_id
+        FROM tb_employee_project ep
+        WHERE ep.employee_id = #{employeeId}
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO tb_employee (name, role_id, phone, job_category_id, salary_amount, salary_type, 
+                                 password, finance_contact_id, status)
+        VALUES (#{name}, #{roleId}, #{phone}, #{jobCategoryId}, #{salaryAmount}, #{salaryType}, 
+                #{password}, #{financeContactId}, #{status})
+    </insert>
+
+    <update id="update">
+        UPDATE tb_employee
+        SET name = #{name},
+            role_id = #{roleId},
+            phone = #{phone},
+            job_category_id = #{jobCategoryId},
+            salary_amount = #{salaryAmount},
+            salary_type = #{salaryType},
+            password = #{password},
+            finance_contact_id = #{financeContactId},
+            status = #{status}
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        DELETE FROM tb_employee WHERE id = #{id}
+    </delete>
+
+</mapper>

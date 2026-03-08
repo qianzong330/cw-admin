@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{common/layout :: layout('帐条操作明细', ~{::content})}">
+<head>
+    <meta charset="UTF-8">
+</head>
+<body>
+    <div th:fragment="content">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">帐条操作明细</h5>
+                <div>
+                    <span class="text-muted">帐条ID: <span th:text="${account.id}"></span></span>
+                    <a href="/account/list" class="btn btn-secondary btn-sm ms-2">返回</a>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info mb-4">
+                    <strong>帐条信息：</strong>
+                    <span th:text="${account.projectName}"></span> - 
+                    <span th:text="${account.getTypeText()}"></span> - 
+                    <span th:text="${account.amount}"></span>元
+                </div>
+                
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>操作人</th>
+                                <th>操作类型</th>
+                                <th>备注</th>
+                                <th>操作时间</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="detail : ${details}">
+                                <td th:text="${detail.id}"></td>
+                                <td th:text="${detail.operatorName}"></td>
+                                <td>
+                                    <span th:switch="${detail.actionType}">
+                                        <span th:case="'CREATE'" class="badge bg-primary">创建</span>
+                                        <span th:case="'UPDATE'" class="badge bg-warning">修改</span>
+                                        <span th:case="'SUBMIT_AUDIT'" class="badge bg-info">提交审批</span>
+                                        <span th:case="'APPROVE'" class="badge bg-success">通过</span>
+                                        <span th:case="'REJECT'" class="badge bg-danger">拒绝</span>
+                                        <span th:case="'REVOKE'" class="badge bg-secondary">撤销</span>
+                                        <span th:case="*" class="badge bg-secondary" th:text="${detail.actionType}"></span>
+                                    </span>
+                                </td>
+                                <td th:text="${detail.remark} ?: '-'"></td>
+                                <td th:text="${#temporals.format(detail.operateTime, 'yyyy-MM-dd HH:mm:ss')}"></td>
+                            </tr>
+                            <tr th:if="${#lists.isEmpty(details)}">
+                                <td colspan="5" class="text-center text-muted">暂无操作记录</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

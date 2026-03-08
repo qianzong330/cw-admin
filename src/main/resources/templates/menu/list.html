@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{common/layout :: layout('菜单管理', ~{::content})}">
+<head>
+    <meta charset="UTF-8">
+</head>
+<body>
+    <div th:fragment="content">
+        <style>
+            .menu-tree {
+                border: 1px solid #dee2e6;
+                border-radius: 8px;
+            }
+            .menu-item {
+                padding: 12px 16px;
+                border-bottom: 1px solid #f0f0f0;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                background: #fff;
+                cursor: move;
+            }
+            .menu-item:last-child {
+                border-bottom: none;
+            }
+            .menu-item:hover {
+                background: #f8f9fa;
+            }
+            .menu-item.dragging {
+                opacity: 0.5;
+                background: #e9ecef;
+            }
+            .menu-item.drag-over {
+                border-top: 2px solid #0d6efd;
+            }
+            .menu-info {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                flex: 1;
+            }
+            .drag-handle {
+                cursor: move;
+                color: #adb5bd;
+                padding: 4px;
+            }
+            .drag-handle:hover {
+                color: #6c757d;
+            }
+            .menu-icon {
+                width: 32px;
+                height: 32px;
+                background: #e9ecef;
+                border-radius: 6px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+            .menu-name {
+                font-weight: 500;
+                color: #333;
+            }
+            .menu-code {
+                font-size: 12px;
+                color: #666;
+                background: #f0f0f0;
+                padding: 2px 8px;
+                border-radius: 4px;
+            }
+            .menu-type {
+                font-size: 12px;
+                padding: 2px 8px;
+                border-radius: 4px;
+            }
+            .type-1 { background: #d1ecf1; color: #0c5460; }
+            .type-2 { background: #d4edda; color: #155724; }
+            .type-3 { background: #fff3cd; color: #856404; }
+            .sub-menu {
+                padding-left: 40px;
+                background: #fafafa;
+            }
+            .sub-menu .menu-item {
+                border-left: 2px solid #dee2e6;
+            }
+            .sort-order {
+                font-size: 12px;
+                color: #6c757d;
+                background: #e9ecef;
+                padding: 2px 8px;
+                border-radius: 4px;
+                margin-right: 10px;
+            }
+        </style>
+        <div class="container-fluid mt-4">
+            <div class="row">
+                <main class="col-md-12 px-md-4">
+                    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                        <h1 class="h2">菜单管理</h1>
+                        <div>
+                            <button type="button" class="btn btn-success btn-sm me-2" onclick="saveOrder()">
+                                <i class="bi bi-save"></i> 保存排序
+                            </button>
+                            <a th:href="@{/menu/add}" class="btn btn-primary btn-sm">
+                                <i class="bi bi-plus-lg"></i> 新增菜单
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i> 提示：拖拽菜单项可以调整顺序，调整完成后点击"保存排序"按钮保存。
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header bg-primary text-white">
+                            <i class="bi bi-list-nested"></i> 菜单列表
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="menu-tree" id="menuTree">
+                                <th:block th:each="menu : ${topMenus}">
+                                    <!-- 一级目录（含子菜单） -->
+                                    <div th:if="${menu.menu_type == 1}" class="menu-group" th:data-id="${menu.id}" data-type="1" draggable="true">
+                                        <div class="menu-item">
+                                            <div class="menu-info">
+                                                <i class="bi bi-grip-vertical drag-handle"></i>
+                                                <span class="sort-order" th:text="${menu.sort_order}"></span>
+                                                <div class="menu-icon">
+                                                    <i th:class="${menu.menu_icon}"></i>
+                                                </div>
+                                                <div>
+                                                    <div class="menu-name" th:text="${menu.menu_name}"></div>
+                                                    <div class="d-flex gap-2 mt-1">
+                                                        <span class="menu-code" th:text="${menu.menu_code}"></span>
+                                                        <span class="menu-type type-1">目录</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="menu-actions">
+                                                <a th:href="@{/menu/edit/{id}(id=${menu.id})}" class="btn btn-sm btn-outline-primary">
+                                                    <i class="bi bi-pencil"></i> 编辑
+                                                </a>
+                                            </div>
+                                        </div>
+                                        <!-- 二级菜单 -->
+                                        <div class="sub-menu">
+                                            <div th:each="sub : ${menu.children}" class="menu-item" draggable="true" th:data-id="${sub.id}" data-type="2">
+                                                <div class="menu-info">
+                                                    <i class="bi bi-grip-vertical drag-handle"></i>
+                                                    <span class="sort-order" th:text="${sub.sort_order}"></span>
+                                                    <div class="menu-icon">
+                                                        <i th:class="${sub.menu_icon}"></i>
+                                                    </div>
+                                                    <div>
+                                                        <div class="menu-name" th:text="${sub.menu_name}"></div>
+                                                        <div class="d-flex gap-2 mt-1">
+                                                            <span class="menu-code" th:text="${sub.menu_code}"></span>
+                                                            <span class="menu-type type-2">页面</span>
+                                                            <span class="text-muted small" th:text="${sub.menu_url}"></span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="menu-actions">
+                                                    <a th:href="@{/menu/edit/{id}(id=${sub.id})}" class="btn btn-sm btn-outline-primary">
+                                                        <i class="bi bi-pencil"></i> 编辑
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <!-- 独立页面（首页或其他，按sort_order顺序显示） -->
+                                    <div th:if="${menu.menu_type == 2}" class="menu-item" draggable="true" th:data-id="${menu.id}" data-type="2">
+                                        <div class="menu-info">
+                                            <i class="bi bi-grip-vertical drag-handle"></i>
+                                            <span class="sort-order" th:text="${menu.sort_order}"></span>
+                                            <div class="menu-icon">
+                                                <i th:class="${menu.menu_icon}"></i>
+                                            </div>
+                                            <div>
+                                                <div class="menu-name" th:text="${menu.menu_name}"></div>
+                                                <div class="d-flex gap-2 mt-1">
+                                                    <span class="menu-code" th:text="${menu.menu_code}"></span>
+                                                    <span class="menu-type type-2">页面</span>
+                                                    <span class="text-muted small" th:text="${menu.menu_url}"></span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="menu-actions">
+                                            <a th:href="@{/menu/edit/{id}(id=${menu.id})}" class="btn btn-sm btn-outline-primary">
+                                                <i class="bi bi-pencil"></i> 编辑
+                                            </a>
+                                        </div>
+                                    </div>
+                                </th:block>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+            </div>
+        </div>
+        
+        <script th:src="@{/js/jquery.min.js}"></script>
+        <script th:src="@{/js/bootstrap.bundle.min.js}"></script>
+        <script th:src="@{/common/layout.js}"></script>
+        
+        <script>
+            (function() {
+                const menuTree = document.getElementById('menuTree');
+                let dragSrc = null; // 正在被拖拽的元素
+
+                // 统一给元素绑定拖拽事件
+                function bindDrag(el) {
+                    el.addEventListener('dragstart', function(e) {
+                        dragSrc = el;
+                        el.classList.add('dragging');
+                        e.dataTransfer.effectAllowed = 'move';
+                        e.stopPropagation();
+                    });
+                    el.addEventListener('dragend', function(e) {
+                        el.classList.remove('dragging');
+                        document.querySelectorAll('.drag-over').forEach(function(x){ x.classList.remove('drag-over'); });
+                        dragSrc = null;
+                        e.stopPropagation();
+                    });
+                    el.addEventListener('dragover', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        e.dataTransfer.dropEffect = 'move';
+                        if (el !== dragSrc) el.classList.add('drag-over');
+                    });
+                    el.addEventListener('dragleave', function(e) {
+                        e.stopPropagation();
+                        el.classList.remove('drag-over');
+                    });
+                    el.addEventListener('drop', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        el.classList.remove('drag-over');
+                        if (!dragSrc || dragSrc === el) return;
+
+                        var srcParent = dragSrc.parentElement;
+                        var tgtParent = el.parentElement;
+
+                        // 必须是同一容器内才能拖拽换位
+                        if (srcParent !== tgtParent) return;
+
+                        var rect = el.getBoundingClientRect();
+                        var midY = rect.top + rect.height / 2;
+                        if (e.clientY < midY) {
+                            tgtParent.insertBefore(dragSrc, el);
+                        } else {
+                            tgtParent.insertBefore(dragSrc, el.nextSibling);
+                        }
+                    });
+                }
+
+                // 绑定顶层可拖拽元素（一级目录 + 独立页面）
+                Array.from(menuTree.children).forEach(function(el) {
+                    if (el.hasAttribute('draggable')) {
+                        bindDrag(el);
+                    }
+                });
+
+                // 绑定二级菜单
+                menuTree.querySelectorAll('.sub-menu .menu-item[draggable]').forEach(function(el) {
+                    bindDrag(el);
+                });
+
+                // sub-menu 容器需要允许 drop（不阻断）
+                menuTree.querySelectorAll('.sub-menu').forEach(function(subMenu) {
+                    subMenu.addEventListener('dragover', function(e) { e.preventDefault(); });
+                    subMenu.addEventListener('drop', function(e) { e.preventDefault(); });
+                });
+            })();
+
+            // 保存排序
+            function saveOrder() {
+                var menuTree = document.getElementById('menuTree');
+                var orders = [];
+                var topOrder = 1; // 从1开始，让最小值为1000，避免与子菜单的 0,1,2 重叠
+
+                Array.from(menuTree.children).forEach(function(item) {
+                    if (item.classList.contains('menu-group')) {
+                        // 一级目录：sort_order = topOrder * 1000
+                        orders.push({id: item.getAttribute('data-id'), sortOrder: topOrder * 1000});
+                        topOrder++;
+                        // 二级菜单：各目录内部单独从0排序
+                        var subOrder = 0;
+                        item.querySelectorAll('.sub-menu .menu-item[data-id]').forEach(function(sub) {
+                            orders.push({id: sub.getAttribute('data-id'), sortOrder: subOrder++});
+                        });
+                    } else if (item.classList.contains('menu-item') && item.getAttribute('data-id')) {
+                        // 独立页面（含首页）：sort_order = topOrder * 1000
+                        orders.push({id: item.getAttribute('data-id'), sortOrder: topOrder * 1000});
+                        topOrder++;
+                    }
+                });
+
+                fetch('/menu/updateOrder', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(orders)
+                })
+                .then(function(res) { return res.json(); })
+                .then(function(result) {
+                    if (result.success) {
+                        alert('排序保存成功！');
+                        window.location.reload();
+                    } else {
+                        alert('保存失败：' + result.message);
+                    }
+                })
+                .catch(function() {
+                    alert('网络错误，请稍后重试');
+                });
+            }
+        </script>
+    </div>
+</body>
+</html>

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>修复权限表</title>
+</head>
+<body>
+    <h1>修复权限表</h1>
+    <p>点击下面的按钮重建权限系统表结构</p>
+    <button onclick="fixPermission()">开始修复</button>
+    <div id="result" style="margin-top: 20px; white-space: pre-wrap;"></div>
+
+    <script>
+        async function fixPermission() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '正在修复...';
+            
+            try {
+                const response = await fetch('/fix/permission', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                resultDiv.innerHTML = JSON.stringify(data, null, 2);
+                
+                if (data.success) {
+                    alert('修复成功！请重新登录系统。');
+                } else {
+                    alert('修复失败：' + data.message);
+                }
+            } catch (error) {
+                resultDiv.innerHTML = '请求失败：' + error.message;
+                alert('请求失败：' + error.message);
+            }
+        }
+    </script>
+</body>
+</html>

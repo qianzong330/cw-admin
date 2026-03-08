@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{common/layout :: layout('首页', ~{::content})}">
+<head>
+    <meta charset="UTF-8">
+</head>
+<body>
+    <div th:fragment="content">
+        <!-- 快捷操作按钮 -->
+        <div class="row mb-4">
+            <div class="col-md-12">
+                <div class="d-flex gap-3">
+                    <a href="/account/list" class="btn btn-outline-primary btn-sm d-flex align-items-center gap-2">
+                        <i class="bi bi-plus-circle"></i>
+                        <span>去记账</span>
+                    </a>
+                    <a th:if="${session.currentUser != null && session.currentUser.hasPermission('account')}" 
+                       href="/account/pending" class="btn btn-outline-primary d-flex align-items-center gap-2">
+                        <i class="bi bi-clock-history"></i>
+                        <span>去审批</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 公司整体收支统计 -->
+        <div class="row mb-4">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+                        <h5 class="mb-0 d-flex align-items-center gap-2"><i class="bi bi-graph-up text-primary"></i> <span class="d-none d-sm-inline">公司收支总览</span><span class="d-sm-none">收支统计</span></h5>
+                        <select class="form-select form-select-sm" style="width: auto; min-width: 100px;" id="timeRangeSelect" onchange="onTimeRangeChange()">
+                            <option value="" th:selected="${timeRange == null || timeRange == ''}">全部时间</option>
+                            <option value="week" th:selected="${timeRange == 'week'}">本周</option>
+                            <option value="month" th:selected="${timeRange == 'month'}">本月</option>
+                            <option value="quarter" th:selected="${timeRange == 'quarter'}">本季度</option>
+                            <option value="halfYear" th:selected="${timeRange == 'halfYear'}">近半年</option>
+                            <option value="year" th:selected="${timeRange == 'year'}">近一年</option>
+                            <option value="twoYears" th:selected="${timeRange == 'twoYears'}">近两年</option>
+                            <option value="threeYears" th:selected="${timeRange == 'threeYears'}">近三年</option>
+                        </select>
+                    </div>
+                    <div class="card-body">
+                        <!-- 统计卡片 -->
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <div class="stat-card income">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div>
+                                            <h6 class="text-muted mb-1">总收入</h6>
+                                            <h3 class="text-success mb-0" th:text="'¥' + ${#numbers.formatDecimal(totalIncome ?: 0, 1, 2)}">¥0.00</h3>
+                                        </div>
+                                        <div class="stat-icon bg-success bg-opacity-10 text-success rounded-circle p-3">
+                                            <i class="bi bi-arrow-up-circle fs-4"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="stat-card expense">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div>
+                                            <h6 class="text-muted mb-1">总支出</h6>
+                                            <h3 class="text-danger mb-0" th:text="'¥' + ${#numbers.formatDecimal(totalExpense ?: 0, 1, 2)}">¥0.00</h3>
+                                        </div>
+                                        <div class="stat-icon bg-danger bg-opacity-10 text-danger rounded-circle p-3">
+                                            <i class="bi bi-arrow-down-circle fs-4"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 图表区域 -->
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="card h-100">
+                                    <div class="card-header d-flex align-items-center">
+                                        <i class="bi bi-pie-chart text-primary me-2"></i>
+                                        <h6 class="mb-0">收支占比</h6>
+                                    </div>
+                                    <div class="card-body d-flex align-items-center justify-content-center">
+                                        <canvas id="overviewPieChart" style="max-height: 180px;"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card h-100">
+                                    <div class="card-header d-flex align-items-center border-start border-4 border-success">
+                                        <i class="bi bi-trophy text-success me-2"></i>
+                                        <h6 class="mb-0">收入TOP5分类</h6>
+                                    </div>
+                                    <div class="card-body p-0">
+                                        <table class="table table-sm table-hover mb-0">
+                                            <thead>
+                                                <tr>
+                                                    <th class="ps-3 text-muted" style="width: 60px;">排名</th>
+                                                    <th class="text-muted">分类名称</th>
+                                                    <th class="text-end pe-3 text-muted">收入金额</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr th:each="item, iterStat : ${top5Income}">
+                                                    <td class="ps-3">
+                                                        <span class="badge rounded-pill" th:classappend="${iterStat.index == 0} ? 'bg-warning' : (${iterStat.index == 1} ? 'bg-secondary' : (${iterStat.index == 2} ? 'bg-info' : 'bg-light text-muted border'))" th:text="${iterStat.index + 1}">1</span>
+                                                    </td>
+                                                    <td th:text="${item.projectName}">分类名</td>
+                                                    <td class="text-end pe-3 text-success fw-semibold" th:text="'¥' + ${#numbers.formatDecimal(item.income, 1, 2)}">¥0.00</td>
+                                                </tr>
+                                                <tr th:if="${top5Income == null || top5Income.isEmpty()}">
+                                                    <td colspan="3" class="text-center text-muted py-4">暂无数据</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card h-100">
+                                    <div class="card-header d-flex align-items-center border-start border-4 border-danger">
+                                        <i class="bi bi-trophy text-danger me-2"></i>
+                                        <h6 class="mb-0">支出TOP5分类</h6>
+                                    </div>
+                                    <div class="card-body p-0">
+                                        <table class="table table-sm table-hover mb-0">
+                                            <thead>
+                                                <tr>
+                                                    <th class="ps-3 text-muted" style="width: 60px;">排名</th>
+                                                    <th class="text-muted">分类名称</th>
+                                                    <th class="text-end pe-3 text-muted">支出金额</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr th:each="item, iterStat : ${top5Expense}">
+                                                    <td class="ps-3">
+                                                        <span class="badge rounded-pill" th:classappend="${iterStat.index == 0} ? 'bg-warning' : (${iterStat.index == 1} ? 'bg-secondary' : (${iterStat.index == 2} ? 'bg-info' : 'bg-light text-muted border'))" th:text="${iterStat.index + 1}">1</span>
+                                                    </td>
+                                                    <td th:text="${item.projectName}">分类名</td>
+                                                    <td class="text-end pe-3 text-danger fw-semibold" th:text="'¥' + ${#numbers.formatDecimal(item.expense, 1, 2)}">¥0.00</td>
+                                                </tr>
+                                                <tr th:if="${top5Expense == null || top5Expense.isEmpty()}">
+                                                    <td colspan="3" class="text-center text-muted py-4">暂无数据</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 项目列表 -->
+        <div class="row">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="bi bi-folder text-primary"></i> 项目列表</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-3 col-sm-6 mb-3" th:each="stat : ${projectStats}">
+                                <a th:href="@{/project/{id}/stats(id=${stat.projectId})}" class="text-decoration-none">
+                                    <div class="card h-100 border-primary hover-shadow">
+                                        <div class="card-body text-center">
+                                            <i class="bi bi-folder-fill text-primary" style="font-size: 2.5rem;"></i>
+                                            <h6 class="mt-2 text-dark" th:text="${stat.projectName}">项目名称</h6>
+                                            <div class="mt-2 small">
+                                                <span class="text-success">收: ¥<span th:text="${#numbers.formatDecimal(stat.income, 1, 0)}">0</span></span><br>
+                                                <span class="text-danger">支: ¥<span th:text="${#numbers.formatDecimal(stat.expense, 1, 0)}">0</span></span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </a>
+                            </div>
+                        </div>
+                        <div th:if="${projectStats == null || projectStats.isEmpty()}" class="text-center text-muted py-5">
+                            <i class="bi bi-inbox" style="font-size: 3rem;"></i>
+                            <p class="mt-2">暂无项目数据</p>
+                        </div>
+                        
+                        <!-- 分页 -->
+                        <nav th:if="${totalPages > 1}" class="mt-3">
+                            <ul class="pagination pagination-sm justify-content-center">
+                                <li class="page-item" th:classappend="${currentPage == 1} ? 'disabled'">
+                                    <a class="page-link" th:href="@{/index(page=${currentPage - 1})}">上一页</a>
+                                </li>
+                                <li class="page-item" th:each="i : ${#numbers.sequence(1, totalPages)}" th:classappend="${i == currentPage} ? 'active'">
+                                    <a class="page-link" th:href="@{/index(page=${i})}" th:text="${i}">1</a>
+                                </li>
+                                <li class="page-item" th:classappend="${currentPage == totalPages} ? 'disabled'">
+                                    <a class="page-link" th:href="@{/index(page=${currentPage + 1})}">下一页</a>
+                                </li>
+                            </ul>
+                            <div class="text-center text-muted small">
+                                共 <span th:text="${totalCount}">0</span> 个项目，第 <span th:text="${currentPage}">1</span>/<span th:text="${totalPages}">1</span> 页
+                            </div>
+                        </nav>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <script th:inline="javascript">
+            /*<![CDATA[*/
+            var totalIncome = /*[[${totalIncome ?: 0}]]*/ 0;
+            var totalExpense = /*[[${totalExpense ?: 0}]]*/ 0;
+            
+            // 等待 Chart.js 加载完成后再渲染图表
+            function renderCharts() {
+                if (typeof Chart === 'undefined') {
+                    console.log('Chart.js 尚未加载，1秒后重试...');
+                    setTimeout(renderCharts, 1000);
+                    return;
+                }
+                
+                try {
+                    // 收支占比饼图 - 商务风格配色
+                    var pieElement = document.getElementById('overviewPieChart');
+                    if (pieElement) {
+                        var pieCtx = pieElement.getContext('2d');
+                        new Chart(pieCtx, {
+                            type: 'pie',
+                            data: {
+                                labels: ['收入', '支出'],
+                                datasets: [{
+                                    data: [totalIncome, totalExpense],
+                                    backgroundColor: ['#276749', '#c53030'],
+                                    borderWidth: 2,
+                                    borderColor: '#fff'
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: {
+                                    legend: {
+                                        position: 'bottom',
+                                        labels: {
+                                            padding: 15,
+                                            font: {
+                                                size: 12
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        });
+                    }
+                } catch (e) {
+                    console.error('图表渲染失败:', e);
+                }
+            }
+            
+            // 页面加载完成后渲染图表
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', renderCharts);
+            } else {
+                renderCharts();
+            }
+            
+            // 时间范围切换
+            function onTimeRangeChange() {
+                var timeRange = document.getElementById('timeRangeSelect').value;
+                var url = new URL(window.location.href);
+                if (timeRange) {
+                    url.searchParams.set('timeRange', timeRange);
+                } else {
+                    url.searchParams.delete('timeRange');
+                }
+                url.searchParams.set('page', '1');
+                window.location.href = url.toString();
+            }
+            /*]]>*/
+        </script>
+        
+        <style>
+            .hover-shadow:hover {
+                box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+                transform: translateY(-2px);
+                transition: all 0.3s;
+            }
+        </style>
+    </div>
+</body>
+</html>

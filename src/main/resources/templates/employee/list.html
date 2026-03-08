@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{common/layout :: layout('员工管理', ~{::content})}">
+<head>
+    <meta charset="UTF-8">
+</head>
+<body>
+    <div th:fragment="content">
+        <script th:inline="javascript">
+            var currentUserRoleCode = /*[[${session.currentUser != null ? #strings.toLowerCase(session.currentUser.roleCode) : ''}]]*/ '';
+            // 页面加载时隐藏密码提示区域
+            document.addEventListener('DOMContentLoaded', function() {
+                var tipDiv = document.getElementById('passwordTipDiv');
+                if (tipDiv) tipDiv.style.display = 'none';
+            });
+        </script>
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <div class="d-flex align-items-center gap-2">
+                    <h5 class="mb-0">员工列表</h5>
+                    <div class="d-flex align-items-center gap-2">
+                        <label class="text-muted mb-0" style="font-size: 13px;">项目名称：</label>
+                        <select class="form-select form-select-sm" id="projectFilter" style="width: 180px;" onchange="filterByProject()">
+                            <option value="">所有项目</option>
+                            <option th:each="proj : ${projects}" th:value="${proj.id}" th:text="${proj.name}" th:selected="${proj.id == selectedProjectId}"></option>
+                        </select>
+                    </div>
+                </div>
+                <button type="button" class="btn btn-outline-primary btn-sm"
+                        th:if="${session.currentUser != null and session.currentUser.hasPermission('employee:add')}"
+                        onclick="openEmployeeModal()">
+                    <i class="bi bi-plus"></i> 新增员工
+                </button>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>姓名</th>
+                                <th>角色</th>
+                                <th>手机号</th>
+                                <th>工种</th>
+                                <th>隶属项目</th>
+                                <th>薪资</th>
+                                <th>财务对接人</th>
+                                <th>状态</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="emp : ${employees}">
+                                <td th:text="${emp.id}"></td>
+                                <td th:text="${emp.name}"></td>
+                                <td th:text="${emp.roleName}"></td>
+                                <td th:text="${emp.phone}"></td>
+                                <td th:text="${emp.jobCategoryName}"></td>
+                                <td>
+                                    <span th:if="${emp.projectNames != null}" th:text="${emp.projectNames}" class="text-primary"></span>
+                                    <span th:if="${emp.projectNames == null}" class="text-muted">-</span>
+                                </td>
+                                <td>
+                                    <span th:text="${emp.salaryAmount}"></span>
+                                    <span th:if="${emp.salaryType == 1}">/日</span>
+                                    <span th:if="${emp.salaryType == 2}">/月</span>
+                                    <span th:if="${emp.salaryType == 3}">/年</span>
+                                </td>
+                                <td th:text="${emp.financeContactName}"></td>
+                                <td>
+                                    <span th:if="${emp.status == 1}" class="badge bg-success">在职</span>
+                                    <span th:if="${emp.status == 0}" class="badge bg-secondary">离职</span>
+                                </td>
+                                <td>
+                                    <button class="btn btn-outline-primary btn-sm"
+                                            th:if="${session.currentUser != null and session.currentUser.hasPermission('employee:edit')}"
+                                            th:onclick="'openEditEmployeeModal(' + ${emp.id} + ')'"><i class="bi bi-pencil"></i> 编辑</button>
+                                    <button class="btn btn-outline-danger btn-sm"
+                                            th:if="${session.currentUser != null and session.currentUser.hasPermission('employee:delete')}"
+                                            th:onclick="'showDeleteConfirm(' + ${emp.id} + ')'"><i class="bi bi-trash"></i> 删除</button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 提示弹窗 -->
+        <div class="modal fade" id="alertModal" tabindex="-1" aria-hidden="true" style="z-index: 99999;">
+            <div class="modal-dialog" style="max-width: 350px; margin-top: 80px;">
+                <div class="modal-content border-0 shadow-lg">
+                    <div class="modal-header py-2 bg-primary text-white">
+                        <h6 class="modal-title fw-bold" id="alertModalTitle">提示</h6>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body py-3">
+                        <p class="mb-0" id="alertModalContent"></p>
+                    </div>
+                    <div class="modal-footer py-2">
+                        <button type="button" class="btn btn-outline-primary btn-sm" data-bs-dismiss="modal">确定</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 确认弹窗 -->
+        <div class="modal fade" id="confirmModal" tabindex="-1" aria-hidden="true" style="z-index: 99999;">
+            <div class="modal-dialog" style="max-width: 350px; margin-top: 80px;">
+                <div class="modal-content border-0 shadow-lg">
+                    <div class="modal-header py-2 bg-warning text-dark">
+                        <h6 class="modal-title fw-bold" id="confirmModalTitle">确认</h6>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body py-3">
+                        <p class="mb-0" id="confirmModalContent"></p>
+                    </div>
+                    <div class="modal-footer py-2">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">取消</button>
+                        <button type="button" class="btn btn-outline-danger btn-sm" id="confirmModalBtn">确定</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 员工新增/编辑弹窗 -->
+        <div class="modal fade" id="employeeModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered" style="max-width: 420px;">
+                <div class="modal-content">
+                    <div class="modal-header py-2">
+                        <h6 class="modal-title fw-bold" id="employeeModalTitle">新增员工</h6>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body py-3">
+                        <form id="employeeForm" action="/employee/save" method="post">
+                            <input type="hidden" id="employeeId" name="id">
+                            
+                            <div class="d-flex align-items-center gap-2 mb-2">
+                                <label class="fw-bold text-nowrap mb-0" style="min-width: 70px; font-size: 14px;">姓名<span class="text-danger">*</span></label>
+                                <input type="text" class="form-control form-control-sm" id="employeeName" name="name" required style="flex: 1;">
+                            </div>
+                            
+                            <div class="d-flex align-items-center gap-2 mb-2">
+                                <label class="fw-bold text-nowrap mb-0" style="min-width: 70px; font-size: 14px;">角色<span class="text-danger">*</span></label>
+                                <select class="form-select form-select-sm" id="employeeRoleId" name="roleId" required style="flex: 1;">
+                                    <option value="">请选择角色</option>
+                                    <option th:each="role : ${roles}" th:value="${role.id}" th:text="${role.name}"></option>
+                                </select>
+                            </div>
+                            
+                            <div class="d-flex align-items-center gap-2 mb-2" id="passwordDiv">
+                                <label class="fw-bold text-nowrap mb-0" style="min-width: 70px; font-size: 14px;">密码<span class="text-danger" id="passwordRequired">*</span></label>
+                                <input type="password" class="form-control form-control-sm" id="employeePassword" name="password" required style="flex: 1;">
+                            </div>
+                            
+                            <div class="d-flex align-items-center gap-2 mb-2" id="passwordTipDiv" style="display: none;">
+                                <label class="fw-bold text-nowrap mb-0" style="min-width: 70px; font-size: 14px;"></label>
+                                <div style="flex: 1;"></div>
+                            </div>
+                            
+                            <div class="d-flex align-items-center gap-2 mb-2">
+                                <label class="fw-bold text-nowrap mb-0" style="min-width: 70px; font-size: 14px;">手机号<span class="text-danger">*</span></label>
+                                <input type="text" class="form-control form-control-sm" id="employeePhone" name="phone" required style="flex: 1;">
+                            </div>
+                            
+                            <div class="d-flex align-items-center gap-2 mb-2">
+                                <label class="fw-bold text-nowrap mb-0" style="min-width: 70px; font-size: 14px;">工种<span class="text-danger">*</span></label>
+                                <select class="form-select form-select-sm" id="employeeJobCategoryId" name="jobCategoryId" required style="flex: 1;">
+                                    <option value="">请选择工种</option>
+                                    <option th:each="jc : ${jobCategories}" th:value="${jc.id}" th:text="${jc.name}"></option>
+                                </select>
+                            </div>
+                            
+                            <div class="d-flex align-items-center gap-2 mb-2">
+                                <label class="fw-bold text-nowrap mb-0" style="min-width: 70px; font-size: 14px;">薪资<span class="text-danger">*</span></label>
+                                <div class="input-group input-group-sm" style="flex: 1;">
+                                    <input type="number" step="0.01" class="form-control" id="employeeSalaryAmount" name="salaryAmount" required>
+                                    <span class="input-group-text">元</span>
+                                </div>
+                            </div>
+                            
+                            <div class="d-flex align-items-center gap-2 mb-2">
+                                <label class="fw-bold text-nowrap mb-0" style="min-width: 70px; font-size: 14px;">薪资类型<span class="text-danger">*</span></label>
+                                <select class="form-select form-select-sm" id="employeeSalaryType" name="salaryType" required style="flex: 1;">
+                                    <option value="">请选择</option>
+                                    <option th:each="config : ${workHourConfigs}" th:value="${config.calcType}" th:text="${config.calcType == 1 ? '日薪计算' : '月薪计算'}"></option>
+                                </select>
+                            </div>
+                            
+                            <div class="d-flex align-items-center gap-2 mb-2">
+                                <label class="fw-bold text-nowrap mb-0" style="min-width: 70px; font-size: 14px;">财务对接人</label>
+                                <select class="form-select form-select-sm" id="employeeFinanceContactId" name="financeContactId" style="flex: 1;">
+                                    <option value="">请选择</option>
+                                    <option th:each="f : ${financeList}" th:value="${f.id}" th:text="${f.name}"></option>
+                                </select>
+                            </div>
+                            
+                            <div class="d-flex align-items-start gap-2 mb-2">
+                                <label class="fw-bold text-nowrap mb-0 mt-1" style="min-width: 70px; font-size: 14px;">加入项目</label>
+                                <div class="border rounded p-2" id="projectCheckboxList" style="flex: 1; max-height: 120px; overflow-y: auto; background: #fff;">
+                                    <div th:each="proj : ${projects}" class="form-check mb-1">
+                                        <input class="form-check-input project-checkbox" type="checkbox"
+                                               th:value="${proj.id}"
+                                               th:id="'proj_' + ${proj.id}"
+                                               name="projectIds">
+                                        <label class="form-check-label" th:for="'proj_' + ${proj.id}" th:text="${proj.name}"></label>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="d-flex align-items-center gap-2" id="statusDiv" style="display: none;">
+                                <label class="fw-bold text-nowrap mb-0" style="min-width: 70px; font-size: 14px;">状态<span class="text-danger">*</span></label>
+                                <select class="form-select form-select-sm" id="employeeStatus" name="status" required style="flex: 1;">
+                                    <option value="1">在职</option>
+                                    <option value="0">离职</option>
+                                </select>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer py-2">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">取消</button>
+                        <button type="button" class="btn btn-outline-primary btn-sm" id="saveEmployeeBtn" onclick="submitEmployeeForm()" disabled>保存</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <script th:inline="javascript">
+            var employeesData = /*[[${employees}]]*/ [];
+            
+            // 实时校验表单（只控制保存按钮状态，不显示红框）
+            function validateForm() {
+                var employeeId = document.getElementById('employeeId').value;
+                var name = document.getElementById('employeeName').value.trim();
+                var roleId = document.getElementById('employeeRoleId').value;
+                var phone = document.getElementById('employeePhone').value.trim();
+                var jobCategoryId = document.getElementById('employeeJobCategoryId').value;
+                var salaryAmount = document.getElementById('employeeSalaryAmount').value.trim();
+                var salaryType = document.getElementById('employeeSalaryType').value;
+                var status = document.getElementById('employeeStatus').value;
+                var password = document.getElementById('employeePassword').value;
+                var passwordDiv = document.getElementById('passwordDiv');
+                var isPasswordVisible = passwordDiv && passwordDiv.style.display !== 'none';
+                var statusDiv = document.getElementById('statusDiv');
+                var isStatusVisible = statusDiv && statusDiv.style.display !== 'none';
+                
+                // 判断是否可以保存（项目非必填）
+                var canSave = name && roleId && phone && jobCategoryId && salaryAmount && salaryType;
+                if (isStatusVisible) {
+                    canSave = canSave && status;
+                }
+                if (isPasswordVisible && !employeeId) {
+                    canSave = canSave && password;
+                }
+                
+                var saveBtn = document.getElementById('saveEmployeeBtn');
+                if (canSave) {
+                    saveBtn.disabled = false;
+                    saveBtn.classList.remove('btn-secondary');
+                    saveBtn.classList.add('btn-outline-primary');
+                } else {
+                    saveBtn.disabled = true;
+                    saveBtn.classList.remove('btn-outline-primary');
+                    saveBtn.classList.add('btn-secondary');
+                }
+            }
+            
+            // 绑定实时校验事件
+            document.addEventListener('DOMContentLoaded', function() {
+                document.getElementById('employeeName').addEventListener('input', validateForm);
+                document.getElementById('employeeRoleId').addEventListener('change', validateForm);
+                document.getElementById('employeePhone').addEventListener('input', validateForm);
+                document.getElementById('employeeJobCategoryId').addEventListener('change', validateForm);
+                document.getElementById('employeeSalaryAmount').addEventListener('input', validateForm);
+                document.getElementById('employeeSalaryType').addEventListener('change', validateForm);
+                document.getElementById('employeeStatus').addEventListener('change', validateForm);
+                document.getElementById('employeePassword').addEventListener('input', validateForm);
+            });
+            
+            // 重置项目复选框
+            function resetProjectCheckboxes() {
+                document.querySelectorAll('.project-checkbox').forEach(function(cb) {
+                    cb.checked = false;
+                });
+            }
+            
+            // 预选项目复选框
+            function setProjectCheckboxes(projectIds) {
+                document.querySelectorAll('.project-checkbox').forEach(function(cb) {
+                    cb.checked = projectIds && projectIds.map(String).includes(cb.value);
+                });
+            }
+            
+            function openEmployeeModal() {
+                document.getElementById('employeeModalTitle').textContent = '新增员工';
+                document.getElementById('employeeForm').reset();
+                document.getElementById('employeeId').value = '';
+                document.getElementById('employeePassword').value = '';
+                document.getElementById('employeePassword').required = true;
+                document.getElementById('passwordRequired').style.display = 'inline';
+                document.getElementById('statusDiv').style.display = 'none';
+                // 新增时显示密码输入框，隐藏提示
+                document.getElementById('passwordDiv').style.display = 'flex';
+                document.getElementById('passwordTipDiv').style.display = 'none';
+                // 重置项目复选框
+                resetProjectCheckboxes();
+                new bootstrap.Modal(document.getElementById('employeeModal')).show();
+                // 触发校验
+                validateForm();
+            }
+            
+            function openEditEmployeeModal(id) {
+                var emp = employeesData.find(e => e.id == id);
+                if (!emp) return;
+                
+                document.getElementById('employeeModalTitle').textContent = '编辑员工';
+                document.getElementById('employeeId').value = emp.id;
+                document.getElementById('employeeName').value = emp.name;
+                document.getElementById('employeeRoleId').value = String(emp.roleId);
+                document.getElementById('employeePassword').value = '';
+                document.getElementById('employeePhone').value = emp.phone || '';
+                document.getElementById('employeeJobCategoryId').value = emp.jobCategoryId || '';
+                document.getElementById('employeeSalaryAmount').value = emp.salaryAmount || '';
+                document.getElementById('employeeSalaryType').value = emp.salaryType || 1;
+                document.getElementById('employeeFinanceContactId').value = emp.financeContactId || '';
+                document.getElementById('employeeStatus').value = emp.status;
+                document.getElementById('statusDiv').style.display = 'block';
+                
+                // 根据当前用户角色控制密码框显示
+                var canEditPassword = (currentUserRoleCode === 'root' || currentUserRoleCode === 'boss');
+                if (canEditPassword) {
+                    // root/boss 显示密码输入框，可修改密码（留空则保持原密码）
+                    document.getElementById('passwordDiv').style.display = 'flex';
+                    document.getElementById('passwordTipDiv').style.display = 'none';
+                    document.getElementById('employeePassword').value = '';
+                    document.getElementById('employeePassword').required = false;
+                    document.getElementById('passwordRequired').style.display = 'none';
+                } else {
+                    // 其他角色隐藏密码框，显示提示
+                    document.getElementById('passwordDiv').style.display = 'none';
+                    document.getElementById('passwordTipDiv').style.display = 'flex';
+                }
+                
+                // 先清空项目复选框，然后通过 API 获取已关联项目并预选
+                resetProjectCheckboxes();
+                
+                new bootstrap.Modal(document.getElementById('employeeModal')).show();
+                
+                // 异步获取已关联项目
+                fetch('/employee/projectIds/' + id)
+                    .then(function(res) { return res.json(); })
+                    .then(function(data) {
+                        if (data.success && data.projectIds && data.projectIds.length > 0) {
+                            setProjectCheckboxes(data.projectIds);
+                        }
+                        // 数据加载完成后触发校验
+                        validateForm();
+                    })
+                    .catch(function() {
+                        validateForm();
+                    });
+            }
+            
+            var isSubmitting = false;
+                        
+            function submitEmployeeForm() {
+                if (isSubmitting) return;
+                            
+                // 再次校验（防止绕过实时校验）
+                var employeeId = document.getElementById('employeeId').value;
+                var name = document.getElementById('employeeName').value.trim();
+                var roleId = document.getElementById('employeeRoleId').value;
+                var phone = document.getElementById('employeePhone').value.trim();
+                var jobCategoryId = document.getElementById('employeeJobCategoryId').value;
+                var salaryAmount = document.getElementById('employeeSalaryAmount').value.trim();
+                var salaryType = document.getElementById('employeeSalaryType').value;
+                var status = document.getElementById('employeeStatus').value;
+                var password = document.getElementById('employeePassword').value;
+                var passwordDiv = document.getElementById('passwordDiv');
+                var isPasswordVisible = passwordDiv && passwordDiv.style.display !== 'none';
+                var statusDiv = document.getElementById('statusDiv');
+                var isStatusVisible = statusDiv && statusDiv.style.display !== 'none';
+                            
+                var isValid = name && roleId && phone && jobCategoryId && salaryAmount && salaryType;
+                if (isStatusVisible) {
+                    isValid = isValid && status;
+                }
+                if (isPasswordVisible && !employeeId) {
+                    isValid = isValid && password;
+                }
+                            
+                if (!isValid) {
+                    return;
+                }
+                            
+                isSubmitting = true;
+                // 直接提交表单，避免 fetch 重定向问题
+                document.getElementById('employeeForm').submit();
+            }
+            
+            // 通用提示弹窗
+            function showAlertModal(title, content) {
+                document.getElementById('alertModalTitle').textContent = title;
+                document.getElementById('alertModalContent').textContent = content;
+                // 先关闭其他弹窗
+                var openModals = document.querySelectorAll('.modal.show');
+                openModals.forEach(function(m) {
+                    if (m.id !== 'alertModal' && m.id !== 'confirmModal') {
+                        var instance = bootstrap.Modal.getInstance(m);
+                        if (instance) instance.hide();
+                    }
+                });
+                var alertModalEl = document.getElementById('alertModal');
+                var modal = new bootstrap.Modal(alertModalEl);
+                modal.show();
+            }
+            
+            // 通用确认弹窗
+            var confirmCallback = null;
+            var deleteEmployeeId = null;
+            function showConfirmModal(title, content, callback) {
+                document.getElementById('confirmModalTitle').textContent = title;
+                document.getElementById('confirmModalContent').textContent = content;
+                confirmCallback = callback;
+                // 先关闭其他弹窗
+                var openModals = document.querySelectorAll('.modal.show');
+                openModals.forEach(function(m) {
+                    if (m.id !== 'alertModal' && m.id !== 'confirmModal') {
+                        var instance = bootstrap.Modal.getInstance(m);
+                        if (instance) instance.hide();
+                    }
+                });
+                var confirmModalEl = document.getElementById('confirmModal');
+                var modal = new bootstrap.Modal(confirmModalEl);
+                modal.show();
+            }
+            
+            document.getElementById('confirmModalBtn').addEventListener('click', function() {
+                bootstrap.Modal.getInstance(document.getElementById('confirmModal')).hide();
+                if (confirmCallback) {
+                    confirmCallback();
+                    confirmCallback = null;
+                }
+            });
+            
+            function showDeleteConfirm(id) {
+                deleteEmployeeId = id;
+                showConfirmModal('确认删除', '确定要删除该员工吗？', function() {
+                    window.location.href = '/employee/delete/' + deleteEmployeeId;
+                });
+            }
+            
+            // 按项目筛选员工
+            function filterByProject() {
+                var projectId = document.getElementById('projectFilter').value;
+                if (projectId) {
+                    window.location.href = '/employee/list?projectId=' + projectId;
+                } else {
+                    window.location.href = '/employee/list';
+                }
+            }
+        </script>
+    </div>
+</body>
+</html>
