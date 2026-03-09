@@ -172,6 +172,11 @@
             animation: none !important;
         }
         
+        /* 页面加载时隐藏子菜单，防止闪烁 */
+        [data-parent-id] {
+            display: none !important;
+        }
+        
         /* 主内容区 - 添加左边距给固定侧边栏留空间，顶部padding给固定导航栏留空间 */
         .main-content {
             margin-left: 220px;
@@ -817,11 +822,11 @@
             var isExpanding = submenu.style.display === 'none';
             
             if (isExpanding) {
-                submenu.style.display = 'block';
+                submenu.style.setProperty('display', 'block', 'important');
                 arrow.classList.remove('bi-chevron-down');
                 arrow.classList.add('bi-chevron-up');
             } else {
-                submenu.style.display = 'none';
+                submenu.style.setProperty('display', 'none', 'important');
                 arrow.classList.remove('bi-chevron-up');
                 arrow.classList.add('bi-chevron-down');
             }
@@ -850,10 +855,7 @@
         (function autoExpandActiveMenu() {
             var currentPath = window.location.pathname;
             
-            // 首先将所有子菜单容器隐藏（防止页面刷新时先显示再隐藏的抖动）
-            document.querySelectorAll('[data-parent-id]').forEach(function(container) {
-                container.style.display = 'none';
-            });
+            // CSS已经默认隐藏子菜单，这里不需要再隐藏
             document.querySelectorAll('[id^="arrow-"]').forEach(function(arrow) {
                 arrow.classList.remove('bi-chevron-up');
                 arrow.classList.add('bi-chevron-down');
@@ -869,7 +871,7 @@
                         var submenuDiv = document.getElementById('submenu-' + parentId);
                         var arrow = document.getElementById('arrow-' + parentId);
                         if (submenuDiv) {
-                            submenuDiv.style.display = 'block';
+                            submenuDiv.style.setProperty('display', 'block', 'important');
                         }
                         if (arrow) {
                             arrow.classList.remove('bi-chevron-down');
@@ -911,7 +913,7 @@
                     var parentId = submenuDiv.getAttribute('data-parent-id');
                     matchedParentIds.push(parentId);
                     // 展开该容器
-                    submenuDiv.style.display = 'block';
+                    submenuDiv.style.setProperty('display', 'block', 'important');
                     // 更新箭头图标
                     var arrow = document.getElementById('arrow-' + parentId);
                     if (arrow) {
