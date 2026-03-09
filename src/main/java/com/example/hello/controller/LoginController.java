@@ -61,7 +61,8 @@ public class LoginController {
         System.out.println("=== 尝试登录：用户名=" + name);
         Employee employee = employeeService.login(name, password);
         if (employee != null) {
-            System.out.println("=== 登录成功：" + employee.getName());
+            System.out.println("=== 登录成功：" + employee.getName() + ", ID=" + employee.getId());
+            System.out.println("=== 登录成功：roleId=" + employee.getRoleId());
             
             // 单独查询角色信息
             try {
@@ -71,7 +72,7 @@ public class LoginController {
                     employee.setRoleName((String) roleInfo.get("role_name"));
                     System.out.println("=== 角色查询成功：" + employee.getRoleCode());
                 } else {
-                    System.out.println("=== 角色查询失败：roleInfo 为 null");
+                    System.out.println("=== 角色查询失败：roleInfo 为 null，员工ID=" + employee.getId());
                 }
             } catch (Exception e) {
                 System.err.println("=== 查询角色信息异常：" + e.getMessage());
