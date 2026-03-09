@@ -6,6 +6,7 @@ import com.example.hello.entity.Employee;
 import com.example.hello.entity.Project;
 import com.example.hello.service.AccountService;
 import com.example.hello.service.CategoryService;
+import com.example.hello.service.EmployeeService;
 import com.example.hello.service.ProjectService;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,6 +32,9 @@ public class AccountController {
 
     @Autowired
     private CategoryService categoryService;
+    
+    @Autowired
+    private EmployeeService employeeService;
 
     @GetMapping("/list")
     public String list(@RequestParam(required = false) Long projectId,
@@ -62,9 +66,15 @@ public class AccountController {
         List<Project> projects = projectService.findByUserId(currentUser.getId(), currentUser.isBoss());
         List<Category> categories = categoryService.findAll();
         
+        // 获取审批人信息（用于前端展示）
+        List<Employee> financeList = employeeService.findByRoleCode("finance");
+        List<Employee> bossList = employeeService.findByRoleCode("boss");
+        
         model.addAttribute("accounts", accounts);
         model.addAttribute("projects", projects);
         model.addAttribute("categories", categories);
+        model.addAttribute("financeList", financeList);
+        model.addAttribute("bossList", bossList);
         model.addAttribute("projectId", projectId);
         model.addAttribute("status", status);
         model.addAttribute("currentUser", currentUser);

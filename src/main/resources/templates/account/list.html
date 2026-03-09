@@ -92,15 +92,35 @@
                                     <span th:if="${acc.invoiceNo == null || acc.invoiceNo.isEmpty()}">-</span>
                                 </td>
                                 <td>
-                                    <span th:if="${acc.status == 1 and acc.approvalStage == 1}" class="badge bg-warning">待财务审批</span>
-                                    <span th:if="${acc.status == 1 and acc.approvalStage == 2}" class="badge bg-info">待BOSS审批</span>
+                                    <!-- 待财务审批 -->
+                                    <div th:if="${acc.status == 1 and acc.approvalStage == 1}">
+                                        <span class="badge bg-warning">待财务审批</span>
+                                        <div class="mt-1">
+                                            <small class="text-muted">
+                                                <i class="bi bi-people-fill me-1"></i>
+                                                <span th:each="f, iterStat : ${financeList}" th:if="${f.status == 1}">
+                                                    <span th:text="${f.name}"></span>
+                                                    <span th:if="${!iterStat.last}">、</span>
+                                                </span>
+                                            </small>
+                                        </div>
+                                    </div>
+                                    <!-- 待BOSS审批 -->
+                                    <div th:if="${acc.status == 1 and acc.approvalStage == 2}">
+                                        <span class="badge bg-info">待BOSS审批</span>
+                                        <div class="mt-1">
+                                            <small class="text-muted">
+                                                <i class="bi bi-people-fill me-1"></i>
+                                                <span th:each="b, iterStat : ${bossList}" th:if="${b.status == 1}">
+                                                    <span th:text="${b.name}"></span>
+                                                    <span th:if="${!iterStat.last}">、</span>
+                                                </span>
+                                            </small>
+                                        </div>
+                                    </div>
+                                    <!-- 其他状态 -->
                                     <span th:if="${acc.status == 5}" class="badge bg-success">生效</span>
                                     <span th:if="${acc.status == 12}" class="badge bg-danger">审核未通过</span>
-                                    <!-- 显示待审批人信息 -->
-                                    <small class="text-muted d-block" th:if="${acc.status == 1}">
-                                        <span th:if="${acc.approvalStage == 1}" th:text="'待财务审批'">待财务审批</span>
-                                        <span th:if="${acc.approvalStage == 2}" th:text="'待BOSS审批'">待BOSS审批</span>
-                                    </small>
                                 </td>
                                 <td th:text="${acc.amount}"></td>
                                 <td th:text="${acc.remark} ?: '-'" style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"></td>
@@ -125,7 +145,8 @@
                                                     ((acc.approvalStage == 1 and session.currentUser.finance) or 
                                                      (acc.approvalStage == 2 and session.currentUser.boss) or
                                                      session.currentUser.boss)}" 
-                                            class="btn btn-outline-success btn-sm ms-1" th:onclick="'approve(' + ${acc.id} + ', true)'">
+                                            class="btn btn-outline-success btn-sm ms-1" 
+                                            th:onclick="'approve(' + ${acc.id} + ', true, ' + ${acc.approvalStage != null ? acc.approvalStage : 1} + ')'">
                                         <i class="bi bi-check-circle"></i> 通过
                                     </button>
                                                                     
@@ -134,7 +155,8 @@
                                                     ((acc.approvalStage == 1 and session.currentUser.finance) or 
                                                      (acc.approvalStage == 2 and session.currentUser.boss) or
                                                      session.currentUser.boss)}" 
-                                            class="btn btn-outline-danger btn-sm ms-1" th:onclick="'approve(' + ${acc.id} + ', false)'">
+                                            class="btn btn-outline-danger btn-sm ms-1" 
+                                            th:onclick="'approve(' + ${acc.id} + ', false, ' + ${acc.approvalStage != null ? acc.approvalStage : 1} + ')'">
                                         <i class="bi bi-x-circle"></i> 拒绝
                                     </button>
                                                                     
@@ -454,7 +476,12 @@
                     });
             }
             
-            function approve(id, approved) {
+            // 当前用户角色信息（从后端传入）
+            var currentUserRole = /*[[${currentUser != null ? currentUser.roleCode : ''}]]*/ '';
+            var isCurrentUserBoss = /*[[${currentUser != null && currentUser.boss}]]*/ false;
+            var isCurrentUserFinance = /*[[${currentUser != null && currentUser.finance}]]*/ false;
+            
+            function approve(id, approved, approvalStage) {
                 document.getElementById('approveAccountId').value = id;
                 document.getElementById('approveAction').value = approved ? 'true' : 'false';
                 document.getElementById('approveRemark').value = '';
@@ -464,15 +491,62 @@
                 var remarkContainer = document.getElementById('approveRemarkContainer');
                 var submitBtn = document.getElementById('approveSubmitBtn');
                 
+                // 根据审批阶段和当前用户角色显示不同文案
+                var stageText = '';
+                if (approvalStage == 1) {
+                    stageText = '财务审批';
+                } else if (approvalStage == 2) {
+                    stageText = 'BOSS审批';
+                }
+                
                 if (approved) {
-                    modalTitle.textContent = '通过审批';
-                    confirmText.innerHTML = '<p class="mb-0">确定要通过该帐条吗？</p>';
+                    modalTitle.textContent = '通过' + stageText;
+                    
+                    // 构建提示文案
+                    var tipHtml = '<div class="text-center">';
+                    tipHtml += '<p class="mb-2">确定要通过该帐条吗？</p>';
+                    
+                    // BOSS审批时显示特殊提示
+                    if (approvalStage == 2 && isCurrentUserBoss) {
+                        var otherBosses = [];
+                        /*[# th:each="b : ${bossList}" th:if="${b.status == 1 && b.id != currentUser.id}"]
+                        otherBosses.push('[[${b.name}]]');
+                        /*[/]*/
+                        
+                        if (otherBosses.length > 0) {
+                            tipHtml += '<div class="alert alert-info py-2 mb-0">';
+                            tipHtml += '<small><i class="bi bi-info-circle me-1"></i>';
+                            tipHtml += '待您及 ' + otherBosses.join('、') + ' 审批';
+                            tipHtml += '</small></div>';
+                        } else {
+                            tipHtml += '<div class="alert alert-info py-2 mb-0">';
+                            tipHtml += '<small><i class="bi bi-info-circle me-1"></i>待您审批</small>';
+                            tipHtml += '</div>';
+                        }
+                    }
+                    // 财务审批时显示提示
+                    else if (approvalStage == 1 && isCurrentUserFinance) {
+                        var otherFinances = [];
+                        /*[# th:each="f : ${financeList}" th:if="${f.status == 1 && f.id != currentUser.id}"]
+                        otherFinances.push('[[${f.name}]]');
+                        /*[/]*/
+                        
+                        if (otherFinances.length > 0) {
+                            tipHtml += '<div class="alert alert-warning py-2 mb-0">';
+                            tipHtml += '<small><i class="bi bi-info-circle me-1"></i>';
+                            tipHtml += '您或 ' + otherFinances.join('、') + ' 审批后，将流转至BOSS审批';
+                            tipHtml += '</small></div>';
+                        }
+                    }
+                    
+                    tipHtml += '</div>';
+                    confirmText.innerHTML = tipHtml;
                     confirmText.style.display = 'block';
                     remarkContainer.style.display = 'none';
                     submitBtn.className = 'btn btn-success btn-sm';
                     submitBtn.textContent = '通过';
                 } else {
-                    modalTitle.textContent = '拒绝审批';
+                    modalTitle.textContent = '拒绝' + stageText;
                     confirmText.style.display = 'none';
                     remarkContainer.style.display = 'block';
                     submitBtn.className = 'btn btn-danger btn-sm';
