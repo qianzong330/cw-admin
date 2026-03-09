@@ -128,8 +128,8 @@
                                 <td th:text="${acc.remark} ?: '-'" style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"></td>
                                 <td th:text="${#temporals.format(acc.createTime, 'yyyy-MM-dd HH:mm')}"></td>
                                 <td>
-                                    <!-- 编辑按钮：状态为审核未通过 (12) 且有编辑权限 -->
-                                    <a th:if="${acc.status == 12 and session.currentUser != null and session.currentUser.hasPermission('account:edit')}" 
+                                    <!-- 编辑按钮：状态为审核未通过(12) + 是自己的帐条 + 有编辑权限 -->
+                                    <a th:if="${acc.status == 12 and acc.creatorId == currentUser.id and session.currentUser != null and session.currentUser.hasPermission('account:edit')}" 
                                        th:href="@{/account/edit/{id}(id=${acc.id})}" class="btn btn-outline-primary btn-sm">
                                         <i class="bi bi-pencil"></i> 编辑
                                     </a>

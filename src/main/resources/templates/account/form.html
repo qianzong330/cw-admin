@@ -11,12 +11,12 @@
             </div>
             <div class="card-body">
                 <!-- 无项目提示 -->
-                <div th:if="${!viewMode && projects != null && projects.isEmpty()}" class="alert alert-warning">
+                <div th:if="${!viewMode && (projects == null || projects.isEmpty())}" class="alert alert-warning">
                     <i class="bi bi-exclamation-triangle-fill me-2"></i>
                     您暂未被分配到任何项目，无法发起记账。请联系管理员将您关联到相关项目。
                 </div>
                 
-                <form action="/account/save" method="post" th:object="${account}" enctype="multipart/form-data" th:if="${viewMode || (projects != null && !projects.isEmpty())}">
+                <form action="/account/save" method="post" th:object="${account}" enctype="multipart/form-data">
                     <input type="hidden" th:field="*{id}">
                     
                     <div class="row">

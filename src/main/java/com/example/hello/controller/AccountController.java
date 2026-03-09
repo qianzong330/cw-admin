@@ -145,8 +145,11 @@ public class AccountController {
         Employee currentUser = (Employee) session.getAttribute("currentUser");
         Account account = accountService.findById(id);
         
-        String roleCode = currentUser.getRoleCode() != null ? currentUser.getRoleCode().toLowerCase() : "";
-        boolean isBoss = "boss".equals(roleCode);
+        // 空值检查
+        if (account == null) {
+            return "redirect:/account/list?error=帐条不存在";
+        }
+        
         // 权限检查：只能编辑自己的帐条，且状态为审核未通过
         if (!account.getCreatorId().equals(currentUser.getId())) {
             return "redirect:/account/list?error=只能编辑自己的帐条";
