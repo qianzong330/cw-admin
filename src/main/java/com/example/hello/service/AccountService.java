@@ -36,8 +36,8 @@ public class AccountService {
         return accountMapper.findAll();
     }
 
-    public List<Account> findByCondition(Long currentUserId, boolean isBoss, Long projectId, Integer status) {
-        return accountMapper.findByCondition(currentUserId, isBoss, projectId, status);
+    public List<Account> findByCondition(Long currentUserId, boolean isBoss, boolean isFinance, Long projectId, Integer status) {
+        return accountMapper.findByCondition(currentUserId, isBoss, isFinance, projectId, status);
     }
 
     @Transactional
@@ -245,13 +245,13 @@ public class AccountService {
         return accountMapper.findPendingByFinanceContactId(financeContactId, isBoss);
     }
 
-    public List<Account> findByConditionWithPage(Long userId, boolean isBoss, Long projectId, Integer status, int page, int pageSize) {
+    public List<Account> findByConditionWithPage(Long userId, boolean isBoss, boolean isFinance, Long projectId, Integer status, int page, int pageSize) {
         int offset = (page - 1) * pageSize;
-        return accountMapper.findByConditionWithPage(userId, isBoss, projectId, status, offset, pageSize);
+        return accountMapper.findByConditionWithPage(userId, isBoss, isFinance, projectId, status, offset, pageSize);
     }
 
-    public int countByCondition(Long userId, boolean isBoss, Long projectId, Integer status) {
-        return accountMapper.countByCondition(userId, isBoss, projectId, status);
+    public int countByCondition(Long userId, boolean isBoss, boolean isFinance, Long projectId, Integer status) {
+        return accountMapper.countByCondition(userId, isBoss, isFinance, projectId, status);
     }
 
     public List<Account> findPendingByFinanceContactIdWithPage(Long financeContactId, boolean isBoss, int page, int pageSize) {

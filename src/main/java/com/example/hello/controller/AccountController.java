@@ -48,7 +48,8 @@ public class AccountController {
         // 分页查询
         List<Account> accounts = accountService.findByConditionWithPage(
             currentUser.getId(), 
-            currentUser.isBoss(), 
+            currentUser.isBoss(),
+            currentUser.isFinance(),
             projectId, 
             status,
             page,
@@ -56,7 +57,8 @@ public class AccountController {
         );
         int totalCount = accountService.countByCondition(
             currentUser.getId(), 
-            currentUser.isBoss(), 
+            currentUser.isBoss(),
+            currentUser.isFinance(),
             projectId, 
             status
         );

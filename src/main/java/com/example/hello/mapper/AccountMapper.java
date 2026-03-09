@@ -20,11 +20,13 @@ public interface AccountMapper {
     
     List<Account> findByCondition(@Param("currentUserId") Long currentUserId, 
                                    @Param("isBoss") boolean isBoss,
+                                   @Param("isFinance") boolean isFinance,
                                    @Param("projectId") Long projectId,
                                    @Param("status") Integer status);
 
     List<Account> findByConditionWithPage(@Param("currentUserId") Long currentUserId, 
                                            @Param("isBoss") boolean isBoss,
+                                           @Param("isFinance") boolean isFinance,
                                            @Param("projectId") Long projectId,
                                            @Param("status") Integer status,
                                            @Param("offset") int offset,
@@ -32,6 +34,7 @@ public interface AccountMapper {
 
     int countByCondition(@Param("currentUserId") Long currentUserId, 
                          @Param("isBoss") boolean isBoss,
+                         @Param("isFinance") boolean isFinance,
                          @Param("projectId") Long projectId,
                          @Param("status") Integer status);
 

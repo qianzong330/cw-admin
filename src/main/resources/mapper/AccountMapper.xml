@@ -91,9 +91,16 @@
         LEFT JOIN tb_job_category jc ON a.job_category_id = jc.id
         LEFT JOIN tb_role r ON a.role_id = r.id
         LEFT JOIN tb_employee fe ON e.finance_contact_id = fe.id
+        LEFT JOIN tb_employee creator ON a.creator_id = creator.id
+        LEFT JOIN tb_role creator_role ON creator.role_id = creator_role.id
         WHERE 1=1
-        <!-- 非BOSS用户只能看到自己的记账 -->
-        <if test="!isBoss">
+        <!-- BOSS能看所有 -->
+        <!-- 财务能看自己的 + 所有非BOSS创建的记账 -->
+        <if test="!isBoss and isFinance">
+            AND (a.creator_id = #{currentUserId} OR LOWER(creator_role.role_code) != 'boss')
+        </if>
+        <!-- 普通员工只能看自己的 -->
+        <if test="!isBoss and !isFinance">
             AND a.creator_id = #{currentUserId}
         </if>
         <if test="projectId != null">
@@ -119,9 +126,16 @@
         LEFT JOIN tb_job_category jc ON a.job_category_id = jc.id
         LEFT JOIN tb_role r ON a.role_id = r.id
         LEFT JOIN tb_employee fe ON e.finance_contact_id = fe.id
+        LEFT JOIN tb_employee creator ON a.creator_id = creator.id
+        LEFT JOIN tb_role creator_role ON creator.role_id = creator_role.id
         WHERE 1=1
-        <!-- 非BOSS用户只能看到自己的记账 -->
-        <if test="!isBoss">
+        <!-- BOSS能看所有 -->
+        <!-- 财务能看自己的 + 所有非BOSS创建的记账 -->
+        <if test="!isBoss and isFinance">
+            AND (a.creator_id = #{currentUserId} OR LOWER(creator_role.role_code) != 'boss')
+        </if>
+        <!-- 普通员工只能看自己的 -->
+        <if test="!isBoss and !isFinance">
             AND a.creator_id = #{currentUserId}
         </if>
         <if test="projectId != null">
@@ -137,9 +151,16 @@
     <select id="countByCondition" resultType="int">
         SELECT COUNT(*)
         FROM tb_account a
+        LEFT JOIN tb_employee creator ON a.creator_id = creator.id
+        LEFT JOIN tb_role creator_role ON creator.role_id = creator_role.id
         WHERE 1=1
-        <!-- 非BOSS用户只能看到自己的记账 -->
-        <if test="!isBoss">
+        <!-- BOSS能看所有 -->
+        <!-- 财务能看自己的 + 所有非BOSS创建的记账 -->
+        <if test="!isBoss and isFinance">
+            AND (a.creator_id = #{currentUserId} OR LOWER(creator_role.role_code) != 'boss')
+        </if>
+        <!-- 普通员工只能看自己的 -->
+        <if test="!isBoss and !isFinance">
             AND a.creator_id = #{currentUserId}
         </if>
         <if test="projectId != null">
