@@ -47,12 +47,20 @@
                                         <td>
                                             <span class="badge bg-success" th:text="${role.menu_count} + ' 个菜单'"></span>
                                         </td>
-                                        <td>
+                                        <td style="white-space: nowrap;">
+                                            <button class="btn btn-sm btn-info me-1" th:onclick="'editRole(' + ${role.id} + ', \'' + ${role.role_name} + '\', \'' + (${role.remark} ?: '') + '\')'">
+                                                <i class="bi bi-pencil"></i> 编辑
+                                            </button>
                                             <a th:if="${session.currentUser != null and session.currentUser.hasPermission('role:edit')}"
                                                th:href="@{/role/edit/{id}(id=${role.id})}" 
-                                               class="btn btn-sm btn-primary">
-                                                <i class="bi bi-pencil-square"></i> 配置权限
+                                               class="btn btn-sm btn-primary me-1">
+                                                <i class="bi bi-shield-check"></i> 配置权限
                                             </a>
+                                            <button th:if="${role.role_code != 'root' and role.role_code != 'boss'}"
+                                                    class="btn btn-sm btn-danger" 
+                                                    th:onclick="'deleteRole(' + ${role.id} + ', \'' + ${role.role_name} + '\')'">
+                                                <i class="bi bi-trash"></i> 删除
+                                            </button>
                                         </td>
                                     </tr>
                                 </tbody>
@@ -63,8 +71,99 @@
             </div>
         </div>
 
+        <!-- 编辑角色弹窗 -->
+        <div class="modal fade" id="editRoleModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered" style="max-width: 400px;">
+                <div class="modal-content">
+                    <div class="modal-header py-2">
+                        <h6 class="modal-title fw-bold">编辑角色</h6>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body py-3">
+                        <input type="hidden" id="editRoleId">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">角色名称 <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control form-control-sm" id="editRoleName" placeholder="请输入角色名称">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">备注</label>
+                            <textarea class="form-control form-control-sm" id="editRoleRemark" rows="2" placeholder="请输入备注（选填）"></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer py-2">
+                        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">取消</button>
+                        <button type="button" class="btn btn-primary btn-sm" onclick="submitEditRole()">保存</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <script th:src="@{/js/jquery.min.js}"></script>
         <script th:src="@{/js/bootstrap.bundle.min.js}"></script>
         <script th:src="@{/common/layout.js}"></script>
+        
+        <script>
+            // 打开编辑角色弹窗
+            function editRole(id, roleName, remark) {
+                document.getElementById('editRoleId').value = id;
+                document.getElementById('editRoleName').value = roleName;
+                document.getElementById('editRoleRemark').value = remark || '';
+                new bootstrap.Modal(document.getElementById('editRoleModal')).show();
+            }
+            
+            // 提交编辑角色
+            function submitEditRole() {
+                var id = document.getElementById('editRoleId').value;
+                var roleName = document.getElementById('editRoleName').value.trim();
+                var remark = document.getElementById('editRoleRemark').value.trim();
+                
+                if (!roleName) {
+                    alert('请输入角色名称');
+                    return;
+                }
+                
+                fetch('/role/update/' + id, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: 'roleName=' + encodeURIComponent(roleName) + '&remark=' + encodeURIComponent(remark)
+                })
+                .then(response => response.json())
+                .then(result => {
+                    if (result.success) {
+                        bootstrap.Modal.getInstance(document.getElementById('editRoleModal')).hide();
+                        location.reload();
+                    } else {
+                        alert(result.message || '更新失败');
+                    }
+                })
+                .catch(error => {
+                    alert('更新失败：' + error.message);
+                });
+            }
+            
+            // 删除角色
+            function deleteRole(id, roleName) {
+                if (!confirm('确定要删除角色 "' + roleName + '" 吗？\n\n注意：删除后将同时删除该角色的所有权限配置。')) {
+                    return;
+                }
+                
+                fetch('/role/delete/' + id, {
+                    method: 'POST'
+                })
+                .then(response => response.json())
+                .then(result => {
+                    if (result.success) {
+                        location.reload();
+                    } else {
+                        alert(result.message || '删除失败');
+                    }
+                })
+                .catch(error => {
+                    alert('删除失败：' + error.message);
+                });
+            }
+        </script>
     </body>
 </html>

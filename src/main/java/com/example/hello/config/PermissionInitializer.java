@@ -349,13 +349,20 @@ public class PermissionInitializer implements CommandLineRunner {
             }
             
             // 基础配置目录及其子菜单
+            // 注意：需要包含所有一级目录（system_settings, project_dir, basic_config）
             String[] menuCodes = {
-                "basic_config",
-                "jobcategory:list",
-                "project",
-                "role",
-                "workhour:config",
-                "category"
+                "system_settings",   // 系统设置目录
+                "project_dir",       // 工程管理目录
+                "basic_config",      // 基础配置目录
+                "menu:list",         // 菜单管理
+                "role",              // 角色管理
+                "jobcategory:list",  // 工种管理
+                "category",          // 费用分类
+                "project",           // 项目管理
+                "workhour:config",   // 工时配置
+                "employee",          // 员工管理
+                "attendance",        // 考勤管理
+                "salary"             // 工资条管理
             };
             
             int count = 0;
