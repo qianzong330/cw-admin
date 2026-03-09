@@ -95,13 +95,16 @@ public class AccountService {
                 throw new RuntimeException("已生效的帐条不允许修改");
             }
             
+            // 先更新帐条基本信息
             accountMapper.update(account);
             
-            // 编辑后重置为待财务审批
-            account.setStatus(1);
-            account.setApprovalStage(1);
-            account.setApprovedByFinance("");
-            accountMapper.updateApprovalStage(account);
+            // 编辑后重置为待财务审批状态
+            Account statusUpdate = new Account();
+            statusUpdate.setId(account.getId());
+            statusUpdate.setStatus(1); // 审批中
+            statusUpdate.setApprovalStage(1); // 待财务审批
+            statusUpdate.setApprovedByFinance(""); // 清空财务审批记录
+            accountMapper.updateApprovalStage(statusUpdate);
             
             // 记录操作明细：重新提交审批，使用用户填写的备注
             AccountDetail detail = new AccountDetail();

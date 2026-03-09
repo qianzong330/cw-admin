@@ -440,6 +440,9 @@
         SET approval_stage = #{approvalStage},
             approved_by_finance = #{approvedByFinance},
             final_approver_id = #{finalApproverId}
+            <if test="status != null">
+                , status = #{status}
+            </if>
         WHERE id = #{id}
     </update>
 
