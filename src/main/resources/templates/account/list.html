@@ -129,10 +129,10 @@
                                 <td th:text="${#temporals.format(acc.createTime, 'yyyy-MM-dd HH:mm')}"></td>
                                 <td>
                                     <!-- 编辑按钮：状态为审核未通过(12) + 是自己的帐条 + 有编辑权限 -->
-                                    <a th:if="${acc.status == 12 and acc.creatorId == currentUser.id and session.currentUser != null and session.currentUser.hasPermission('account:edit')}" 
-                                       th:href="@{/account/edit/{id}(id=${acc.id})}" class="btn btn-outline-primary btn-sm">
+                                    <button th:if="${acc.status == 12 and acc.creatorId == currentUser.id and session.currentUser != null and session.currentUser.hasPermission('account:edit')}" 
+                                            class="btn btn-outline-primary btn-sm" th:onclick="'openEditModal(' + ${acc.id} + ')'">
                                         <i class="bi bi-pencil"></i> 编辑
-                                    </a>
+                                    </button>
                                                                     
                                     <!-- 撤销按钮：状态为审批中 (1) 且是自己的帐条 -->
                                     <button th:if="${acc.status == 1 && acc.creatorId == currentUser.id}" 
@@ -341,6 +341,61 @@
             </div>
         </div>
         
+        <!-- 编辑帐条弹窗 -->
+        <div class="modal fade" id="editAccountModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered" style="max-width: 420px;">
+                <div class="modal-content">
+                    <div class="modal-header py-2">
+                        <h6 class="modal-title fw-bold">编辑帐条</h6>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body py-3">
+                        <form id="editAccountForm" action="/account/save" method="post">
+                            <input type="hidden" name="id" id="editId">
+                            <div class="d-flex align-items-center gap-2 mb-2">
+                                <label class="fw-bold text-nowrap mb-0" style="min-width: 70px; font-size: 14px;">项目<span class="text-danger">*</span></label>
+                                <select class="form-select form-select-sm" name="projectId" id="editProjectId" required style="flex: 1;">
+                                    <option value="">请选择项目</option>
+                                    <option th:each="p : ${projects}" th:value="${p.id}" th:text="${p.name}"></option>
+                                </select>
+                            </div>
+                            
+                            <div class="d-flex align-items-center gap-2 mb-2">
+                                <label class="fw-bold text-nowrap mb-0" style="min-width: 70px; font-size: 14px;">收支类型<span class="text-danger">*</span></label>
+                                <select class="form-select form-select-sm" name="type" id="editType" required style="flex: 1;">
+                                    <option value="">请选择</option>
+                                    <option value="1">收入</option>
+                                    <option value="2">支出</option>
+                                </select>
+                            </div>
+                            
+                            <div class="d-flex align-items-center gap-2 mb-2">
+                                <label class="fw-bold text-nowrap mb-0" style="min-width: 70px; font-size: 14px;">费用分类<span class="text-danger">*</span></label>
+                                <select class="form-select form-select-sm" name="categoryId" id="editCategoryId" required style="flex: 1;">
+                                    <option value="">请选择</option>
+                                    <option th:each="c : ${categories}" th:value="${c.id}" th:text="${c.name}"></option>
+                                </select>
+                            </div>
+                            
+                            <div class="d-flex align-items-center gap-2 mb-2">
+                                <label class="fw-bold text-nowrap mb-0" style="min-width: 70px; font-size: 14px;">金额<span class="text-danger">*</span></label>
+                                <input type="number" step="0.01" class="form-control form-control-sm" name="amount" id="editAmount" required style="flex: 1;">
+                            </div>
+                            
+                            <div class="d-flex align-items-start gap-2">
+                                <label class="fw-bold text-nowrap mb-0 mt-1" style="min-width: 70px; font-size: 14px;">备注</label>
+                                <textarea class="form-control form-control-sm" name="remark" id="editRemark" rows="2" style="flex: 1;"></textarea>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer py-2">
+                        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">取消</button>
+                        <button type="button" class="btn btn-primary btn-sm" onclick="submitEditForm()">保存</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
         <script th:inline="javascript">
             // 一级分类数据
             var level1Categories = /*[[${level1Categories}]]*/ [];
@@ -393,6 +448,58 @@
                 document.getElementById('addAccountForm').reset();
                 isSubmitting = false;
             });
+            
+            // 打开编辑弹窗
+            function openEditModal(id) {
+                // 获取帐条详情
+                fetch('/account/detail/' + id)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            document.getElementById('editId').value = data.account.id;
+                            document.getElementById('editProjectId').value = data.account.projectId;
+                            document.getElementById('editType').value = data.account.type;
+                            document.getElementById('editCategoryId').value = data.account.categoryId;
+                            document.getElementById('editAmount').value = data.account.amount;
+                            document.getElementById('editRemark').value = data.account.remark || '';
+                            new bootstrap.Modal(document.getElementById('editAccountModal')).show();
+                        } else {
+                            showAlertModal('错误', data.message || '获取帐条详情失败');
+                        }
+                    })
+                    .catch(error => {
+                        showAlertModal('错误', '获取帐条详情失败：' + error.message);
+                    });
+            }
+            
+            // 提交编辑表单
+            function submitEditForm() {
+                if (isSubmitting) return;
+                isSubmitting = true;
+                
+                var form = document.getElementById('editAccountForm');
+                var formData = new FormData(form);
+                
+                fetch('/account/save', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => {
+                    if (response.ok || response.redirected) {
+                        // 保存成功，关闭弹窗并刷新列表
+                        bootstrap.Modal.getInstance(document.getElementById('editAccountModal')).hide();
+                        window.location.reload();
+                    } else {
+                        return response.text().then(text => { throw new Error(text); });
+                    }
+                })
+                .catch(error => {
+                    showAlertModal('错误', '保存失败：' + error.message);
+                })
+                .finally(() => {
+                    isSubmitting = false;
+                });
+            }
             
             // 通用提示弹窗
             function showAlertModal(title, content) {

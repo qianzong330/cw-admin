@@ -17,7 +17,9 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Controller
@@ -140,35 +142,36 @@ public class AccountController {
         return "account/form";
     }
 
-    @GetMapping("/edit/{id}")
-    public String editPage(@PathVariable Long id, Model model, HttpSession session) {
+    @GetMapping("/detail/{id}")
+    @ResponseBody
+    public Map<String, Object> getDetail(@PathVariable Long id, HttpSession session) {
+        Map<String, Object> result = new HashMap<>();
         Employee currentUser = (Employee) session.getAttribute("currentUser");
         Account account = accountService.findById(id);
         
         // 空值检查
         if (account == null) {
-            return "redirect:/account/list?error=帐条不存在";
+            result.put("success", false);
+            result.put("message", "帐条不存在");
+            return result;
         }
         
-        // 权限检查：只能编辑自己的帐条，且状态为审核未通过
+        // 权限检查：只能编辑自己的帐条
         if (!account.getCreatorId().equals(currentUser.getId())) {
-            return "redirect:/account/list?error=只能编辑自己的帐条";
+            result.put("success", false);
+            result.put("message", "只能编辑自己的帐条");
+            return result;
         }
         
         if (account.getStatus() != 12) {
-            return "redirect:/account/list?error=只能编辑审核未通过的帐条";
+            result.put("success", false);
+            result.put("message", "只能编辑审核未通过的帐条");
+            return result;
         }
         
-        // 根据权限获取项目列表：BOSS/财务看所有，普通员工只看关联的
-        List<Project> projects = projectService.findByUserId(currentUser.getId(), currentUser.isBoss());
-        List<Category> categories = categoryService.findAll();
-        
-        model.addAttribute("projects", projects);
-        model.addAttribute("categories", categories);
-        model.addAttribute("account", account);
-        model.addAttribute("currentUser", currentUser);
-        model.addAttribute("viewMode", false);
-        return "account/form";
+        result.put("success", true);
+        result.put("account", account);
+        return result;
     }
 
     @PostMapping("/save")
