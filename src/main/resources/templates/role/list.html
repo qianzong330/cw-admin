@@ -48,7 +48,7 @@
                                             <span class="badge bg-success" th:text="${role.menu_count} + ' 个菜单'"></span>
                                         </td>
                                         <td style="white-space: nowrap;">
-                                            <button class="btn btn-sm btn-info me-1" th:onclick="'editRole(' + ${role.id} + ', \'' + ${role.role_name} + '\', \'' + (${role.remark} ?: '') + '\')'">
+                                            <button class="btn btn-sm btn-info me-1" th:data-role-id="${role.id}" th:data-role-name="${role.role_name}" th:data-role-remark="${role.remark}" onclick="editRole(this.dataset.roleId, this.dataset.roleName, this.dataset.roleRemark)">
                                                 <i class="bi bi-pencil"></i> 编辑
                                             </button>
                                             <a th:if="${session.currentUser != null and session.currentUser.hasPermission('role:edit')}"
@@ -58,7 +58,7 @@
                                             </a>
                                             <button th:if="${role.role_code != 'root' and role.role_code != 'boss'}"
                                                     class="btn btn-sm btn-danger" 
-                                                    th:onclick="'deleteRole(' + ${role.id} + ', \'' + ${role.role_name} + '\')'">
+                                                    th:data-role-id="${role.id}" th:data-role-name="${role.role_name}" onclick="deleteRole(this.dataset.roleId, this.dataset.roleName)">
                                                 <i class="bi bi-trash"></i> 删除
                                             </button>
                                         </td>
