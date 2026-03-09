@@ -63,7 +63,6 @@
                                 <th>角色</th>
                                 <th>收支类型</th>
                                 <th>费用分类</th>
-                                <th>明细分类</th>
                                 <th>发票</th>
                                 <th>状态</th>
                                 <th>金额</th>
@@ -83,8 +82,7 @@
                                     <span th:if="${acc.type == 1}" class="badge bg-success">收入</span>
                                     <span th:if="${acc.type == 2}" class="badge bg-danger">支出</span>
                                 </td>
-                                <td th:text="${acc.categoryName} ?: '-'"></td>
-                                <td>-</td>
+                                <td th:text="${acc.categoryName != null and acc.categoryName != ''} ? ${acc.categoryName} : '-'">-</td>
                                 <td>
                                     <a th:if="${acc.invoiceNo != null && !acc.invoiceNo.isEmpty()}" th:href="@{/uploads/{file}(file=${acc.invoiceNo})}" target="_blank" class="btn btn-link btn-sm p-0">
                                         <i class="bi bi-file-earmark-image"></i> 查看
@@ -475,29 +473,33 @@
             // 提交编辑表单
             function submitEditForm() {
                 if (isSubmitting) return;
-                isSubmitting = true;
                 
-                var form = document.getElementById('editAccountForm');
-                var formData = new FormData(form);
-                
-                fetch('/account/save', {
-                    method: 'POST',
-                    body: formData
-                })
-                .then(response => {
-                    if (response.ok || response.redirected) {
-                        // 保存成功，关闭弹窗并刷新列表
-                        bootstrap.Modal.getInstance(document.getElementById('editAccountModal')).hide();
-                        window.location.reload();
-                    } else {
-                        return response.text().then(text => { throw new Error(text); });
-                    }
-                })
-                .catch(error => {
-                    showAlertModal('错误', '保存失败：' + error.message);
-                })
-                .finally(() => {
-                    isSubmitting = false;
+                // 显示确认弹窗
+                showConfirmModal('确认重新提交', '保存后将重新进入审批流程，确定要保存吗？', function() {
+                    isSubmitting = true;
+                    
+                    var form = document.getElementById('editAccountForm');
+                    var formData = new FormData(form);
+                    
+                    fetch('/account/save', {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(response => {
+                        if (response.ok || response.redirected) {
+                            // 保存成功，关闭弹窗并刷新列表
+                            bootstrap.Modal.getInstance(document.getElementById('editAccountModal')).hide();
+                            window.location.reload();
+                        } else {
+                            return response.text().then(text => { throw new Error(text); });
+                        }
+                    })
+                    .catch(error => {
+                        showAlertModal('错误', '保存失败：' + error.message);
+                    })
+                    .finally(() => {
+                        isSubmitting = false;
+                    });
                 });
             }
             
