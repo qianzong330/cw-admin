@@ -131,18 +131,22 @@
             border-left: 3px solid transparent;
             font-size: 0.9rem;
             font-weight: 500;
+            transition: none !important;
+            animation: none !important;
         }
         
         .sidebar .nav-link:hover {
             background: rgba(255,255,255,0.08);
             color: #fff;
             border-left-color: var(--accent-color);
+            transition: none !important;
         }
         
         .sidebar .nav-link.active {
             background: rgba(255,255,255,0.12);
             color: #fff;
             border-left-color: var(--accent-color);
+            transition: none !important;
         }
         
         .sidebar .nav-link i {
@@ -151,11 +155,21 @@
             width: 20px;
             text-align: center;
             color: rgba(255,255,255,0.7);
+            transition: none !important;
         }
         
         .sidebar .nav-link:hover i,
         .sidebar .nav-link.active i {
             color: var(--accent-color);
+            transition: none !important;
+        }
+        
+        /* 强制禁用所有侧边栏元素的动画 */
+        .sidebar *,
+        .sidebar *::before,
+        .sidebar *::after {
+            transition: none !important;
+            animation: none !important;
         }
         
         /* 主内容区 - 添加左边距给固定侧边栏留空间，顶部padding给固定导航栏留空间 */
@@ -802,9 +816,6 @@
             
             var isExpanding = submenu.style.display === 'none';
             
-            // 先禁用过渡动画避免抖动
-            submenu.style.transition = 'none';
-            
             if (isExpanding) {
                 submenu.style.display = 'block';
                 arrow.classList.remove('bi-chevron-down');
@@ -814,11 +825,6 @@
                 arrow.classList.remove('bi-chevron-up');
                 arrow.classList.add('bi-chevron-down');
             }
-            
-            // 恢复过渡动画
-            setTimeout(function() {
-                submenu.style.transition = '';
-            }, 50);
             
             // 更新 sessionStorage 中的展开状态
             var expandedIds = [];
