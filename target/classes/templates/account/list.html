@@ -95,7 +95,8 @@
                                     <!-- 待财务审批 -->
                                     <div th:if="${acc.status == 1 and acc.approvalStage == 1}">
                                         <span class="badge bg-warning">待财务审批</span>
-                                        <div class="mt-1">
+                                        <!-- 审批人信息：只有财务/BOSS或自己的帐条才显示 -->
+                                        <div class="mt-1" th:if="${session.currentUser != null and (session.currentUser.finance or session.currentUser.boss or acc.creatorId == session.currentUser.id)}">
                                             <small class="text-muted">
                                                 <i class="bi bi-people-fill me-1"></i>
                                                 <span th:each="f, iterStat : ${financeList}" th:if="${f.status == 1}">
@@ -108,7 +109,8 @@
                                     <!-- 待BOSS审批 -->
                                     <div th:if="${acc.status == 1 and acc.approvalStage == 2}">
                                         <span class="badge bg-info">待BOSS审批</span>
-                                        <div class="mt-1">
+                                        <!-- 审批人信息：只有BOSS或自己的帐条才显示 -->
+                                        <div class="mt-1" th:if="${session.currentUser != null and (session.currentUser.boss or acc.creatorId == session.currentUser.id)}">
                                             <small class="text-muted">
                                                 <i class="bi bi-people-fill me-1"></i>
                                                 <span th:each="b, iterStat : ${bossList}" th:if="${b.status == 1}">

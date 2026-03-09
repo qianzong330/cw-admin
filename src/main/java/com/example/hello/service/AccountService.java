@@ -72,21 +72,16 @@ public class AccountService {
             
             accountMapper.insert(account);
             
-            // 记录操作明细
+            // 记录操作明细：BOSS直接生效记录CREATE，其他人记录SUBMIT（发起记账审批）
             AccountDetail detail = new AccountDetail();
             detail.setProjectId(account.getProjectId());
             detail.setAccountId(account.getId());
             detail.setOperatorName(currentUser.getName());
             detail.setOperatorId(currentUser.getId());
-            detail.setActionType("CREATE");
-            detail.setRemark(account.getRemark());
+            detail.setActionType(isBoss ? "CREATE" : "SUBMIT");
+            detail.setRemark(isBoss ? account.getRemark() : "发起记账审批");
             detail.setOperateTime(LocalDateTime.now());
             accountDetailMapper.insert(detail);
-            
-            // 非BOSS提交审批记录
-            if (!isBoss) {
-                recordAuditSubmit(account, currentUser);
-            }
         } else {
             // 编辑前检查：已生效(status=5)的帐条不允许编辑
             Account existing = accountMapper.findById(account.getId());
@@ -96,24 +91,22 @@ public class AccountService {
             
             accountMapper.update(account);
             
-            // 记录操作明细
-            AccountDetail detail = new AccountDetail();
-            detail.setProjectId(account.getProjectId());
-            detail.setAccountId(account.getId());
-            detail.setOperatorName(currentUser.getName());
-            detail.setOperatorId(currentUser.getId());
-            detail.setActionType("UPDATE");
-            detail.setRemark(account.getRemark());
-            detail.setOperateTime(LocalDateTime.now());
-            accountDetailMapper.insert(detail);
-            
             // 编辑后重置为待财务审批
             account.setStatus(1);
             account.setApprovalStage(1);
             account.setApprovedByFinance("");
             accountMapper.updateApprovalStage(account);
             
-            recordAuditSubmit(account, currentUser);
+            // 记录操作明细：重新提交审批
+            AccountDetail detail = new AccountDetail();
+            detail.setProjectId(account.getProjectId());
+            detail.setAccountId(account.getId());
+            detail.setOperatorName(currentUser.getName());
+            detail.setOperatorId(currentUser.getId());
+            detail.setActionType("RESUBMIT");
+            detail.setRemark("重新提交审批");
+            detail.setOperateTime(LocalDateTime.now());
+            accountDetailMapper.insert(detail);
         }
         
         return true;
