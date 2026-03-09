@@ -80,8 +80,26 @@ public class RoleController {
             "GROUP BY r.id " +
             "ORDER BY r.id"
         );
+        System.out.println("=== 角色列表查询结果：" + roles);
         model.addAttribute("roles", roles);
         return "role/list";
+    }
+    
+    /**
+     * 角色列表数据（JSON格式，用于调试）
+     */
+    @GetMapping("/list-json")
+    @ResponseBody
+    public List<Map<String, Object>> listJson() {
+        List<Map<String, Object>> roles = jdbcTemplate.queryForList(
+            "SELECT r.*, COUNT(rm.id) as menu_count " +
+            "FROM tb_role r " +
+            "LEFT JOIN tb_role_menu rm ON r.id = rm.role_id " +
+            "GROUP BY r.id " +
+            "ORDER BY r.id"
+        );
+        System.out.println("=== 角色列表JSON查询结果：" + roles);
+        return roles;
     }
 
     /**
