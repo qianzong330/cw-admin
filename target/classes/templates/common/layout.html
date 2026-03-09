@@ -809,18 +809,25 @@
                 return;
             }
             
-            var isExpanding = false;
-            var currentDisplay = window.getComputedStyle(submenu).display;
-            if (currentDisplay === 'none') {
+            var isExpanding = submenu.style.display === 'none';
+            
+            // 先禁用过渡动画避免抖动
+            submenu.style.transition = 'none';
+            
+            if (isExpanding) {
                 submenu.style.display = 'block';
                 arrow.classList.remove('bi-chevron-down');
                 arrow.classList.add('bi-chevron-up');
-                isExpanding = true;
             } else {
                 submenu.style.display = 'none';
                 arrow.classList.remove('bi-chevron-up');
                 arrow.classList.add('bi-chevron-down');
             }
+            
+            // 恢复过渡动画
+            setTimeout(function() {
+                submenu.style.transition = '';
+            }, 50);
             
             // 更新 sessionStorage 中的展开状态
             var expandedIds = [];
@@ -833,12 +840,10 @@
             
             var menuIdStr = String(menuId);
             if (isExpanding) {
-                // 展开：添加到列表
                 if (expandedIds.indexOf(menuIdStr) === -1) {
                     expandedIds.push(menuIdStr);
                 }
             } else {
-                // 收起：从列表移除
                 expandedIds = expandedIds.filter(function(id) { return id !== menuIdStr; });
             }
             sessionStorage.setItem('menuExpanded', JSON.stringify(expandedIds));
