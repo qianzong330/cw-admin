@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" th:replace="~{common/layout :: layout(${viewMode} ? '查看帐条' : (${account.id} ? '编辑帐条' : '新增帐条'), ~{::content})}">
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{common/layout :: layout(${viewMode != null and viewMode == true} ? '查看帐条' : (${account.id} ? '编辑帐条' : '新增帐条'), ~{::content})}">
 <head>
     <meta charset="UTF-8">
 </head>
@@ -7,11 +7,11 @@
     <div th:fragment="content">
         <div class="card">
             <div class="card-header">
-                <h5 class="mb-0" th:text="${viewMode} ? '查看帐条' : (${account.id} ? '编辑帐条' : '新增帐条')">新增帐条</h5>
+                <h5 class="mb-0" th:text="${viewMode != null and viewMode == true} ? '查看帐条' : (${account.id} ? '编辑帐条' : '新增帐条')">新增帐条</h5>
             </div>
             <div class="card-body">
                 <!-- 无项目提示 -->
-                <div th:if="${!viewMode && (projects == null || projects.isEmpty())}" class="alert alert-warning">
+                <div th:if="${(viewMode == null or viewMode == false) and (projects == null || projects.isEmpty())}" class="alert alert-warning">
                     <i class="bi bi-exclamation-triangle-fill me-2"></i>
                     您暂未被分配到任何项目，无法发起记账。请联系管理员将您关联到相关项目。
                 </div>
@@ -22,14 +22,14 @@
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label class="form-label">项目 <span class="text-danger">*</span></label>
-                            <select class="form-select" th:field="*{projectId}" th:disabled="${viewMode}" required>
+                            <select class="form-select" th:field="*{projectId}" th:disabled="${viewMode != null and viewMode == true}" required>
                                 <option value="">请选择项目</option>
                                 <option th:each="p : ${projects}" th:value="${p.id}" th:text="${p.name}"></option>
                             </select>
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label">收支类型 <span class="text-danger">*</span></label>
-                            <select class="form-select" th:field="*{type}" th:disabled="${viewMode}" required>
+                            <select class="form-select" th:field="*{type}" th:disabled="${viewMode != null and viewMode == true}" required>
                                 <option value="">请选择</option>
                                 <option value="1">收入</option>
                                 <option value="2">支出</option>
@@ -40,7 +40,7 @@
                     <div class="row">
                         <div class="col-md-12 mb-3">
                             <label class="form-label">费用分类 <span class="text-danger">*</span></label>
-                            <select class="form-select" th:field="*{categoryId}" th:disabled="${viewMode}" required>
+                            <select class="form-select" th:field="*{categoryId}" th:disabled="${viewMode != null and viewMode == true}" required>
                                 <option value="">请选择</option>
                                 <option th:each="c : ${categories}" th:value="${c.id}" th:text="${c.name}"></option>
                             </select>
@@ -50,18 +50,18 @@
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label class="form-label">金额 <span class="text-danger">*</span></label>
-                            <input type="number" step="0.01" class="form-control" th:field="*{amount}" th:disabled="${viewMode}" required>
+                            <input type="number" step="0.01" class="form-control" th:field="*{amount}" th:disabled="${viewMode != null and viewMode == true}" required>
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label">发票</label>
-                            <div th:if="${viewMode}">
+                            <div th:if="${viewMode != null and viewMode == true}">
                                 <a th:if="${account.invoiceNo}" th:href="@{/uploads/{file}(file=${account.invoiceNo})}" target="_blank" class="btn btn-link">
                                     <i class="bi bi-file-earmark-image"></i> 查看发票
                                 </a>
                                 <span th:if="${!account.invoiceNo}">无</span>
                             </div>
-                            <input th:if="${!viewMode}" type="file" name="invoiceFile" class="form-control" accept="image/*">
-                            <div th:if="${!viewMode && account.invoiceNo}" class="form-text">
+                            <input th:if="${viewMode == null or viewMode == false}" type="file" name="invoiceFile" class="form-control" accept="image/*">
+                            <div th:if="${(viewMode == null or viewMode == false) and account.invoiceNo != null and account.invoiceNo != ''}" class="form-text">
                                 已上传：<a th:href="@{/uploads/{file}(file=${account.invoiceNo})}" target="_blank">查看</a>
                             </div>
                         </div>
@@ -70,7 +70,7 @@
                     <div class="row">
                         <div class="col-md-12 mb-3">
                             <label class="form-label">备注</label>
-                            <textarea class="form-control" th:field="*{remark}" th:disabled="${viewMode}" rows="3"></textarea>
+                            <textarea class="form-control" th:field="*{remark}" th:disabled="${viewMode != null and viewMode == true}" rows="3"></textarea>
                         </div>
                     </div>
                     
@@ -86,7 +86,7 @@
                     </div>
                     
                     <div class="d-flex gap-2">
-                        <button th:if="${!viewMode}" type="submit" class="btn btn-primary">保存</button>
+                        <button th:if="${viewMode == null or viewMode == false}" type="submit" class="btn btn-primary">保存</button>
                         <a href="/account/list" class="btn btn-secondary">返回</a>
                     </div>
                 </form>
