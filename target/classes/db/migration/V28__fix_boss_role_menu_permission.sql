@@ -1,13 +1,13 @@
 -- 修复BOSS角色角色管理菜单权限
 -- 确保role菜单有正确的URL和parent_id
 
--- 1. 获取系统设置目录ID（注意：菜单code是 system_settings）
-SET @system_settings_id = (SELECT id FROM tb_menu WHERE menu_code = 'system_settings');
+-- 1. 获取系统设置目录ID
+SET @sys_settings_id = (SELECT id FROM tb_menu WHERE menu_code = 'sys_settings');
 
 -- 2. 更新role菜单的URL和parent_id（如果存在）
 UPDATE tb_menu 
 SET menu_url = '/role/list', 
-    parent_id = @system_settings_id,
+    parent_id = @sys_settings_id,
     menu_type = 2,
     status = 1
 WHERE menu_code = 'role';
@@ -20,7 +20,7 @@ SET @role_menu_id = (SELECT id FROM tb_menu WHERE menu_code = 'role');
 
 -- 5. 给BOSS角色分配系统设置目录权限
 INSERT IGNORE INTO tb_role_menu (role_id, menu_id) 
-SELECT @boss_role_id, id FROM tb_menu WHERE menu_code = 'system_settings';
+SELECT @boss_role_id, id FROM tb_menu WHERE menu_code = 'sys_settings';
 
 -- 6. 给BOSS角色分配角色管理菜单权限
 INSERT IGNORE INTO tb_role_menu (role_id, menu_id) 
