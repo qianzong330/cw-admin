@@ -262,4 +262,94 @@ public class RoleController {
         
         return result;
     }
+
+    /**
+     * 更新角色信息（名称、备注）
+     */
+    @PostMapping("/update/{id}")
+    @ResponseBody
+    public Map<String, Object> updateRole(
+        @PathVariable Long id,
+        @RequestParam String roleName,
+        @RequestParam(required = false) String remark
+    ) {
+        Map<String, Object> result = new HashMap<>();
+        
+        try {
+            // 检查角色是否存在
+            Integer count = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM tb_role WHERE id = ?", Integer.class, id);
+            if (count == null || count == 0) {
+                result.put("success", false);
+                result.put("message", "角色不存在");
+                return result;
+            }
+            
+            // 更新角色信息
+            jdbcTemplate.update(
+                "UPDATE tb_role SET role_name = ?, remark = ? WHERE id = ?",
+                roleName, remark, id
+            );
+            
+            result.put("success", true);
+            result.put("message", "角色更新成功");
+        } catch (Exception e) {
+            result.put("success", false);
+            result.put("message", "更新失败：" + e.getMessage());
+        }
+        
+        return result;
+    }
+
+    /**
+     * 删除角色（同时删除关联的权限和员工角色关联）
+     */
+    @PostMapping("/delete/{id}")
+    @ResponseBody
+    public Map<String, Object> deleteRole(@PathVariable Long id) {
+        Map<String, Object> result = new HashMap<>();
+        
+        try {
+            // 检查角色是否存在
+            Map<String, Object> role = null;
+            try {
+                role = jdbcTemplate.queryForMap("SELECT * FROM tb_role WHERE id = ?", id);
+            } catch (Exception e) {
+                result.put("success", false);
+                result.put("message", "角色不存在");
+                return result;
+            }
+            
+            // 禁止删除root和boss角色
+            String roleCode = (String) role.get("role_code");
+            if ("root".equals(roleCode) || "boss".equals(roleCode)) {
+                result.put("success", false);
+                result.put("message", "系统内置角色不能删除");
+                return result;
+            }
+            
+            // 检查是否有员工使用该角色
+            Integer employeeCount = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM tb_employee WHERE role_id = ?", Integer.class, id);
+            if (employeeCount != null && employeeCount > 0) {
+                result.put("success", false);
+                result.put("message", "该角色下还有员工，请先调整员工角色后再删除");
+                return result;
+            }
+            
+            // 删除角色菜单权限关联
+            jdbcTemplate.update("DELETE FROM tb_role_menu WHERE role_id = ?", id);
+            
+            // 删除角色
+            jdbcTemplate.update("DELETE FROM tb_role WHERE id = ?", id);
+            
+            result.put("success", true);
+            result.put("message", "角色删除成功");
+        } catch (Exception e) {
+            result.put("success", false);
+            result.put("message", "删除失败：" + e.getMessage());
+        }
+        
+        return result;
+    }
 }

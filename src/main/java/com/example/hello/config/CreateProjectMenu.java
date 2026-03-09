@@ -59,10 +59,11 @@ public class CreateProjectMenu implements CommandLineRunner {
                 System.out.println("=== 已给所有角色分配工程目录菜单 ===");
             }
 
-            // 4. 查找需要移动的独立页面菜单（排除首页），包含工时配置
+            // 4. 查找需要移动的独立页面菜单（排除首页和记账管理），包含工时配置
+            // 记账管理(account)已独立为一级菜单，不归入工程目录
             List<Map<String, Object>> independentMenus = jdbcTemplate.queryForList(
                 "SELECT id, menu_code, menu_name FROM tb_menu WHERE menu_type = 2 AND (parent_id IS NULL OR parent_id = 0) " +
-                "AND menu_code IN ('employee', 'attendance', 'salary', 'account')"
+                "AND menu_code IN ('employee', 'attendance', 'salary')"
             );
             // 额外将 workhour:config 也移到工程目录下（不受 parent_id=0 限制）
             List<Map<String, Object>> workhourMenus = jdbcTemplate.queryForList(
@@ -103,6 +104,28 @@ public class CreateProjectMenu implements CommandLineRunner {
             }
 
             System.out.println("=== 工程目录菜单配置完成 ===");
+
+            // 8. 将记账管理移出工程目录，设为独立一级菜单
+            // 先检查account菜单当前状态
+            List<Map<String, Object>> accountMenus = jdbcTemplate.queryForList(
+                "SELECT id, parent_id, menu_name FROM tb_menu WHERE menu_code = 'account'"
+            );
+            if (!accountMenus.isEmpty()) {
+                Map<String, Object> accountMenu = accountMenus.get(0);
+                Long accountId = ((Number) accountMenu.get("id")).longValue();
+                Long currentParentId = accountMenu.get("parent_id") != null ? ((Number) accountMenu.get("parent_id")).longValue() : 0L;
+                
+                // 如果当前在工程目录下，移出来
+                if (currentParentId != 0L) {
+                    jdbcTemplate.update(
+                        "UPDATE tb_menu SET parent_id = NULL, sort_order = 100 WHERE id = ?",
+                        accountId
+                    );
+                    System.out.println("=== 记账管理已移出工程目录，设为独立一级菜单 ===");
+                } else {
+                    System.out.println("=== 记账管理已是独立菜单，无需移动 ===");
+                }
+            }
 
         } catch (Exception e) {
             System.err.println("=== 创建工程目录菜单失败 ===");
