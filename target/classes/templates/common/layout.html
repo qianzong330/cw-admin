@@ -851,6 +851,25 @@
             sessionStorage.setItem('menuExpanded', JSON.stringify(expandedIds));
         }
 
+        // 保存侧边栏滚动位置
+        function saveSidebarScroll() {
+            var sidebar = document.querySelector('.sidebar');
+            if (sidebar) {
+                sessionStorage.setItem('sidebarScrollTop', sidebar.scrollTop);
+            }
+        }
+        
+        // 恢复侧边栏滚动位置
+        function restoreSidebarScroll() {
+            var sidebar = document.querySelector('.sidebar');
+            if (sidebar) {
+                var scrollTop = sessionStorage.getItem('sidebarScrollTop');
+                if (scrollTop !== null) {
+                    sidebar.scrollTop = parseInt(scrollTop);
+                }
+            }
+        }
+        
         // 页面加载时，自动展开当前 URL 对应的父目录
         (function autoExpandActiveMenu() {
             var currentPath = window.location.pathname;
@@ -940,7 +959,13 @@
                 });
                 sessionStorage.setItem('menuExpanded', JSON.stringify(allExpanded));
             }
+            
+            // 恢复侧边栏滚动位置
+            restoreSidebarScroll();
         })();
+        
+        // 页面卸载前保存滚动位置
+        window.addEventListener('beforeunload', saveSidebarScroll);
 
         // 移动端侧边栏切换
         function toggleSidebar() {
