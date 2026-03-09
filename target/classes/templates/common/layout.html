@@ -104,6 +104,10 @@
             overflow-y: auto;
             overflow-x: hidden;
             z-index: 1000;
+            /* 防止抖动 */
+            transform: translateZ(0);
+            backface-visibility: hidden;
+            perspective: 1000px;
         }
         
         .sidebar .system-title {
@@ -170,6 +174,17 @@
         .sidebar *::after {
             transition: none !important;
             animation: none !important;
+        }
+        
+        /* 特别针对Bootstrap的nav-link过渡效果 */
+        .sidebar .nav-link,
+        .sidebar .nav-link:hover,
+        .sidebar .nav-link.active,
+        .sidebar .nav-link:focus {
+            transition: none !important;
+            transition-property: none !important;
+            transition-duration: 0s !important;
+            transition-timing-function: none !important;
         }
         
         /* 页面加载时隐藏子菜单，防止闪烁 */

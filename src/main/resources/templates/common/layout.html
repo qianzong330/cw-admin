@@ -939,6 +939,9 @@
                 }
             });
             
+            // 先恢复侧边栏滚动位置（在展开菜单之前）
+            restoreSidebarScroll();
+            
             // 高亮最佳匹配的链接
             if (bestMatch) {
                 bestMatch.classList.add('active');
@@ -974,9 +977,6 @@
                 });
                 sessionStorage.setItem('menuExpanded', JSON.stringify(allExpanded));
             }
-            
-            // 恢复侧边栏滚动位置
-            restoreSidebarScroll();
         })();
         
         // 页面卸载前保存滚动位置
