@@ -92,10 +92,9 @@
         LEFT JOIN tb_role r ON a.role_id = r.id
         LEFT JOIN tb_employee fe ON e.finance_contact_id = fe.id
         WHERE 1=1
+        <!-- 非BOSS用户只能看到自己的记账 -->
         <if test="!isBoss">
-            AND a.project_id IN (
-                SELECT project_id FROM tb_employee_project WHERE employee_id = #{currentUserId}
-            )
+            AND a.creator_id = #{currentUserId}
         </if>
         <if test="projectId != null">
             AND a.project_id = #{projectId}
@@ -121,10 +120,9 @@
         LEFT JOIN tb_role r ON a.role_id = r.id
         LEFT JOIN tb_employee fe ON e.finance_contact_id = fe.id
         WHERE 1=1
+        <!-- 非BOSS用户只能看到自己的记账 -->
         <if test="!isBoss">
-            AND a.project_id IN (
-                SELECT project_id FROM tb_employee_project WHERE employee_id = #{currentUserId}
-            )
+            AND a.creator_id = #{currentUserId}
         </if>
         <if test="projectId != null">
             AND a.project_id = #{projectId}
@@ -140,10 +138,9 @@
         SELECT COUNT(*)
         FROM tb_account a
         WHERE 1=1
+        <!-- 非BOSS用户只能看到自己的记账 -->
         <if test="!isBoss">
-            AND a.project_id IN (
-                SELECT project_id FROM tb_employee_project WHERE employee_id = #{currentUserId}
-            )
+            AND a.creator_id = #{currentUserId}
         </if>
         <if test="projectId != null">
             AND a.project_id = #{projectId}
@@ -153,6 +150,7 @@
         </if>
     </select>
 
+    <!-- 待审批列表：财务看approvalStage=1，BOSS看approvalStage=2 -->
     <select id="findPendingByFinanceContactId" resultMap="BaseResultMap">
         SELECT a.*, 
                fe.id as finance_contact_id,
@@ -165,7 +163,10 @@
         LEFT JOIN tb_employee fe ON e.finance_contact_id = fe.id
         WHERE a.status = 1
         <if test="!isBoss">
-            AND fe.id = #{financeContactId}
+            AND a.approval_stage = 1
+        </if>
+        <if test="isBoss">
+            AND a.approval_stage = 2
         </if>
         ORDER BY a.create_time DESC
     </select>
@@ -186,7 +187,10 @@
         LEFT JOIN tb_employee fe ON e.finance_contact_id = fe.id
         WHERE a.status = 1
         <if test="!isBoss">
-            AND fe.id = #{financeContactId}
+            AND a.approval_stage = 1
+        </if>
+        <if test="isBoss">
+            AND a.approval_stage = 2
         </if>
         ORDER BY a.create_time DESC
         LIMIT #{pageSize} OFFSET #{offset}
@@ -199,7 +203,10 @@
         LEFT JOIN tb_employee fe ON e.finance_contact_id = fe.id
         WHERE a.status = 1
         <if test="!isBoss">
-            AND fe.id = #{financeContactId}
+            AND a.approval_stage = 1
+        </if>
+        <if test="isBoss">
+            AND a.approval_stage = 2
         </if>
     </select>
 
