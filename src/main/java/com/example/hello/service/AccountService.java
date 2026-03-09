@@ -50,13 +50,21 @@ public class AccountService {
             account.setRoleId(currentUser.getRoleId());
             account.setJobCategoryId(currentUser.getJobCategoryId());
             
-            // BOSS直接生效，其他人需要审批
+            // BOSS直接生效，财务直接到BOSS审批，普通员工需要财务审批
             String roleCode = currentUser.getRoleCode() != null ? currentUser.getRoleCode().toLowerCase() : "";
             boolean isBoss = "boss".equals(roleCode) || "root".equals(roleCode);
+            boolean isFinance = currentUser.isFinance();
+            
             if (isBoss) {
                 account.setStatus(5); // 生效
                 account.setApprovalStage(null);
+            } else if (isFinance) {
+                // 财务发起的记账，直接到BOSS审批阶段
+                account.setStatus(1); // 审批中
+                account.setApprovalStage(2); // 待BOSS审批
+                account.setApprovedByFinance("FINANCE"); // 标记为财务发起，跳过财务审批
             } else {
+                // 普通员工，需要财务审批
                 account.setStatus(1); // 审批中
                 account.setApprovalStage(1); // 待财务审批
                 account.setApprovedByFinance(""); // 初始化空字符串

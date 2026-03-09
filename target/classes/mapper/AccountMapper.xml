@@ -377,10 +377,12 @@
     <insert id="insert" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO tb_account (project_id, creator_id, job_category_id, role_id, type, 
                                 category_id, invoice_no, status, 
-                                company_name, approval_progress_id, amount, remark)
+                                company_name, approval_progress_id, amount, remark,
+                                approval_stage, approved_by_finance, final_approver_id)
         VALUES (#{projectId}, #{creatorId}, #{jobCategoryId}, #{roleId}, #{type}, 
                 #{categoryId}, #{invoiceNo}, #{status}, 
-                #{companyName}, #{approvalProgressId}, #{amount}, #{remark})
+                #{companyName}, #{approvalProgressId}, #{amount}, #{remark},
+                #{approvalStage}, #{approvedByFinance}, #{finalApproverId})
     </insert>
 
     <update id="update">
@@ -390,12 +392,23 @@
             category_id = #{categoryId},
             invoice_no = #{invoiceNo},
             amount = #{amount},
-            remark = #{remark}
+            remark = #{remark},
+            approval_stage = #{approvalStage},
+            approved_by_finance = #{approvedByFinance},
+            final_approver_id = #{finalApproverId}
         WHERE id = #{id}
     </update>
 
     <update id="updateStatus">
         UPDATE tb_account SET status = #{status} WHERE id = #{id}
+    </update>
+    
+    <update id="updateApprovalStage">
+        UPDATE tb_account 
+        SET approval_stage = #{approvalStage},
+            approved_by_finance = #{approvedByFinance},
+            final_approver_id = #{finalApproverId}
+        WHERE id = #{id}
     </update>
 
     <delete id="deleteById">

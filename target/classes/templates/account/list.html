@@ -92,7 +92,8 @@
                                     <span th:if="${acc.invoiceNo == null || acc.invoiceNo.isEmpty()}">-</span>
                                 </td>
                                 <td>
-                                    <span th:if="${acc.status == 1}" class="badge bg-warning">审批中</span>
+                                    <span th:if="${acc.status == 1 and acc.approvalStage == 1}" class="badge bg-warning">待财务审批</span>
+                                    <span th:if="${acc.status == 1 and acc.approvalStage == 2}" class="badge bg-info">待BOSS审批</span>
                                     <span th:if="${acc.status == 5}" class="badge bg-success">生效</span>
                                     <span th:if="${acc.status == 12}" class="badge bg-danger">审核未通过</span>
                                 </td>
@@ -112,14 +113,22 @@
                                         <i class="bi bi-x-circle"></i> 撤销
                                     </button>
                                                                     
-                                    <!-- 通过按钮：状态为审批中 (1) 且有审批权限 -->
-                                    <button th:if="${acc.status == 1 and session.currentUser != null and session.currentUser.hasPermission('account:approve')}" 
+                                    <!-- 通过按钮：状态为审批中 (1) -->
+                                    <!-- 阶段1(待财务审批)：所有财务角色可见 -->
+                                    <!-- 阶段2(待BOSS审批)：BOSS可见 -->
+                                    <button th:if="${acc.status == 1 and session.currentUser != null and 
+                                                    ((acc.approvalStage == 1 and session.currentUser.finance) or 
+                                                     (acc.approvalStage == 2 and session.currentUser.boss) or
+                                                     session.currentUser.boss)}" 
                                             class="btn btn-outline-success btn-sm ms-1" th:onclick="'approve(' + ${acc.id} + ', true)'">
                                         <i class="bi bi-check-circle"></i> 通过
                                     </button>
                                                                     
-                                    <!-- 拒绝按钮：状态为审批中 (1) 且有审批权限 -->
-                                    <button th:if="${acc.status == 1 and session.currentUser != null and session.currentUser.hasPermission('account:approve')}" 
+                                    <!-- 拒绝按钮：状态为审批中 (1) -->
+                                    <button th:if="${acc.status == 1 and session.currentUser != null and 
+                                                    ((acc.approvalStage == 1 and session.currentUser.finance) or 
+                                                     (acc.approvalStage == 2 and session.currentUser.boss) or
+                                                     session.currentUser.boss)}" 
                                             class="btn btn-outline-danger btn-sm ms-1" th:onclick="'approve(' + ${acc.id} + ', false)'">
                                         <i class="bi bi-x-circle"></i> 拒绝
                                     </button>

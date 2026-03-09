@@ -96,6 +96,11 @@
                                     <span th:if="${acc.status == 1 and acc.approvalStage == 2}" class="badge bg-info">待BOSS审批</span>
                                     <span th:if="${acc.status == 5}" class="badge bg-success">生效</span>
                                     <span th:if="${acc.status == 12}" class="badge bg-danger">审核未通过</span>
+                                    <!-- 显示待审批人信息 -->
+                                    <small class="text-muted d-block" th:if="${acc.status == 1}">
+                                        <span th:if="${acc.approvalStage == 1}" th:text="'待财务审批'">待财务审批</span>
+                                        <span th:if="${acc.approvalStage == 2}" th:text="'待BOSS审批'">待BOSS审批</span>
+                                    </small>
                                 </td>
                                 <td th:text="${acc.amount}"></td>
                                 <td th:text="${acc.remark} ?: '-'" style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"></td>

@@ -161,8 +161,8 @@ public class AccountController {
                        HttpSession session) {
         Employee currentUser = (Employee) session.getAttribute("currentUser");
         
-        // 权限检查：非BOSS角色只能在自己关联的项目中记账
-        if (!currentUser.isBoss() && !currentUser.isFinance()) {
+        // 权限检查：所有非BOSS角色只能在自己关联的项目中记账（包括财务）
+        if (!currentUser.isBoss()) {
             List<Long> assignedProjectIds = projectService.findByUserId(currentUser.getId(), false)
                     .stream().map(Project::getId).toList();
             if (!assignedProjectIds.contains(account.getProjectId())) {
