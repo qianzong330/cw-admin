@@ -646,10 +646,8 @@
                                     </li>
                                 </th:block>
                                 <!-- 目录类型：可点击展开/收起 -->
-                                <!-- BOSS和root角色显示所有菜单，其他角色按权限显示 -->
                                 <th:block th:if="${menu.menu_type == 1 && menu.menu_code != 'home'}">
-                                    <li class="nav-item"
-                                        th:if="${session.currentUser != null && (session.currentUser.boss || session.currentUser.hasPermission(menu.menu_code))}">
+                                    <li class="nav-item">
                                         <a class="nav-link" href="javascript:void(0)" th:onclick="'toggleMenu(' + ${menu.id} + ')'"
                                            th:data-menu-id="${menu.id}">
                                             <i th:class="'bi ' + ${menu.menu_icon}"></i>
@@ -661,8 +659,7 @@
                                     <li th:id="'submenu-' + ${menu.id}" style="display:none; list-style:none; padding:0; margin:0;" th:data-parent-id="${menu.id}">
                                         <ul class="nav flex-column" style="list-style:none; padding:0; margin:0;">
                                         <th:block th:each="subMenu : ${navMenus}">
-                                            <li class="nav-item"
-                                                th:if="${subMenu.parent_id != null && subMenu.parent_id.toString() == menu.id.toString() && session.currentUser != null && (session.currentUser.boss || session.currentUser.hasPermission(subMenu.menu_code))}"
+                                            <li class="nav-item" th:if="${subMenu.parent_id != null && subMenu.parent_id.toString() == menu.id.toString()}"
                                                 style="padding-left: 1.5rem;">
                                                 <a class="nav-link" th:href="${subMenu.menu_url}"
                                                    th:data-url="${subMenu.menu_url}">
@@ -678,8 +675,7 @@
                                     </li>
                                 </th:block>
                                 <!-- 非目录类型且无父菜单（排除首页，已单独处理）：直接展示 -->
-                                <!-- BOSS和root角色显示所有菜单，其他角色按权限显示 -->
-                                <li class="nav-item" th:if="${menu.menu_type != 1 && menu.menu_code != 'home' && session.currentUser != null && (session.currentUser.boss || session.currentUser.hasPermission(menu.menu_code))}">
+                                <li class="nav-item" th:if="${menu.menu_type != 1 && menu.menu_code != 'home'}">
                                     <a class="nav-link" th:href="${menu.menu_url}">
                                         <i th:class="'bi ' + ${menu.menu_icon}"></i>
                                         <span th:text="${menu.menu_name}"></span>
