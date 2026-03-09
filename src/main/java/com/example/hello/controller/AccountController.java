@@ -148,12 +148,12 @@ public class AccountController {
         String roleCode = currentUser.getRoleCode() != null ? currentUser.getRoleCode().toLowerCase() : "";
         boolean isBoss = "boss".equals(roleCode);
         // 权限检查：只能编辑自己的帐条，且状态为审核未通过
-        if (!account.getCreatorId().equals(currentUser.getId()) && !isBoss) {
-            return "redirect:/account/list";
+        if (!account.getCreatorId().equals(currentUser.getId())) {
+            return "redirect:/account/list?error=只能编辑自己的帐条";
         }
         
-        if (account.getStatus() != 12 && !isBoss) {
-            return "redirect:/account/list";
+        if (account.getStatus() != 12) {
+            return "redirect:/account/list?error=只能编辑审核未通过的帐条";
         }
         
         // 根据权限获取项目列表：BOSS/财务看所有，普通员工只看关联的
@@ -172,6 +172,17 @@ public class AccountController {
                        @RequestParam(required = false) MultipartFile invoiceFile,
                        HttpSession session) {
         Employee currentUser = (Employee) session.getAttribute("currentUser");
+        
+        // 编辑权限检查：只能编辑自己的帐条
+        if (account.getId() != null) {
+            Account existing = accountService.findById(account.getId());
+            if (existing == null || !existing.getCreatorId().equals(currentUser.getId())) {
+                return "redirect:/account/list?error=只能编辑自己的帐条";
+            }
+            if (existing.getStatus() != 12) {
+                return "redirect:/account/list?error=只能编辑审核未通过的帐条";
+            }
+        }
         
         // 权限检查：所有非BOSS角色只能在自己关联的项目中记账（包括财务）
         if (!currentUser.isBoss()) {
