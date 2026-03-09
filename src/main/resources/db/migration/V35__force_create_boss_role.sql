@@ -20,11 +20,8 @@ WHERE NOT EXISTS (SELECT 1 FROM tb_role WHERE role_code = 'employee');
 -- 获取BOSS角色ID
 SET @boss_id = (SELECT id FROM tb_role WHERE role_code = 'boss');
 
--- 删除BOSS角色的所有旧权限（避免重复）
-DELETE FROM tb_role_menu WHERE role_id = @boss_id;
-
--- 给BOSS角色分配所有启用菜单的权限
-INSERT INTO tb_role_menu (role_id, menu_id)
+-- 给BOSS角色分配所有启用菜单的权限（使用INSERT IGNORE避免重复）
+INSERT IGNORE INTO tb_role_menu (role_id, menu_id)
 SELECT @boss_id, id FROM tb_menu WHERE status = 1;
 
 -- 获取root角色ID
