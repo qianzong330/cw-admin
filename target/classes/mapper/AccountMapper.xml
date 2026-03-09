@@ -84,7 +84,8 @@
                jc.name as job_category_name,
                r.role_name as role_name,
                fe.id as finance_contact_id,
-               fe.name as finance_contact_name
+               fe.name as finance_contact_name,
+               c.name as category_name
         FROM tb_account a
         LEFT JOIN tb_project p ON a.project_id = p.id
         LEFT JOIN tb_employee e ON a.creator_id = e.id
@@ -93,6 +94,7 @@
         LEFT JOIN tb_employee fe ON e.finance_contact_id = fe.id
         LEFT JOIN tb_employee creator ON a.creator_id = creator.id
         LEFT JOIN tb_role creator_role ON creator.role_id = creator_role.id
+        LEFT JOIN tb_category c ON a.category_id = c.id
         WHERE 1=1
         <!-- BOSS能看所有 -->
         <!-- 财务能看自己的 + 所有非BOSS创建的记账 -->
@@ -119,7 +121,8 @@
                jc.name as job_category_name,
                r.role_name as role_name,
                fe.id as finance_contact_id,
-               fe.name as finance_contact_name
+               fe.name as finance_contact_name,
+               c.name as category_name
         FROM tb_account a
         LEFT JOIN tb_project p ON a.project_id = p.id
         LEFT JOIN tb_employee e ON a.creator_id = e.id
@@ -128,6 +131,7 @@
         LEFT JOIN tb_employee fe ON e.finance_contact_id = fe.id
         LEFT JOIN tb_employee creator ON a.creator_id = creator.id
         LEFT JOIN tb_role creator_role ON creator.role_id = creator_role.id
+        LEFT JOIN tb_category c ON a.category_id = c.id
         WHERE 1=1
         <!-- BOSS能看所有 -->
         <!-- 财务能看自己的 + 所有非BOSS创建的记账 -->

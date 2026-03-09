@@ -79,7 +79,13 @@ public class AccountService {
             detail.setOperatorName(currentUser.getName());
             detail.setOperatorId(currentUser.getId());
             detail.setActionType(isBoss ? "CREATE" : "SUBMIT");
-            detail.setRemark(isBoss ? account.getRemark() : "发起记账审批");
+            // 使用用户填写的备注，如果没有则显示默认文案
+            String newRemark = account.getRemark();
+            if (isBoss) {
+                detail.setRemark((newRemark != null && !newRemark.isEmpty()) ? newRemark : "创建帐条");
+            } else {
+                detail.setRemark((newRemark != null && !newRemark.isEmpty()) ? newRemark : "发起记账审批");
+            }
             detail.setOperateTime(LocalDateTime.now());
             accountDetailMapper.insert(detail);
         } else {
@@ -97,14 +103,16 @@ public class AccountService {
             account.setApprovedByFinance("");
             accountMapper.updateApprovalStage(account);
             
-            // 记录操作明细：重新提交审批
+            // 记录操作明细：重新提交审批，使用用户填写的备注
             AccountDetail detail = new AccountDetail();
             detail.setProjectId(account.getProjectId());
             detail.setAccountId(account.getId());
             detail.setOperatorName(currentUser.getName());
             detail.setOperatorId(currentUser.getId());
             detail.setActionType("RESUBMIT");
-            detail.setRemark("重新提交审批");
+            // 使用用户填写的备注，如果没有则显示默认文案
+            String userRemark = account.getRemark();
+            detail.setRemark((userRemark != null && !userRemark.isEmpty()) ? userRemark : "重新提交审批");
             detail.setOperateTime(LocalDateTime.now());
             accountDetailMapper.insert(detail);
         }
