@@ -52,11 +52,14 @@ public class AccountService {
             
             // BOSS直接生效，其他人需要审批
             String roleCode = currentUser.getRoleCode() != null ? currentUser.getRoleCode().toLowerCase() : "";
-            boolean isBoss = "boss".equals(roleCode);
+            boolean isBoss = "boss".equals(roleCode) || "root".equals(roleCode);
             if (isBoss) {
                 account.setStatus(5); // 生效
+                account.setApprovalStage(null);
             } else {
                 account.setStatus(1); // 审批中
+                account.setApprovalStage(1); // 待财务审批
+                account.setApprovedByFinance(""); // 初始化空字符串
             }
             
             accountMapper.insert(account);
@@ -74,32 +77,15 @@ public class AccountService {
             
             // 非BOSS提交审批记录
             if (!isBoss) {
-                AccountDetail auditDetail = new AccountDetail();
-                auditDetail.setProjectId(account.getProjectId());
-                auditDetail.setAccountId(account.getId());
-                auditDetail.setOperatorName(currentUser.getName());
-                auditDetail.setOperatorId(currentUser.getId());
-                auditDetail.setActionType("SUBMIT_AUDIT");
-                // 获取财务对接人姓名
-                String financeContactName = "-";
-                Long financeContactId = currentUser.getFinanceContactId();
-                if (financeContactId != null) {
-                    Employee financeContact = employeeMapper.findById(financeContactId);
-                    if (financeContact != null) {
-                        financeContactName = financeContact.getName();
-                    }
-                }
-                // 如果提交人自己就是财务对接人
-                if (financeContactId != null && financeContactId.equals(currentUser.getId())) {
-                    auditDetail.setRemark("提交审批（自己审批自己）");
-                } else {
-                    auditDetail.setRemark("提交审批，等待 " + financeContactName + " 审批");
-                }
-                auditDetail.setOperateTime(LocalDateTime.now());
-                accountDetailMapper.insert(auditDetail);
+                recordAuditSubmit(account, currentUser);
             }
         } else {
-            // 编辑
+            // 编辑前检查：已生效(status=5)的帐条不允许编辑
+            Account existing = accountMapper.findById(account.getId());
+            if (existing != null && existing.getStatus() != null && existing.getStatus() == 5) {
+                throw new RuntimeException("已生效的帐条不允许修改");
+            }
+            
             accountMapper.update(account);
             
             // 记录操作明细
@@ -113,35 +99,31 @@ public class AccountService {
             detail.setOperateTime(LocalDateTime.now());
             accountDetailMapper.insert(detail);
             
-            // 编辑后变为审批中状态
-            accountMapper.updateStatus(account.getId(), 1);
+            // 编辑后重置为待财务审批
+            account.setStatus(1);
+            account.setApprovalStage(1);
+            account.setApprovedByFinance("");
+            accountMapper.updateApprovalStage(account);
             
-            AccountDetail auditDetail = new AccountDetail();
-            auditDetail.setProjectId(account.getProjectId());
-            auditDetail.setAccountId(account.getId());
-            auditDetail.setOperatorName(currentUser.getName());
-            auditDetail.setOperatorId(currentUser.getId());
-            auditDetail.setActionType("SUBMIT_AUDIT");
-            // 获取财务对接人姓名
-            String financeContactName = "-";
-            Long financeContactId = currentUser.getFinanceContactId();
-            if (financeContactId != null) {
-                Employee financeContact = employeeMapper.findById(financeContactId);
-                if (financeContact != null) {
-                    financeContactName = financeContact.getName();
-                }
-            }
-            // 如果提交人自己就是财务对接人
-            if (financeContactId != null && financeContactId.equals(currentUser.getId())) {
-                auditDetail.setRemark("编辑后重新提交审批（自己审批自己）");
-            } else {
-                auditDetail.setRemark("编辑后重新提交审批，等待 " + financeContactName + " 审批");
-            }
-            auditDetail.setOperateTime(LocalDateTime.now());
-            accountDetailMapper.insert(auditDetail);
+            recordAuditSubmit(account, currentUser);
         }
         
         return true;
+    }
+    
+    /**
+     * 记录提交审批的操作明细
+     */
+    private void recordAuditSubmit(Account account, Employee currentUser) {
+        AccountDetail auditDetail = new AccountDetail();
+        auditDetail.setProjectId(account.getProjectId());
+        auditDetail.setAccountId(account.getId());
+        auditDetail.setOperatorName(currentUser.getName());
+        auditDetail.setOperatorId(currentUser.getId());
+        auditDetail.setActionType("SUBMIT_AUDIT");
+        auditDetail.setRemark("提交审批，等待财务审批");
+        auditDetail.setOperateTime(LocalDateTime.now());
+        accountDetailMapper.insert(auditDetail);
     }
 
     @Transactional
@@ -151,21 +133,76 @@ public class AccountService {
             return false;
         }
         
-        int newStatus = approved ? 5 : 12; // 5=生效, 12=审核未通过
-        accountMapper.updateStatus(accountId, newStatus);
+        String roleCode = currentUser.getRoleCode() != null ? currentUser.getRoleCode().toLowerCase() : "";
+        boolean isBoss = "boss".equals(roleCode) || "root".equals(roleCode);
+        boolean isFinance = currentUser.isFinance();
         
-        // 记录操作明细
+        Integer approvalStage = account.getApprovalStage();
+        if (approvalStage == null) {
+            approvalStage = 1;
+        }
+        
+        if (approved) {
+            // 审批通过
+            if (isFinance && approvalStage == 1) {
+                // 财务审批通过，进入BOSS审批阶段
+                String approvedByFinance = account.getApprovedByFinance();
+                if (approvedByFinance == null) {
+                    approvedByFinance = "";
+                }
+                
+                // 记录已审批的财务
+                if (!approvedByFinance.isEmpty()) {
+                    approvedByFinance += ",";
+                }
+                approvedByFinance += currentUser.getId();
+                
+                account.setApprovedByFinance(approvedByFinance);
+                account.setApprovalStage(2); // 进入BOSS审批
+                accountMapper.updateApprovalStage(account);
+                
+                // 记录操作明细
+                recordApprovalDetail(account, currentUser, "APPROVE", "财务审批通过，转BOSS审批");
+                
+            } else if (isBoss || (isFinance && approvalStage == 2)) {
+                // BOSS审批通过，或财务在BOSS阶段审批（兜底）
+                account.setStatus(5); // 生效
+                account.setApprovalStage(null);
+                account.setFinalApproverId(currentUser.getId());
+                accountMapper.updateApprovalStage(account);
+                accountMapper.updateStatus(accountId, 5);
+                
+                // 记录操作明细
+                String approverType = isBoss ? "BOSS" : "财务";
+                recordApprovalDetail(account, currentUser, "APPROVE", approverType + "审批通过，帐条生效");
+            }
+        } else {
+            // 审批驳回
+            account.setStatus(12); // 审核未通过
+            account.setApprovalStage(null);
+            accountMapper.updateApprovalStage(account);
+            accountMapper.updateStatus(accountId, 12);
+            
+            // 记录操作明细
+            recordApprovalDetail(account, currentUser, "REJECT", "审批驳回：" + (remark != null ? remark : ""));
+        }
+        
+        return true;
+    }
+    
+    /**
+     * 记录审批操作明细
+     */
+    private void recordApprovalDetail(Account account, Employee currentUser, String actionType, String remark) {
         AccountDetail detail = new AccountDetail();
         detail.setProjectId(account.getProjectId());
-        detail.setAccountId(accountId);
+        detail.setAccountId(account.getId());
         detail.setOperatorName(currentUser.getName());
         detail.setOperatorId(currentUser.getId());
-        detail.setActionType(approved ? "APPROVE" : "REJECT");
+        detail.setActionType(actionType);
         detail.setRemark(remark);
         detail.setOperateTime(LocalDateTime.now());
         accountDetailMapper.insert(detail);
-        
-        return true;
     }
 
     @Transactional

@@ -92,5 +92,7 @@ public interface AccountMapper {
     
     int updateStatus(@Param("id") Long id, @Param("status") Integer status);
     
+    int updateApprovalStage(Account account);
+    
     int deleteById(Long id);
 }

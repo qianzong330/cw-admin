@@ -397,6 +397,14 @@
     <update id="updateStatus">
         UPDATE tb_account SET status = #{status} WHERE id = #{id}
     </update>
+    
+    <update id="updateApprovalStage">
+        UPDATE tb_account 
+        SET approval_stage = #{approvalStage},
+            approved_by_finance = #{approvedByFinance},
+            final_approver_id = #{finalApproverId}
+        WHERE id = #{id}
+    </update>
 
     <delete id="deleteById">
         DELETE FROM tb_account WHERE id = #{id}

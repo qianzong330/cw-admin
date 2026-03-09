@@ -28,6 +28,11 @@ public class Account {
     private String categoryName;
     private Long financeContactId;
     private String financeContactName;
+    
+    // 多级审批字段
+    private Integer approvalStage; // 审批阶段：1-待财务审批，2-待BOSS审批
+    private String approvedByFinance; // 已审批的财务人员ID列表（逗号分隔）
+    private Long finalApproverId; // 最终审批人ID（BOSS）
 
     public Long getId() {
         return id;
@@ -203,6 +208,30 @@ public class Account {
 
     public void setFinanceContactName(String financeContactName) {
         this.financeContactName = financeContactName;
+    }
+
+    public Integer getApprovalStage() {
+        return approvalStage;
+    }
+
+    public void setApprovalStage(Integer approvalStage) {
+        this.approvalStage = approvalStage;
+    }
+
+    public String getApprovedByFinance() {
+        return approvedByFinance;
+    }
+
+    public void setApprovedByFinance(String approvedByFinance) {
+        this.approvedByFinance = approvedByFinance;
+    }
+
+    public Long getFinalApproverId() {
+        return finalApproverId;
+    }
+
+    public void setFinalApproverId(Long finalApproverId) {
+        this.finalApproverId = finalApproverId;
     }
 
     public String getStatusText() {

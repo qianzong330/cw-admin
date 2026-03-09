@@ -285,14 +285,6 @@
                             </div>
                             
                             <div class="d-flex align-items-center gap-2 mb-2">
-                                <label class="fw-bold text-nowrap mb-0" style="min-width: 70px; font-size: 14px;">费用分类<span class="text-danger">*</span></label>
-                                <select class="form-select form-select-sm" name="categoryId" id="categoryId" required style="flex: 1;">
-                                    <option value="">请选择</option>
-                                    <option th:each="c : ${categories}" th:value="${c.id}" th:text="${c.name}"></option>
-                                </select>
-                            </div>
-                            
-                            <div class="d-flex align-items-center gap-2 mb-2">
                                 <label class="fw-bold text-nowrap mb-0" style="min-width: 70px; font-size: 14px;">金额<span class="text-danger">*</span></label>
                                 <input type="number" step="0.01" class="form-control form-control-sm" name="amount" id="amount" required style="flex: 1;">
                             </div>
@@ -340,16 +332,21 @@
                 
                 fetch('/account/save', {
                     method: 'POST',
-                    body: formData,
-                    redirect: 'manual'
+                    body: formData
                 })
                 .then(response => {
-                    // 保存成功，跳转到列表页
-                    window.location.href = '/account/list';
+                    if (response.ok || response.redirected) {
+                        // 保存成功，关闭弹窗并刷新列表
+                        bootstrap.Modal.getInstance(document.getElementById('addAccountModal')).hide();
+                        window.location.reload();
+                    } else {
+                        alert('保存失败，请重试');
+                        isSubmitting = false;
+                    }
                 })
                 .catch(error => {
-                    // 重定向会被当作错误，但保存已成功
-                    window.location.href = '/account/list';
+                    alert('保存失败：' + error);
+                    isSubmitting = false;
                 });
             }
             

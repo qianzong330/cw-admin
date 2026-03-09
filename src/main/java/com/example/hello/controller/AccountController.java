@@ -213,11 +213,35 @@ public class AccountController {
         Employee currentUser = (Employee) session.getAttribute("currentUser");
         Account account = accountService.findById(id);
         
-        // 权限检查：必须是财务对接人
+        if (account == null) {
+            return "error:帐条不存在";
+        }
+        
+        // 权限检查
         String roleCode = currentUser.getRoleCode() != null ? currentUser.getRoleCode().toLowerCase() : "";
-        boolean isBoss = "boss".equals(roleCode);
-        if (!currentUser.getId().equals(account.getFinanceContactId()) && !isBoss) {
-            return "error:无权限";
+        boolean isBoss = "boss".equals(roleCode) || "root".equals(roleCode);
+        boolean isFinance = currentUser.isFinance();
+        
+        Integer approvalStage = account.getApprovalStage();
+        if (approvalStage == null) {
+            approvalStage = 1;
+        }
+        
+        // 阶段1(待财务审批)：只有财务角色可以审批
+        // 阶段2(待BOSS审批)：只有BOSS可以审批
+        if (approvalStage == 1) {
+            if (!isFinance && !isBoss) {
+                return "error:无权限审批，当前阶段需要财务角色审批";
+            }
+        } else if (approvalStage == 2) {
+            if (!isBoss) {
+                return "error:无权限审批，当前阶段需要BOSS审批";
+            }
+        }
+        
+        // 状态检查：只有审批中(status=1)的帐条可以审批
+        if (account.getStatus() == null || account.getStatus() != 1) {
+            return "error:该帐条不在审批中状态";
         }
         
         boolean success = accountService.approve(id, currentUser, approved, remark);
