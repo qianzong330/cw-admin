@@ -806,8 +806,14 @@
         function toggleMenu(menuId) {
             var submenu = document.getElementById('submenu-' + menuId);
             var arrow = document.getElementById('arrow-' + menuId);
+            if (!submenu || !arrow) {
+                console.error('Menu elements not found for menuId:', menuId);
+                return;
+            }
+            
             var isExpanding = false;
-            if (submenu.style.display === 'none' || submenu.style.display === '') {
+            var currentDisplay = window.getComputedStyle(submenu).display;
+            if (currentDisplay === 'none') {
                 submenu.style.display = 'block';
                 arrow.classList.remove('bi-chevron-down');
                 arrow.classList.add('bi-chevron-up');
@@ -827,14 +833,15 @@
                 }
             } catch(e) {}
             
+            var menuIdStr = String(menuId);
             if (isExpanding) {
                 // 展开：添加到列表
-                if (expandedIds.indexOf(String(menuId)) === -1) {
-                    expandedIds.push(String(menuId));
+                if (expandedIds.indexOf(menuIdStr) === -1) {
+                    expandedIds.push(menuIdStr);
                 }
             } else {
                 // 收起：从列表移除
-                expandedIds = expandedIds.filter(function(id) { return id !== String(menuId); });
+                expandedIds = expandedIds.filter(function(id) { return id !== menuIdStr; });
             }
             sessionStorage.setItem('menuExpanded', JSON.stringify(expandedIds));
         }
@@ -914,9 +921,22 @@
                 }
             }
             
-            // 保存当前展开的菜单状态到 sessionStorage
+            // 合并当前展开的菜单状态到 sessionStorage（保留用户手动展开的状态）
             if (matchedParentIds.length > 0) {
-                sessionStorage.setItem('menuExpanded', JSON.stringify(matchedParentIds));
+                var existingExpanded = [];
+                try {
+                    var stored = sessionStorage.getItem('menuExpanded');
+                    if (stored) {
+                        existingExpanded = JSON.parse(stored);
+                    }
+                } catch(e) {}
+                // 合并自动展开的菜单和用户手动展开的菜单
+                var allExpanded = existingExpanded.concat(matchedParentIds);
+                // 去重
+                allExpanded = allExpanded.filter(function(item, index) {
+                    return allExpanded.indexOf(item) === index;
+                });
+                sessionStorage.setItem('menuExpanded', JSON.stringify(allExpanded));
             }
         })();
 
