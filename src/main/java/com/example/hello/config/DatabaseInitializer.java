@@ -22,6 +22,7 @@ public class DatabaseInitializer implements CommandLineRunner {
         ensureFinanceAttendancePermissions();
         ensureSalaryTableColumns();
         createFeeItemTable();
+        ensureAccountTableColumns();
     }
 
     /**
@@ -438,6 +439,53 @@ public class DatabaseInitializer implements CommandLineRunner {
             }
         } catch (Exception e) {
             System.err.println("创建费用项管理菜单失败: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * 确保 tb_account 表有所有必要的字段
+     */
+    private void ensureAccountTableColumns() {
+        try {
+            // 检查并添加 category_id 字段
+            Integer categoryIdExists = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='tb_account' AND column_name='category_id'",
+                Integer.class);
+            if (categoryIdExists == null || categoryIdExists == 0) {
+                jdbcTemplate.execute("ALTER TABLE tb_account ADD COLUMN category_id BIGINT COMMENT '分类ID'");
+                System.out.println("tb_account.category_id 字段已添加");
+            }
+            
+            // 检查并添加 approval_stage 字段
+            Integer approvalStageExists = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='tb_account' AND column_name='approval_stage'",
+                Integer.class);
+            if (approvalStageExists == null || approvalStageExists == 0) {
+                jdbcTemplate.execute("ALTER TABLE tb_account ADD COLUMN approval_stage TINYINT DEFAULT 1 COMMENT '审批阶段：1-待财务审批，2-待BOSS审批'");
+                System.out.println("tb_account.approval_stage 字段已添加");
+            }
+            
+            // 检查并添加 approved_by_finance 字段
+            Integer approvedByFinanceExists = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='tb_account' AND column_name='approved_by_finance'",
+                Integer.class);
+            if (approvedByFinanceExists == null || approvedByFinanceExists == 0) {
+                jdbcTemplate.execute("ALTER TABLE tb_account ADD COLUMN approved_by_finance VARCHAR(500) COMMENT '已审批的财务人员ID列表'");
+                System.out.println("tb_account.approved_by_finance 字段已添加");
+            }
+            
+            // 检查并添加 final_approver_id 字段
+            Integer finalApproverIdExists = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='tb_account' AND column_name='final_approver_id'",
+                Integer.class);
+            if (finalApproverIdExists == null || finalApproverIdExists == 0) {
+                jdbcTemplate.execute("ALTER TABLE tb_account ADD COLUMN final_approver_id BIGINT COMMENT '最终审批人ID（BOSS）'");
+                System.out.println("tb_account.final_approver_id 字段已添加");
+            }
+            
+            System.out.println("=== tb_account 表字段检查完成 ===");
+        } catch (Exception e) {
+            System.err.println("ensureAccountTableColumns 失败: " + e.getMessage());
         }
     }
 }
