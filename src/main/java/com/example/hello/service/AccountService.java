@@ -98,12 +98,22 @@ public class AccountService {
             // 先更新帐条基本信息
             accountMapper.update(account);
             
-            // 编辑后重置为待财务审批状态
+            // 编辑后重置审批状态：财务直接到BOSS审批，普通员工到财务审批
+            String roleCode = currentUser.getRoleCode() != null ? currentUser.getRoleCode().toLowerCase() : "";
+            boolean isFinance = currentUser.isFinance();
+            
             Account statusUpdate = new Account();
             statusUpdate.setId(account.getId());
             statusUpdate.setStatus(1); // 审批中
-            statusUpdate.setApprovalStage(1); // 待财务审批
-            statusUpdate.setApprovedByFinance(""); // 清空财务审批记录
+            if (isFinance) {
+                // 财务编辑，直接到BOSS审批
+                statusUpdate.setApprovalStage(2);
+                statusUpdate.setApprovedByFinance("FINANCE");
+            } else {
+                // 普通员工编辑，到财务审批
+                statusUpdate.setApprovalStage(1);
+                statusUpdate.setApprovedByFinance("");
+            }
             accountMapper.updateApprovalStage(statusUpdate);
             
             // 记录操作明细：重新提交审批，使用用户填写的备注
