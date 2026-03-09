@@ -160,6 +160,12 @@
                                         <i class="bi bi-x-circle"></i> 拒绝
                                     </button>
                                                                     
+                                    <!-- 预览按钮：审批通过后显示（审批人和发起人可见） -->
+                                    <button th:if="${acc.status == 5 and (acc.creatorId == currentUser.id or session.currentUser.finance or session.currentUser.boss)}" 
+                                            class="btn btn-outline-primary btn-sm ms-1" th:onclick="'openViewModal(' + ${acc.id} + ')'">
+                                        <i class="bi bi-eye"></i> 预览
+                                    </button>
+                                    
                                     <!-- 日志按钮：始终显示 -->
                                     <button class="btn btn-outline-info btn-sm ms-1" th:onclick="'showLogModal(' + ${acc.id} + ')'">
                                         <i class="bi bi-journal-text"></i> 日志
@@ -239,8 +245,8 @@
                         <input type="hidden" id="approveAccountId">
                         <input type="hidden" id="approveAction">
                         <div class="mb-3" id="approveRemarkContainer" style="display: none;">
-                            <label class="form-label fw-bold">拒绝原因 <span class="text-danger">*</span></label>
-                            <textarea class="form-control form-control-sm" id="approveRemark" rows="3" placeholder="请输入拒绝原因"></textarea>
+                            <label class="form-label fw-bold">拒绝原因</label>
+                            <textarea class="form-control form-control-sm" id="approveRemark" rows="3" placeholder="请输入拒绝原因（选填）"></textarea>
                         </div>
                         <div class="text-center" id="approveConfirmText">
                             <p class="mb-0">确定要通过该帐条吗？</p>
@@ -249,6 +255,51 @@
                     <div class="modal-footer py-2">
                         <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">取消</button>
                         <button type="button" class="btn btn-primary btn-sm" id="approveSubmitBtn" onclick="submitApprove()">确定</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 预览弹窗（只读） -->
+        <div class="modal fade" id="viewAccountModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered" style="max-width: 420px;">
+                <div class="modal-content">
+                    <div class="modal-header py-2">
+                        <h6 class="modal-title fw-bold">帐条详情</h6>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body py-3">
+                        <div class="mb-2">
+                            <label class="fw-bold text-nowrap mb-1" style="font-size: 14px;">项目</label>
+                            <input type="text" class="form-control form-control-sm" id="viewProjectName" readonly>
+                        </div>
+                        <div class="mb-2">
+                            <label class="fw-bold text-nowrap mb-1" style="font-size: 14px;">收支类型</label>
+                            <input type="text" class="form-control form-control-sm" id="viewType" readonly>
+                        </div>
+                        <div class="mb-2">
+                            <label class="fw-bold text-nowrap mb-1" style="font-size: 14px;">费用分类</label>
+                            <input type="text" class="form-control form-control-sm" id="viewCategoryName" readonly>
+                        </div>
+                        <div class="mb-2">
+                            <label class="fw-bold text-nowrap mb-1" style="font-size: 14px;">金额</label>
+                            <input type="text" class="form-control form-control-sm" id="viewAmount" readonly>
+                        </div>
+                        <div class="mb-2">
+                            <label class="fw-bold text-nowrap mb-1" style="font-size: 14px;">记账人</label>
+                            <input type="text" class="form-control form-control-sm" id="viewCreatorName" readonly>
+                        </div>
+                        <div class="mb-2">
+                            <label class="fw-bold text-nowrap mb-1" style="font-size: 14px;">状态</label>
+                            <input type="text" class="form-control form-control-sm" id="viewStatus" readonly>
+                        </div>
+                        <div class="mb-2">
+                            <label class="fw-bold text-nowrap mb-1" style="font-size: 14px;">备注</label>
+                            <textarea class="form-control form-control-sm" id="viewRemark" rows="2" readonly></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer py-2">
+                        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">关闭</button>
                     </div>
                 </div>
             </div>
@@ -470,6 +521,31 @@
                     });
             }
             
+            // 打开预览弹窗（只读）
+            function openViewModal(id) {
+                // 获取帐条详情
+                fetch('/account/detail/' + id)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            var account = data.account;
+                            document.getElementById('viewProjectName').value = account.projectName || '-';
+                            document.getElementById('viewType').value = account.type == 1 ? '收入' : '支出';
+                            document.getElementById('viewCategoryName').value = account.categoryName || '-';
+                            document.getElementById('viewAmount').value = account.amount ? '¥' + account.amount : '-';
+                            document.getElementById('viewCreatorName').value = account.creatorName || '-';
+                            document.getElementById('viewStatus').value = '生效';
+                            document.getElementById('viewRemark').value = account.remark || '';
+                            new bootstrap.Modal(document.getElementById('viewAccountModal')).show();
+                        } else {
+                            showAlertModal('错误', data.message || '获取帐条详情失败');
+                        }
+                    })
+                    .catch(error => {
+                        showAlertModal('错误', '获取帐条详情失败：' + error.message);
+                    });
+            }
+            
             // 提交编辑表单
             function submitEditForm() {
                 if (isSubmitting) return;
@@ -674,10 +750,7 @@
                 var approved = document.getElementById('approveAction').value === 'true';
                 var remark = document.getElementById('approveRemark').value.trim();
                 
-                if (!approved && !remark) {
-                    showAlertModal('提示', '请输入拒绝原因');
-                    return;
-                }
+                // 拒绝原因改为选填，不再强制校验
                 
                 bootstrap.Modal.getInstance(document.getElementById('approveModal')).hide();
                 
