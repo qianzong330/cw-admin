@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# 先更新自己
+curl -o /home/devbox/project/entrypoint.sh https://raw.githubusercontent.com/qianzong330/cw-admin/main/entrypoint.sh 2>/dev/null
+
 app_env=${1:-development}
 
 # Development environment commands
