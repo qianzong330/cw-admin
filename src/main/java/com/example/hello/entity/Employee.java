@@ -168,9 +168,19 @@ public class Employee {
     public boolean isBoss() {
         return roleCode != null && "boss".equalsIgnoreCase(roleCode);
     }
+    
+    // Thymeleaf 使用 boss 属性时会调用此方法
+    public boolean getBoss() {
+        return isBoss();
+    }
 
     public boolean isFinance() {
         return roleCode != null && "finance".equalsIgnoreCase(roleCode);
+    }
+    
+    // Thymeleaf 使用 finance 属性时会调用此方法
+    public boolean getFinance() {
+        return isFinance();
     }
     
     public java.util.Set<String> getMenuCodes() {
