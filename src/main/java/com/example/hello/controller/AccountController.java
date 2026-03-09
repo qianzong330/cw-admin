@@ -167,6 +167,7 @@ public class AccountController {
         model.addAttribute("categories", categories);
         model.addAttribute("account", account);
         model.addAttribute("currentUser", currentUser);
+        model.addAttribute("viewMode", false);
         return "account/form";
     }
 
