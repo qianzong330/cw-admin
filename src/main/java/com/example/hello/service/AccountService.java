@@ -194,9 +194,11 @@ public class AccountService {
                 accountMapper.updateApprovalStage(account);
                 accountMapper.updateStatus(accountId, 5);
                 
-                // 记录操作明细
+                // 记录操作明细，包含审批通过时的金额
                 String approverType = isBoss ? "BOSS" : "财务";
-                recordApprovalDetail(account, currentUser, "APPROVE", approverType + "审批通过，帐条生效");
+                String amountStr = account.getAmount() != null ? account.getAmount().toString() : "0";
+                recordApprovalDetail(account, currentUser, "APPROVE", 
+                    approverType + "审批通过，金额：" + amountStr + "元，帐条生效");
             }
         } else {
             // 审批驳回
