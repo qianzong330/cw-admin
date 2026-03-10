@@ -569,13 +569,22 @@
             
             // 页面加载时渲染项目列表
             document.addEventListener('DOMContentLoaded', function() {
+                console.log('=== 页面加载完成 ===');
                 renderProjectList();
                 
                 // 绑定保存按钮事件
-                document.getElementById('saveProjectBtn').addEventListener('click', function() {
-                    console.log('保存按钮被点击');
-                    submitProjectForm();
-                });
+                var saveBtn = document.getElementById('saveProjectBtn');
+                console.log('保存按钮元素:', saveBtn);
+                if (saveBtn) {
+                    saveBtn.addEventListener('click', function(e) {
+                        console.log('=== 保存按钮被点击 ===');
+                        e.preventDefault();
+                        e.stopPropagation();
+                        submitProjectForm();
+                    });
+                } else {
+                    console.error('找不到保存按钮!');
+                }
             });
         </script>
     </div>
