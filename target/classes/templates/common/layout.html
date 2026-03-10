@@ -694,8 +694,7 @@
                                                     <span th:if="${subMenu.menu_code == 'salary' && pendingSalaryCount != null && pendingSalaryCount > 0}"
                                                           class="badge bg-danger ms-auto salary-pending-badge" th:text="${pendingSalaryCount}">0</span>
                                                     <!-- 记账管理子菜单待审批数量徽章 - 财务角色显示待财务审批数量 -->
-                                                    <span th:if="${subMenu.menu_code == 'account' && pendingAccountFinanceCount != null && pendingAccountFinanceCount > 0}"
-                                                          class="badge bg-danger ms-auto" th:text="${pendingAccountFinanceCount}">0</span>
+                                                    <span th:if="${subMenu.menu_code == 'account'}" class="badge bg-info ms-auto" th:text="${pendingAccountFinanceCount}">test</span>
                                                 </a>
                                             </li>
                                         </th:block>
