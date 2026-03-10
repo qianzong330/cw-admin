@@ -314,6 +314,14 @@ public class AccountService {
         return accountMapper.getTop5ExpenseProjects(userId, isBoss, startDate, endDate);
     }
 
+    public List<ProjectStatsDTO> getTop5IncomeCategories(Long userId, boolean isBoss, String startDate, String endDate) {
+        return accountMapper.getTop5IncomeCategories(userId, isBoss, startDate, endDate);
+    }
+
+    public List<ProjectStatsDTO> getTop5ExpenseCategories(Long userId, boolean isBoss, String startDate, String endDate) {
+        return accountMapper.getTop5ExpenseCategories(userId, isBoss, startDate, endDate);
+    }
+
     public List<CategoryStatsDTO> getProjectIncomeByCategory(Long projectId, String startDate, String endDate) {
         return accountMapper.getProjectIncomeByCategory(projectId, startDate, endDate);
     }

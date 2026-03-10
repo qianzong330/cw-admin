@@ -90,6 +90,17 @@ public interface AccountMapper {
                                                  @Param("startDate") String startDate,
                                                  @Param("endDate") String endDate);
     
+    // 获取收入/支出TOP5费用分类
+    List<ProjectStatsDTO> getTop5IncomeCategories(@Param("userId") Long userId, 
+                                                   @Param("isBoss") boolean isBoss,
+                                                   @Param("startDate") String startDate,
+                                                   @Param("endDate") String endDate);
+    
+    List<ProjectStatsDTO> getTop5ExpenseCategories(@Param("userId") Long userId, 
+                                                    @Param("isBoss") boolean isBoss,
+                                                    @Param("startDate") String startDate,
+                                                    @Param("endDate") String endDate);
+    
     // 获取单个项目的收入/支出分类统计
     List<CategoryStatsDTO> getProjectIncomeByCategory(@Param("projectId") Long projectId,
                                                       @Param("startDate") String startDate,

@@ -129,9 +129,9 @@ public class LoginController {
         BigDecimal totalIncome = accountService.getTotalIncome(userId, isBoss, startDate, endDate);
         BigDecimal totalExpense = accountService.getTotalExpense(userId, isBoss, startDate, endDate);
         
-        // 获取收入/支出TOP5
-        List<ProjectStatsDTO> top5Income = accountService.getTop5IncomeProjects(userId, isBoss, startDate, endDate);
-        List<ProjectStatsDTO> top5Expense = accountService.getTop5ExpenseProjects(userId, isBoss, startDate, endDate);
+        // 获取收入/支出TOP5费用分类
+        List<ProjectStatsDTO> top5Income = accountService.getTop5IncomeCategories(userId, isBoss, startDate, endDate);
+        List<ProjectStatsDTO> top5Expense = accountService.getTop5ExpenseCategories(userId, isBoss, startDate, endDate);
         
         // 分页处理
         int totalCount = allProjectStats.size();
