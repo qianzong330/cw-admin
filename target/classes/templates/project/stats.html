@@ -274,48 +274,47 @@
                 </div>
             </div>
         </div>
+        <script>
+            // 图片预览
+            function previewAddImages(input) {
+                const preview = document.getElementById('addImagePreview');
+                preview.innerHTML = '';
+                if (input.files) {
+                    Array.from(input.files).forEach(file => {
+                        const reader = new FileReader();
+                        reader.onload = function(e) {
+                            const img = document.createElement('img');
+                            img.src = e.target.result;
+                            img.style.cssText = 'width: 60px; height: 60px; object-fit: cover; border-radius: 4px;';
+                            preview.appendChild(img);
+                        };
+                        reader.readAsDataURL(file);
+                    });
+                }
+            }
+            
+            // 提交表单
+            function submitAddForm() {
+                const form = document.getElementById('addAccountForm');
+                if (!form.projectId.value) {
+                    alert('请选择项目');
+                    return;
+                }
+                if (!form.type.value) {
+                    alert('请选择收支类型');
+                    return;
+                }
+                if (!form.categoryId.value) {
+                    alert('请选择费用分类');
+                    return;
+                }
+                if (!form.amount.value || form.amount.value <= 0) {
+                    alert('请输入有效金额');
+                    return;
+                }
+                form.submit();
+            }
+        </script>
     </div>
-    
-    <script>
-        // 图片预览
-        function previewAddImages(input) {
-            const preview = document.getElementById('addImagePreview');
-            preview.innerHTML = '';
-            if (input.files) {
-                Array.from(input.files).forEach(file => {
-                    const reader = new FileReader();
-                    reader.onload = function(e) {
-                        const img = document.createElement('img');
-                        img.src = e.target.result;
-                        img.style.cssText = 'width: 60px; height: 60px; object-fit: cover; border-radius: 4px;';
-                        preview.appendChild(img);
-                    };
-                    reader.readAsDataURL(file);
-                });
-            }
-        }
-        
-        // 提交表单
-        function submitAddForm() {
-            const form = document.getElementById('addAccountForm');
-            if (!form.projectId.value) {
-                alert('请选择项目');
-                return;
-            }
-            if (!form.type.value) {
-                alert('请选择收支类型');
-                return;
-            }
-            if (!form.categoryId.value) {
-                alert('请选择费用分类');
-                return;
-            }
-            if (!form.amount.value || form.amount.value <= 0) {
-                alert('请输入有效金额');
-                return;
-            }
-            form.submit();
-        }
-    </script>
 </body>
 </html>

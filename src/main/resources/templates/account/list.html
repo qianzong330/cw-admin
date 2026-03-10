@@ -91,8 +91,6 @@
                             <tr>
                                 <th style="min-width: 100px; white-space: nowrap;">项目</th>
                                 <th style="min-width: 70px; white-space: nowrap;">记账人</th>
-                                <th style="min-width: 70px; white-space: nowrap;">工种</th>
-                                <th style="min-width: 70px; white-space: nowrap;">角色</th>
                                 <th style="min-width: 80px; white-space: nowrap;">收支类型</th>
                                 <th style="min-width: 90px; white-space: nowrap;">费用分类</th>
                                 <th style="min-width: 80px; white-space: nowrap;">发票</th>
@@ -107,8 +105,6 @@
                             <tr th:each="acc : ${accounts}">
                                 <td th:text="${acc.projectName}" style="white-space: nowrap;"></td>
                                 <td th:text="${acc.creatorName}" style="white-space: nowrap;"></td>
-                                <td th:text="${acc.jobCategoryName} ?: '-'" style="white-space: nowrap;"></td>
-                                <td th:text="${acc.roleName} ?: '-'" style="white-space: nowrap;"></td>
                                 <td style="white-space: nowrap;">
                                     <span th:if="${acc.type == 1}" class="badge bg-success">收入</span>
                                     <span th:if="${acc.type == 2}" class="badge bg-danger">支出</span>
