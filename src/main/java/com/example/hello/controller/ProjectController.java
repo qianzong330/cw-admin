@@ -58,13 +58,18 @@ public class ProjectController {
     }
 
     @PostMapping("/save")
-    public String save(Project project, 
+    public String save(@RequestParam(required = false) Long id,
+                       @RequestParam String name,
                        @RequestParam(required = false) List<Long> adminIds,
                        HttpSession session) {
         Employee currentUser = (Employee) session.getAttribute("currentUser");
         if (!currentUser.hasPermission("project")) {
             return "redirect:/index";
         }
+        
+        Project project = new Project();
+        project.setId(id);
+        project.setName(name);
         
         projectService.saveWithAdmins(project, adminIds);
         return "redirect:/project/list";
