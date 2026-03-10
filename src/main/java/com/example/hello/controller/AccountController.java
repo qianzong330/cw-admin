@@ -59,11 +59,13 @@ public class AccountController {
         
         // 检查是否是项目管理员
         boolean isProjectAdmin = projectAdminMapper.hasAnyProjectAdmin(currentUser.getId());
+        // 管理员角色（admin）也能看到所有记账
+        boolean isAdmin = "admin".equalsIgnoreCase(currentUser.getRoleCode());
         
-        // 分页查询
+        // 分页查询 - BOSS或admin看所有，项目管理员看管理的项目，普通员工看自己的
         List<Account> accounts = accountService.findByConditionWithPage(
             currentUser.getId(), 
-            currentUser.isBoss(),
+            currentUser.isBoss() || isAdmin, // BOSS或admin看所有
             isProjectAdmin,
             projectId, 
             status,
@@ -74,7 +76,7 @@ public class AccountController {
         );
         int totalCount = accountService.countByCondition(
             currentUser.getId(), 
-            currentUser.isBoss(),
+            currentUser.isBoss() || isAdmin, // BOSS或admin看所有
             isProjectAdmin,
             projectId, 
             status,
