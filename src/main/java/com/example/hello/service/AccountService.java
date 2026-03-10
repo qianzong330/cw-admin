@@ -329,4 +329,9 @@ public class AccountService {
     public List<CategoryStatsDTO> getProjectExpenseByCategory(Long projectId, String startDate, String endDate) {
         return accountMapper.getProjectExpenseByCategory(projectId, startDate, endDate);
     }
+
+    // 根据项目ID和状态查询记账列表
+    public List<Account> findByProjectIdAndStatus(Long projectId, Integer status) {
+        return accountMapper.findByProjectIdAndStatus(projectId, status);
+    }
 }

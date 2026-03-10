@@ -5,7 +5,9 @@ import com.example.hello.dto.ProjectStatsDTO;
 import com.example.hello.entity.Employee;
 import com.example.hello.entity.Project;
 import com.example.hello.mapper.EmployeeMapper;
+import com.example.hello.entity.Category;
 import com.example.hello.service.AccountService;
+import com.example.hello.service.CategoryService;
 import com.example.hello.service.EmployeeService;
 import com.example.hello.service.MenuService;
 import com.example.hello.service.ProjectService;
@@ -39,6 +41,9 @@ public class LoginController {
     
     @Autowired
     private MenuService menuService;
+    
+    @Autowired
+    private CategoryService categoryService;
     
     @Autowired
     private EmployeeMapper employeeMapper;
@@ -239,10 +244,22 @@ public class LoginController {
         List<CategoryStatsDTO> incomeByCategory = accountService.getProjectIncomeByCategory(id, startDate, endDate);
         List<CategoryStatsDTO> expenseByCategory = accountService.getProjectExpenseByCategory(id, startDate, endDate);
         
+        // 获取该项目已生效的记账明细
+        List<com.example.hello.entity.Account> accountList = accountService.findByProjectIdAndStatus(id, 5);
+        
+        // 获取项目列表（用于新增弹窗）
+        List<Project> projects = projectService.findByUserId(currentUser.getId(), currentUser.isBoss());
+        
+        // 获取费用分类列表（用于新增弹窗）
+        List<Category> categories = categoryService.findAll();
+        
         model.addAttribute("project", project);
         model.addAttribute("stats", stats);
         model.addAttribute("incomeByCategory", incomeByCategory);
         model.addAttribute("expenseByCategory", expenseByCategory);
+        model.addAttribute("accountList", accountList);
+        model.addAttribute("projects", projects);
+        model.addAttribute("categories", categories);
         model.addAttribute("currentUser", currentUser);
         model.addAttribute("timeRange", timeRange);
         return "project/stats";

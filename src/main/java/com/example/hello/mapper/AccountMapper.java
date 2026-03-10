@@ -24,6 +24,10 @@ public interface AccountMapper {
                                    @Param("projectId") Long projectId,
                                    @Param("status") Integer status);
 
+    // 根据项目ID和状态查询记账列表
+    List<Account> findByProjectIdAndStatus(@Param("projectId") Long projectId, 
+                                           @Param("status") Integer status);
+
     List<Account> findByConditionWithPage(@Param("currentUserId") Long currentUserId, 
                                            @Param("isBoss") boolean isBoss,
                                            @Param("isFinance") boolean isFinance,
