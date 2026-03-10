@@ -53,20 +53,12 @@ public class EmployeeController {
         
         List<Role> roles = roleService.findAll();
         List<JobCategory> jobCategories = jobCategoryService.findAll();
-        List<Employee> financeList;
-        // 如果当前用户是财务角色，则显示BOSS角色的人作为对接人
-        if (currentUser.getRoleCode() != null && currentUser.getRoleCode().toLowerCase().contains("finance")) {
-            financeList = employeeService.findByRoleCode("boss");
-        } else {
-            financeList = employeeService.findFinanceList();
-        }
         List<Project> projects = projectService.findAll();
         List<com.example.hello.entity.WorkHourConfig> workHourConfigs = workHourConfigService.getAllConfigs();
         
         model.addAttribute("employees", employees);
         model.addAttribute("roles", roles);
         model.addAttribute("jobCategories", jobCategories);
-        model.addAttribute("financeList", financeList);
         model.addAttribute("projects", projects);
         model.addAttribute("workHourConfigs", workHourConfigs);
         model.addAttribute("selectedProjectId", projectId);
@@ -82,11 +74,9 @@ public class EmployeeController {
         
         List<Role> roles = roleService.findAll();
         List<JobCategory> jobCategories = jobCategoryService.findAll();
-        List<Employee> financeList = employeeService.findFinanceList();
         
         model.addAttribute("roles", roles);
         model.addAttribute("jobCategories", jobCategories);
-        model.addAttribute("financeList", financeList);
         model.addAttribute("employee", new Employee());
         return "employee/form";
     }
@@ -101,11 +91,9 @@ public class EmployeeController {
         Employee employee = employeeService.findById(id);
         List<Role> roles = roleService.findAll();
         List<JobCategory> jobCategories = jobCategoryService.findAll();
-        List<Employee> financeList = employeeService.findFinanceList();
         
         model.addAttribute("roles", roles);
         model.addAttribute("jobCategories", jobCategories);
-        model.addAttribute("financeList", financeList);
         model.addAttribute("employee", employee);
         return "employee/form";
     }

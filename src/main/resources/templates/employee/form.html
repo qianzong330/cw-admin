@@ -42,23 +42,16 @@
                     </div>
                     
                     <div class="row">
-                        <div class="col-md-4 mb-3">
+                        <div class="col-md-6 mb-3">
                             <label class="form-label">个人薪资</label>
                             <input type="number" step="0.01" class="form-control" th:field="*{salaryAmount}">
                         </div>
-                        <div class="col-md-4 mb-3">
+                        <div class="col-md-6 mb-3">
                             <label class="form-label">薪资类型</label>
                             <select class="form-select" th:field="*{salaryType}">
                                 <option value="1">日薪</option>
                                 <option value="2">月薪</option>
                                 <option value="3">年薪</option>
-                            </select>
-                        </div>
-                        <div class="col-md-4 mb-3">
-                            <label class="form-label">财务对接人</label>
-                            <select class="form-select" th:field="*{financeContactId}">
-                                <option value="">请选择</option>
-                                <option th:each="f : ${financeList}" th:value="${f.id}" th:text="${f.name}"></option>
                             </select>
                         </div>
                     </div>

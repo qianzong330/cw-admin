@@ -24,8 +24,6 @@
         <result column="job_category_name" property="jobCategoryName"/>
         <result column="role_name" property="roleName"/>
         <result column="category_name" property="categoryName"/>
-        <result column="finance_contact_id" property="financeContactId"/>
-        <result column="finance_contact_name" property="financeContactName"/>
     </resultMap>
 
     <select id="findById" resultMap="BaseResultMap">
@@ -34,16 +32,13 @@
                e.name as creator_name,
                jc.name as job_category_name,
                r.role_name as role_name,
-               c.name as category_name,
-               fe.id as finance_contact_id,
-               fe.name as finance_contact_name
+               c.name as category_name
         FROM tb_account a
         LEFT JOIN tb_project p ON a.project_id = p.id
         LEFT JOIN tb_employee e ON a.creator_id = e.id
         LEFT JOIN tb_job_category jc ON a.job_category_id = jc.id
         LEFT JOIN tb_role r ON a.role_id = r.id
         LEFT JOIN tb_category c ON a.category_id = c.id
-        LEFT JOIN tb_employee fe ON e.finance_contact_id = fe.id
         WHERE a.id = #{id}
     </select>
 
@@ -53,16 +48,13 @@
                e.name as creator_name,
                jc.name as job_category_name,
                r.role_name as role_name,
-               c.name as category_name,
-               fe.id as finance_contact_id,
-               fe.name as finance_contact_name
+               c.name as category_name
         FROM tb_account a
         LEFT JOIN tb_project p ON a.project_id = p.id
         LEFT JOIN tb_employee e ON a.creator_id = e.id
         LEFT JOIN tb_job_category jc ON a.job_category_id = jc.id
         LEFT JOIN tb_role r ON a.role_id = r.id
         LEFT JOIN tb_category c ON a.category_id = c.id
-        LEFT JOIN tb_employee fe ON e.finance_contact_id = fe.id
         ORDER BY a.create_time DESC
     </select>
 
@@ -72,16 +64,13 @@
                e.name as creator_name,
                jc.name as job_category_name,
                r.role_name as role_name,
-               c.name as category_name,
-               fe.id as finance_contact_id,
-               fe.name as finance_contact_name
+               c.name as category_name
         FROM tb_account a
         LEFT JOIN tb_project p ON a.project_id = p.id
         LEFT JOIN tb_employee e ON a.creator_id = e.id
         LEFT JOIN tb_job_category jc ON a.job_category_id = jc.id
         LEFT JOIN tb_role r ON a.role_id = r.id
         LEFT JOIN tb_category c ON a.category_id = c.id
-        LEFT JOIN tb_employee fe ON e.finance_contact_id = fe.id
         WHERE a.creator_id = #{creatorId}
         ORDER BY a.create_time DESC
     </select>
@@ -92,15 +81,12 @@
                e.name as creator_name,
                jc.name as job_category_name,
                r.role_name as role_name,
-               fe.id as finance_contact_id,
-               fe.name as finance_contact_name,
                c.name as category_name
         FROM tb_account a
         LEFT JOIN tb_project p ON a.project_id = p.id
         LEFT JOIN tb_employee e ON a.creator_id = e.id
         LEFT JOIN tb_job_category jc ON a.job_category_id = jc.id
         LEFT JOIN tb_role r ON a.role_id = r.id
-        LEFT JOIN tb_employee fe ON e.finance_contact_id = fe.id
         LEFT JOIN tb_employee creator ON a.creator_id = creator.id
         LEFT JOIN tb_role creator_role ON creator.role_id = creator_role.id
         LEFT JOIN tb_category c ON a.category_id = c.id
@@ -129,15 +115,12 @@
                e.name as creator_name,
                jc.name as job_category_name,
                r.role_name as role_name,
-               fe.id as finance_contact_id,
-               fe.name as finance_contact_name,
                c.name as category_name
         FROM tb_account a
         LEFT JOIN tb_project p ON a.project_id = p.id
         LEFT JOIN tb_employee e ON a.creator_id = e.id
         LEFT JOIN tb_job_category jc ON a.job_category_id = jc.id
         LEFT JOIN tb_role r ON a.role_id = r.id
-        LEFT JOIN tb_employee fe ON e.finance_contact_id = fe.id
         LEFT JOIN tb_employee creator ON a.creator_id = creator.id
         LEFT JOIN tb_role creator_role ON creator.role_id = creator_role.id
         LEFT JOIN tb_category c ON a.category_id = c.id
@@ -194,66 +177,6 @@
         </if>
         <if test="creatorName != null and creatorName != ''">
             AND e.name LIKE CONCAT('%', #{creatorName}, '%')
-        </if>
-    </select>
-
-    <!-- 待审批列表：财务看approvalStage=1，BOSS看approvalStage=2 -->
-    <select id="findPendingByFinanceContactId" resultMap="BaseResultMap">
-        SELECT a.*, 
-               fe.id as finance_contact_id,
-               fe.name as finance_contact_name
-        FROM tb_account a
-        LEFT JOIN tb_project p ON a.project_id = p.id
-        LEFT JOIN tb_employee e ON a.creator_id = e.id
-        LEFT JOIN tb_job_category jc ON a.job_category_id = jc.id
-        LEFT JOIN tb_role r ON a.role_id = r.id
-        LEFT JOIN tb_employee fe ON e.finance_contact_id = fe.id
-        WHERE a.status = 1
-        <if test="!isBoss">
-            AND a.approval_stage = 1
-        </if>
-        <if test="isBoss">
-            AND a.approval_stage = 2
-        </if>
-        ORDER BY a.create_time DESC
-    </select>
-
-    <select id="findPendingByFinanceContactIdWithPage" resultMap="BaseResultMap">
-        SELECT a.*, 
-               p.name as project_name,
-               e.name as creator_name,
-               jc.name as job_category_name,
-               r.role_name as role_name,
-               fe.id as finance_contact_id,
-               fe.name as finance_contact_name
-        FROM tb_account a
-        LEFT JOIN tb_project p ON a.project_id = p.id
-        LEFT JOIN tb_employee e ON a.creator_id = e.id
-        LEFT JOIN tb_job_category jc ON a.job_category_id = jc.id
-        LEFT JOIN tb_role r ON a.role_id = r.id
-        LEFT JOIN tb_employee fe ON e.finance_contact_id = fe.id
-        WHERE a.status = 1
-        <if test="!isBoss">
-            AND a.approval_stage = 1
-        </if>
-        <if test="isBoss">
-            AND a.approval_stage = 2
-        </if>
-        ORDER BY a.create_time DESC
-        LIMIT #{pageSize} OFFSET #{offset}
-    </select>
-
-    <select id="countPendingByFinanceContactId" resultType="int">
-        SELECT COUNT(*)
-        FROM tb_account a
-        LEFT JOIN tb_employee e ON a.creator_id = e.id
-        LEFT JOIN tb_employee fe ON e.finance_contact_id = fe.id
-        WHERE a.status = 1
-        <if test="!isBoss">
-            AND a.approval_stage = 1
-        </if>
-        <if test="isBoss">
-            AND a.approval_stage = 2
         </if>
     </select>
 
@@ -537,16 +460,13 @@
                e.name as creator_name,
                jc.name as job_category_name,
                r.role_name as role_name,
-               c.name as category_name,
-               fe.id as finance_contact_id,
-               fe.name as finance_contact_name
+               c.name as category_name
         FROM tb_account a
         LEFT JOIN tb_project p ON a.project_id = p.id
         LEFT JOIN tb_employee e ON a.creator_id = e.id
         LEFT JOIN tb_job_category jc ON a.job_category_id = jc.id
         LEFT JOIN tb_role r ON a.role_id = r.id
         LEFT JOIN tb_category c ON a.category_id = c.id
-        LEFT JOIN tb_employee fe ON e.finance_contact_id = fe.id
         WHERE a.project_id = #{projectId}
         <if test="status != null">
             AND a.status = #{status}

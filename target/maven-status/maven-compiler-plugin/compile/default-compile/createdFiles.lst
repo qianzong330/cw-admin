@@ -1,6 +1,7 @@
 com/example/hello/controller/AccountController.class
 com/example/hello/config/BasicConfigMenuInitializer.class
 com/example/hello/controller/ProjectController.class
+com/example/hello/entity/ProjectAdmin.class
 com/example/hello/entity/Menu.class
 com/example/hello/controller/DebugController.class
 com/example/hello/controller/DataCleanupRunner.class
@@ -41,6 +42,7 @@ com/example/hello/controller/PendingCountController.class
 com/example/hello/config/CharacterEncodingFilter.class
 com/example/hello/mapper/SalaryMonthStatusMapper.class
 com/example/hello/controller/DebugMenuController.class
+com/example/hello/mapper/ProjectAdminMapper.class
 com/example/hello/config/JobCategoryInitializer.class
 com/example/hello/entity/Project.class
 com/example/hello/entity/Employee.class

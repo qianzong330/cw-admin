@@ -27,8 +27,6 @@ public class Account {
     private String jobCategoryName;
     private String roleName;
     private String categoryName;
-    private Long financeContactId;
-    private String financeContactName;
     
     // 多级审批字段
     private Integer approvalStage; // 审批阶段：1-待财务审批，2-待BOSS审批
@@ -193,22 +191,6 @@ public class Account {
 
     public void setCategoryName(String categoryName) {
         this.categoryName = categoryName;
-    }
-
-    public Long getFinanceContactId() {
-        return financeContactId;
-    }
-
-    public void setFinanceContactId(Long financeContactId) {
-        this.financeContactId = financeContactId;
-    }
-
-    public String getFinanceContactName() {
-        return financeContactName;
-    }
-
-    public void setFinanceContactName(String financeContactName) {
-        this.financeContactName = financeContactName;
     }
 
     public Integer getApprovalStage() {

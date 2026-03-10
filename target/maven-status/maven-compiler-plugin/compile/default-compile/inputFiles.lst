@@ -53,6 +53,7 @@
 /home/devbox/project/src/main/java/com/example/hello/entity/JobCategory.java
 /home/devbox/project/src/main/java/com/example/hello/entity/Menu.java
 /home/devbox/project/src/main/java/com/example/hello/entity/Project.java
+/home/devbox/project/src/main/java/com/example/hello/entity/ProjectAdmin.java
 /home/devbox/project/src/main/java/com/example/hello/entity/Role.java
 /home/devbox/project/src/main/java/com/example/hello/entity/SalaryItem.java
 /home/devbox/project/src/main/java/com/example/hello/entity/SalaryMonthStatus.java
@@ -69,6 +70,7 @@
 /home/devbox/project/src/main/java/com/example/hello/mapper/FeeItemMapper.java
 /home/devbox/project/src/main/java/com/example/hello/mapper/JobCategoryMapper.java
 /home/devbox/project/src/main/java/com/example/hello/mapper/MenuMapper.java
+/home/devbox/project/src/main/java/com/example/hello/mapper/ProjectAdminMapper.java
 /home/devbox/project/src/main/java/com/example/hello/mapper/ProjectMapper.java
 /home/devbox/project/src/main/java/com/example/hello/mapper/RoleMapper.java
 /home/devbox/project/src/main/java/com/example/hello/mapper/SalaryItemMapper.java

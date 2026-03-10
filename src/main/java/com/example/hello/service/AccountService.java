@@ -257,10 +257,6 @@ public class AccountService {
         return accountMapper.deleteById(id) > 0;
     }
 
-    public List<Account> findPendingByFinanceContactId(Long financeContactId, boolean isBoss) {
-        return accountMapper.findPendingByFinanceContactId(financeContactId, isBoss);
-    }
-
     public List<Account> findByConditionWithPage(Long userId, boolean isBoss, boolean isFinance, Long projectId, Integer status, Integer type, String creatorName, int page, int pageSize) {
         int offset = (page - 1) * pageSize;
         return accountMapper.findByConditionWithPage(userId, isBoss, isFinance, projectId, status, type, creatorName, offset, pageSize);
@@ -268,15 +264,6 @@ public class AccountService {
 
     public int countByCondition(Long userId, boolean isBoss, boolean isFinance, Long projectId, Integer status, Integer type, String creatorName) {
         return accountMapper.countByCondition(userId, isBoss, isFinance, projectId, status, type, creatorName);
-    }
-
-    public List<Account> findPendingByFinanceContactIdWithPage(Long financeContactId, boolean isBoss, int page, int pageSize) {
-        int offset = (page - 1) * pageSize;
-        return accountMapper.findPendingByFinanceContactIdWithPage(financeContactId, isBoss, offset, pageSize);
-    }
-
-    public int countPendingByFinanceContactId(Long financeContactId, boolean isBoss) {
-        return accountMapper.countPendingByFinanceContactId(financeContactId, isBoss);
     }
 
     // 获取待财务审批数量（用于菜单徽章）

@@ -12,7 +12,6 @@ public class Employee {
     private BigDecimal salaryAmount;
     private Integer salaryType;
     private String password;
-    private Long financeContactId;
     private Integer status;
     private LocalDateTime createTime;
     private LocalDateTime updateTime;
@@ -21,7 +20,6 @@ public class Employee {
     private String roleName;
     private String roleCode;
     private String jobCategoryName;
-    private String financeContactName;
     
     // 员工隶属的项目列表（非数据库字段）
     private String projectNames;
@@ -93,14 +91,6 @@ public class Employee {
         this.password = password;
     }
 
-    public Long getFinanceContactId() {
-        return financeContactId;
-    }
-
-    public void setFinanceContactId(Long financeContactId) {
-        this.financeContactId = financeContactId;
-    }
-
     public Integer getStatus() {
         return status;
     }
@@ -147,14 +137,6 @@ public class Employee {
 
     public void setJobCategoryName(String jobCategoryName) {
         this.jobCategoryName = jobCategoryName;
-    }
-
-    public String getFinanceContactName() {
-        return financeContactName;
-    }
-
-    public void setFinanceContactName(String financeContactName) {
-        this.financeContactName = financeContactName;
     }
     
     public String getProjectNames() {

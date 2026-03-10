@@ -45,17 +45,6 @@ public interface AccountMapper {
                          @Param("status") Integer status,
                          @Param("type") Integer type,
                          @Param("creatorName") String creatorName);
-
-    List<Account> findPendingByFinanceContactId(@Param("financeContactId") Long financeContactId, 
-                                                 @Param("isBoss") boolean isBoss);
-
-    List<Account> findPendingByFinanceContactIdWithPage(@Param("financeContactId") Long financeContactId, 
-                                                         @Param("isBoss") boolean isBoss,
-                                                         @Param("offset") int offset,
-                                                         @Param("pageSize") int pageSize);
-
-    int countPendingByFinanceContactId(@Param("financeContactId") Long financeContactId, 
-                                       @Param("isBoss") boolean isBoss);
     
     // 统计待财务审批的数量（所有待财务审批的帐条）
     int countPendingFinanceApproval();
