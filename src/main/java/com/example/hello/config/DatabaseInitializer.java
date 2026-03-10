@@ -483,6 +483,15 @@ public class DatabaseInitializer implements CommandLineRunner {
                 System.out.println("tb_account.final_approver_id 字段已添加");
             }
             
+            // 检查并添加 invoice_images 字段
+            Integer invoiceImagesExists = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='tb_account' AND column_name='invoice_images'",
+                Integer.class);
+            if (invoiceImagesExists == null || invoiceImagesExists == 0) {
+                jdbcTemplate.execute("ALTER TABLE tb_account ADD COLUMN invoice_images TEXT COMMENT '发票图片URL列表，逗号分隔'");
+                System.out.println("tb_account.invoice_images 字段已添加");
+            }
+            
             System.out.println("=== tb_account 表字段检查完成 ===");
         } catch (Exception e) {
             System.err.println("ensureAccountTableColumns 失败: " + e.getMessage());
