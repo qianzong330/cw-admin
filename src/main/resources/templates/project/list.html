@@ -90,9 +90,19 @@
                             <div class="d-flex align-items-start gap-2">
                                 <label class="fw-bold text-nowrap mt-1" style="min-width: 70px; font-size: 14px;">管理员</label>
                                 <div style="flex: 1;">
-                                    <select class="form-select form-select-sm" id="adminIds" name="adminIds" multiple style="width: 100%;">
-                                    </select>
-                                    <small class="text-muted">按住Ctrl可多选</small>
+                                    <!-- 自定义多选下拉框 -->
+                                    <div class="dropdown" id="adminDropdown">
+                                        <button class="btn btn-outline-secondary btn-sm dropdown-toggle w-100 text-start" type="button" data-bs-toggle="dropdown" aria-expanded="false" id="adminDropdownBtn">
+                                            <span id="adminDropdownText">请选择管理员</span>
+                                        </button>
+                                        <div class="dropdown-menu w-100 p-2" style="max-height: 200px; overflow-y: auto;">
+                                            <div id="adminCheckboxList">
+                                                <!-- 动态生成复选框列表 -->
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <!-- 隐藏的input用于提交选中的值 -->
+                                    <div id="adminIdsContainer" style="display: none;"></div>
                                 </div>
                             </div>
                         </form>
@@ -357,23 +367,98 @@
                 document.getElementById('projectForm').reset();
                 document.getElementById('projectId').value = '';
                 // 填充管理员下拉框
-                populateAdminSelect([]);
+                populateAdminCheckboxList([]);
                 new bootstrap.Modal(document.getElementById('projectModal')).show();
             }
             
-            // 填充管理员下拉框
-            function populateAdminSelect(selectedIds) {
-                var select = document.getElementById('adminIds');
-                select.innerHTML = '';
+            // 填充管理员复选框列表
+            function populateAdminCheckboxList(selectedIds) {
+                var container = document.getElementById('adminCheckboxList');
+                var hiddenContainer = document.getElementById('adminIdsContainer');
+                container.innerHTML = '';
+                hiddenContainer.innerHTML = '';
+                
+                if (!adminEmployeesData || adminEmployeesData.length === 0) {
+                    container.innerHTML = '<div class="text-muted small p-2">暂无可选管理员</div>';
+                    updateAdminDropdownText([]);
+                    return;
+                }
+                
                 adminEmployeesData.forEach(function(emp) {
-                    var option = document.createElement('option');
-                    option.value = emp.id;
-                    option.textContent = emp.name;
-                    if (selectedIds && selectedIds.includes(emp.id)) {
-                        option.selected = true;
+                    // 创建复选框项
+                    var itemDiv = document.createElement('div');
+                    itemDiv.className = 'form-check';
+                    
+                    var checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.className = 'form-check-input';
+                    checkbox.id = 'admin_' + emp.id;
+                    checkbox.value = emp.id;
+                    checkbox.checked = selectedIds && selectedIds.includes(emp.id);
+                    checkbox.addEventListener('change', function() {
+                        updateAdminSelection();
+                    });
+                    
+                    var label = document.createElement('label');
+                    label.className = 'form-check-label';
+                    label.htmlFor = 'admin_' + emp.id;
+                    label.textContent = emp.name;
+                    label.style.cursor = 'pointer';
+                    
+                    itemDiv.appendChild(checkbox);
+                    itemDiv.appendChild(label);
+                    container.appendChild(itemDiv);
+                    
+                    // 如果选中，创建隐藏的input
+                    if (checkbox.checked) {
+                        addHiddenAdminInput(emp.id);
                     }
-                    select.appendChild(option);
                 });
+                
+                updateAdminDropdownText(selectedIds || []);
+            }
+            
+            // 更新管理员选择（复选框变化时调用）
+            function updateAdminSelection() {
+                var hiddenContainer = document.getElementById('adminIdsContainer');
+                hiddenContainer.innerHTML = '';
+                
+                var selectedIds = [];
+                adminEmployeesData.forEach(function(emp) {
+                    var checkbox = document.getElementById('admin_' + emp.id);
+                    if (checkbox && checkbox.checked) {
+                        selectedIds.push(emp.id);
+                        addHiddenAdminInput(emp.id);
+                    }
+                });
+                
+                updateAdminDropdownText(selectedIds);
+            }
+            
+            // 添加隐藏的adminId input
+            function addHiddenAdminInput(adminId) {
+                var hiddenContainer = document.getElementById('adminIdsContainer');
+                var input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'adminIds';
+                input.value = adminId;
+                hiddenContainer.appendChild(input);
+            }
+            
+            // 更新下拉框显示文本
+            function updateAdminDropdownText(selectedIds) {
+                var textSpan = document.getElementById('adminDropdownText');
+                if (!selectedIds || selectedIds.length === 0) {
+                    textSpan.textContent = '请选择管理员';
+                    textSpan.className = 'text-muted';
+                } else if (selectedIds.length === 1) {
+                    var emp = adminEmployeesData.find(e => e.id == selectedIds[0]);
+                    textSpan.textContent = emp ? emp.name : '1位管理员';
+                    textSpan.className = '';
+                } else {
+                    textSpan.textContent = '已选择 ' + selectedIds.length + ' 位管理员';
+                    textSpan.className = '';
+                }
             }
             
             function openEditProjectModal(id) {
@@ -384,12 +469,12 @@
                 document.getElementById('projectId').value = proj.id;
                 document.getElementById('projectName').value = proj.name;
                 
-                // 填充管理员下拉框并选中已有的管理员
+                // 填充管理员复选框并选中已有的管理员
                 var selectedAdminIds = [];
                 if (proj.admins && proj.admins.length > 0) {
                     selectedAdminIds = proj.admins.map(function(a) { return a.employeeId; });
                 }
-                populateAdminSelect(selectedAdminIds);
+                populateAdminCheckboxList(selectedAdminIds);
                 
                 new bootstrap.Modal(document.getElementById('projectModal')).show();
             }
@@ -439,7 +524,6 @@
             function submitProjectForm() {
                 if (isSubmitting) return;
                 
-                var form = document.getElementById('projectForm');
                 var projectId = document.getElementById('projectId').value;
                 var projectName = document.getElementById('projectName').value.trim();
                 
@@ -454,13 +538,14 @@
                 }
                 
                 isSubmitting = true;
-                var formData = new FormData(form);
+                var formData = new FormData();
+                formData.append('id', projectId);
+                formData.append('name', projectName);
                 
                 // 添加选中的管理员ID
-                var adminSelect = document.getElementById('adminIds');
-                var selectedAdmins = Array.from(adminSelect.selectedOptions).map(opt => opt.value);
-                selectedAdmins.forEach(function(adminId) {
-                    formData.append('adminIds', adminId);
+                var hiddenInputs = document.querySelectorAll('#adminIdsContainer input[name="adminIds"]');
+                hiddenInputs.forEach(function(input) {
+                    formData.append('adminIds', input.value);
                 });
                 
                 fetch('/project/save', {
