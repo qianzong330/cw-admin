@@ -144,4 +144,40 @@ public class MenuAdvice {
             return 0;
         }
     }
+    
+    /**
+     * 记账待财务审批数量
+     */
+    @ModelAttribute("pendingAccountFinanceCount")
+    public Integer pendingAccountFinanceCount(HttpSession session) {
+        if (session.getAttribute("currentUser") == null) {
+            return 0;
+        }
+        try {
+            Integer count = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM tb_account WHERE status = 1 AND approval_stage = 1",
+                Integer.class);
+            return count != null ? count : 0;
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+    
+    /**
+     * 记账待BOSS审批数量
+     */
+    @ModelAttribute("pendingAccountBossCount")
+    public Integer pendingAccountBossCount(HttpSession session) {
+        if (session.getAttribute("currentUser") == null) {
+            return 0;
+        }
+        try {
+            Integer count = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM tb_account WHERE status = 1 AND approval_stage = 2",
+                Integer.class);
+            return count != null ? count : 0;
+        } catch (Exception e) {
+            return 0;
+        }
+    }
 }

@@ -53,6 +53,12 @@ public interface AccountMapper {
     int countPendingByFinanceContactId(@Param("financeContactId") Long financeContactId, 
                                        @Param("isBoss") boolean isBoss);
     
+    // 统计待财务审批的数量（所有待财务审批的帐条）
+    int countPendingFinanceApproval();
+    
+    // 统计待BOSS审批的数量（所有待BOSS审批的帐条）
+    int countPendingBossApproval();
+    
     // 统计方法 - 支持时间筛选
     List<ProjectStatsDTO> getProjectStats(@Param("userId") Long userId, 
                                           @Param("isBoss") boolean isBoss,

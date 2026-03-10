@@ -279,6 +279,16 @@ public class AccountService {
         return accountMapper.countPendingByFinanceContactId(financeContactId, isBoss);
     }
 
+    // 获取待财务审批数量（用于菜单徽章）
+    public int getPendingFinanceCount() {
+        return accountMapper.countPendingFinanceApproval();
+    }
+
+    // 获取待BOSS审批数量（用于菜单徽章）
+    public int getPendingBossCount() {
+        return accountMapper.countPendingBossApproval();
+    }
+
     // 统计方法 - 支持时间筛选
     public List<ProjectStatsDTO> getProjectStats(Long userId, boolean isBoss, String startDate, String endDate) {
         return accountMapper.getProjectStats(userId, isBoss, startDate, endDate);
