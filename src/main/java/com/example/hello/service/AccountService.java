@@ -261,13 +261,13 @@ public class AccountService {
         return accountMapper.findPendingByFinanceContactId(financeContactId, isBoss);
     }
 
-    public List<Account> findByConditionWithPage(Long userId, boolean isBoss, boolean isFinance, Long projectId, Integer status, int page, int pageSize) {
+    public List<Account> findByConditionWithPage(Long userId, boolean isBoss, boolean isFinance, Long projectId, Integer status, Integer type, String creatorName, int page, int pageSize) {
         int offset = (page - 1) * pageSize;
-        return accountMapper.findByConditionWithPage(userId, isBoss, isFinance, projectId, status, offset, pageSize);
+        return accountMapper.findByConditionWithPage(userId, isBoss, isFinance, projectId, status, type, creatorName, offset, pageSize);
     }
 
-    public int countByCondition(Long userId, boolean isBoss, boolean isFinance, Long projectId, Integer status) {
-        return accountMapper.countByCondition(userId, isBoss, isFinance, projectId, status);
+    public int countByCondition(Long userId, boolean isBoss, boolean isFinance, Long projectId, Integer status, Integer type, String creatorName) {
+        return accountMapper.countByCondition(userId, isBoss, isFinance, projectId, status, type, creatorName);
     }
 
     public List<Account> findPendingByFinanceContactIdWithPage(Long financeContactId, boolean isBoss, int page, int pageSize) {

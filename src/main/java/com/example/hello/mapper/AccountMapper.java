@@ -29,6 +29,8 @@ public interface AccountMapper {
                                            @Param("isFinance") boolean isFinance,
                                            @Param("projectId") Long projectId,
                                            @Param("status") Integer status,
+                                           @Param("type") Integer type,
+                                           @Param("creatorName") String creatorName,
                                            @Param("offset") int offset,
                                            @Param("pageSize") int pageSize);
 
@@ -36,7 +38,9 @@ public interface AccountMapper {
                          @Param("isBoss") boolean isBoss,
                          @Param("isFinance") boolean isFinance,
                          @Param("projectId") Long projectId,
-                         @Param("status") Integer status);
+                         @Param("status") Integer status,
+                         @Param("type") Integer type,
+                         @Param("creatorName") String creatorName);
 
     List<Account> findPendingByFinanceContactId(@Param("financeContactId") Long financeContactId, 
                                                  @Param("isBoss") boolean isBoss);

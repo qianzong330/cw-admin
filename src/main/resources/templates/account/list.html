@@ -42,6 +42,36 @@
                                 </button>
                             </div>
                         </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <label class="text-nowrap">收支类型：</label>
+                            <div class="input-group input-group-sm" style="width: 120px;">
+                                <select name="type" id="filterType" class="form-select" style="border-radius: 0.25rem;" onchange="document.getElementById('filterForm').submit()">
+                                    <option value="">所有</option>
+                                    <option value="1" th:selected="${type == 1}">收入</option>
+                                    <option value="2" th:selected="${type == 2}">支出</option>
+                                </select>
+                                <button type="button" class="btn btn-outline-secondary" 
+                                        style="border-top-left-radius: 0; border-bottom-left-radius: 0; padding: 0.25rem 0.5rem;"
+                                        onclick="event.stopPropagation(); clearSelect('filterType')" 
+                                        th:if="${type != null}">
+                                    <i class="bi bi-x-lg" style="font-size: 0.7rem;"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <label class="text-nowrap">记账人：</label>
+                            <div class="input-group input-group-sm" style="width: 140px;">
+                                <input type="text" name="creatorName" id="filterCreatorName" class="form-control" 
+                                       style="border-radius: 0.25rem;" placeholder="输入姓名" 
+                                       th:value="${creatorName}" onchange="document.getElementById('filterForm').submit()">
+                                <button type="button" class="btn btn-outline-secondary" 
+                                        style="border-top-left-radius: 0; border-bottom-left-radius: 0; padding: 0.25rem 0.5rem;"
+                                        onclick="event.stopPropagation(); clearInput('filterCreatorName')" 
+                                        th:if="${creatorName != null and !creatorName.isEmpty()}">
+                                    <i class="bi bi-x-lg" style="font-size: 0.7rem;"></i>
+                                </button>
+                            </div>
+                        </div>
                         <button type="button" class="btn btn-outline-secondary btn-sm" onclick="clearAllFilters()">清空</button>
                     </form>
                     <button type="button" class="btn btn-primary btn-sm ms-auto"
@@ -87,7 +117,7 @@
                                     <button th:if="${acc.invoiceImages != null && !acc.invoiceImages.isEmpty()}" 
                                             class="btn btn-outline-info btn-sm" 
                                             th:onclick="'showInvoiceImages(' + ${acc.id} + ')'">
-                                        <i class="bi bi-images"></i> 查看票据
+                                        <i class="bi bi-images"></i> 票据
                                         <span th:if="${#strings.arraySplit(acc.invoiceImages, ',').length > 1}" 
                                               th:text="'(' + ${#strings.arraySplit(acc.invoiceImages, ',').length} + ')'"></span>
                                     </button>
@@ -471,10 +501,18 @@
                 document.getElementById('filterForm').submit();
             }
             
+            // 清空输入框
+            function clearInput(inputId) {
+                document.getElementById(inputId).value = '';
+                document.getElementById('filterForm').submit();
+            }
+            
             // 清空所有筛选条件
             function clearAllFilters() {
                 document.getElementById('filterProjectId').value = '';
                 document.getElementById('filterStatus').value = '';
+                document.getElementById('filterType').value = '';
+                document.getElementById('filterCreatorName').value = '';
                 document.getElementById('filterForm').submit();
             }
             

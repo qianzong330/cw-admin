@@ -84,10 +84,13 @@
                                 </td>
                                 <td th:text="${acc.categoryName != null and acc.categoryName != ''} ? ${acc.categoryName} : '-'">-</td>
                                 <td>
-                                    <a th:if="${acc.invoiceImages != null && !acc.invoiceImages.isEmpty()}" th:href="${#strings.arraySplit(acc.invoiceImages, ',')[0]}" target="_blank" class="btn btn-link btn-sm p-0">
-                                        <i class="bi bi-file-earmark-image"></i> 查看
-                                        <span th:if="${#strings.arraySplit(acc.invoiceImages, ',').length > 1}" th:text="'(' + ${#strings.arraySplit(acc.invoiceImages, ',').length} + ')'"></span>
-                                    </a>
+                                    <button th:if="${acc.invoiceImages != null && !acc.invoiceImages.isEmpty()}" 
+                                            class="btn btn-outline-info btn-sm" 
+                                            th:onclick="'showInvoiceImages(' + ${acc.id} + ')'">
+                                        <i class="bi bi-images"></i> 查看票据
+                                        <span th:if="${#strings.arraySplit(acc.invoiceImages, ',').length > 1}" 
+                                              th:text="'(' + ${#strings.arraySplit(acc.invoiceImages, ',').length} + ')'"></span>
+                                    </button>
                                     <span th:if="${acc.invoiceImages == null || acc.invoiceImages.isEmpty()}">-</span>
                                 </td>
                                 <td>
@@ -682,6 +685,59 @@
                 modal.show();
             }
             
+            // 查看票据图片（支持多图切换）
+            var currentInvoiceImages = [];
+            var currentInvoiceImageIndex = 0;
+            
+            function showInvoiceImages(accountId) {
+                // 获取帐条详情
+                fetch('/account/detail/' + accountId)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success && data.account.invoiceImages) {
+                            currentInvoiceImages = data.account.invoiceImages.split(',').filter(url => url.trim());
+                            currentInvoiceImageIndex = 0;
+                            
+                            if (currentInvoiceImages.length > 0) {
+                                updateInvoiceImageViewer();
+                                var modal = new bootstrap.Modal(document.getElementById('invoiceImagesModal'));
+                                modal.show();
+                            }
+                        }
+                    })
+                    .catch(error => {
+                        showAlertModal('错误', '获取票据图片失败：' + error.message);
+                    });
+            }
+            
+            function updateInvoiceImageViewer() {
+                var viewer = document.getElementById('invoiceImageViewer');
+                var counter = document.getElementById('invoiceImageCounter');
+                var prevBtn = document.getElementById('prevInvoiceImage');
+                var nextBtn = document.getElementById('nextInvoiceImage');
+                
+                viewer.src = currentInvoiceImages[currentInvoiceImageIndex].trim();
+                counter.textContent = (currentInvoiceImageIndex + 1) + ' / ' + currentInvoiceImages.length;
+                
+                // 控制按钮显示
+                prevBtn.style.display = currentInvoiceImages.length > 1 ? 'block' : 'none';
+                nextBtn.style.display = currentInvoiceImages.length > 1 ? 'block' : 'none';
+            }
+            
+            function prevInvoiceImage() {
+                if (currentInvoiceImageIndex > 0) {
+                    currentInvoiceImageIndex--;
+                    updateInvoiceImageViewer();
+                }
+            }
+            
+            function nextInvoiceImage() {
+                if (currentInvoiceImageIndex < currentInvoiceImages.length - 1) {
+                    currentInvoiceImageIndex++;
+                    updateInvoiceImageViewer();
+                }
+            }
+            
             // 显示日志弹窗
             function showLogModal(accountId) {
                 fetch('/accountDetail/api/list/' + accountId)
@@ -857,6 +913,36 @@
                     </div>
                     <div class="modal-body text-center">
                         <img id="largeImage" src="" style="max-width: 100%; max-height: 80vh; object-fit: contain;">
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 查看票据弹窗（支持多图切换） -->
+        <div class="modal fade" id="invoiceImagesModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h6 class="modal-title">查看票据</h6>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body text-center">
+                        <div class="position-relative">
+                            <img id="invoiceImageViewer" src="" style="max-width: 100%; max-height: 60vh; object-fit: contain;">
+                            <button id="prevInvoiceImage" class="btn btn-outline-secondary position-absolute" 
+                                    style="left: 10px; top: 50%; transform: translateY(-50%);" 
+                                    onclick="prevInvoiceImage()">
+                                <i class="bi bi-chevron-left"></i>
+                            </button>
+                            <button id="nextInvoiceImage" class="btn btn-outline-secondary position-absolute" 
+                                    style="right: 10px; top: 50%; transform: translateY(-50%);" 
+                                    onclick="nextInvoiceImage()">
+                                <i class="bi bi-chevron-right"></i>
+                            </button>
+                        </div>
+                        <div class="mt-3">
+                            <span id="invoiceImageCounter" class="badge bg-secondary">1 / 1</span>
+                        </div>
                     </div>
                 </div>
             </div>

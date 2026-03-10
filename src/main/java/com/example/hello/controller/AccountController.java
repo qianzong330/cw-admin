@@ -45,6 +45,8 @@ public class AccountController {
     @GetMapping("/list")
     public String list(@RequestParam(required = false) Long projectId,
                        @RequestParam(required = false) Integer status,
+                       @RequestParam(required = false) Integer type,
+                       @RequestParam(required = false) String creatorName,
                        @RequestParam(defaultValue = "1") int page,
                        @RequestParam(defaultValue = "10") int pageSize,
                        Model model,
@@ -58,6 +60,8 @@ public class AccountController {
             currentUser.isFinance(),
             projectId, 
             status,
+            type,
+            creatorName,
             page,
             pageSize
         );
@@ -66,7 +70,9 @@ public class AccountController {
             currentUser.isBoss(),
             currentUser.isFinance(),
             projectId, 
-            status
+            status,
+            type,
+            creatorName
         );
         int totalPages = (int) Math.ceil((double) totalCount / pageSize);
         
@@ -85,6 +91,8 @@ public class AccountController {
         model.addAttribute("bossList", bossList);
         model.addAttribute("projectId", projectId);
         model.addAttribute("status", status);
+        model.addAttribute("type", type);
+        model.addAttribute("creatorName", creatorName);
         model.addAttribute("currentUser", currentUser);
         model.addAttribute("isPendingPage", false);
         model.addAttribute("currentPage", page);

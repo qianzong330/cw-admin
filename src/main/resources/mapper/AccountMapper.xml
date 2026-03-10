@@ -157,6 +157,12 @@
         <if test="status != null">
             AND a.status = #{status}
         </if>
+        <if test="type != null">
+            AND a.type = #{type}
+        </if>
+        <if test="creatorName != null and creatorName != ''">
+            AND e.name LIKE CONCAT('%', #{creatorName}, '%')
+        </if>
         ORDER BY a.create_time DESC
         LIMIT #{pageSize} OFFSET #{offset}
     </select>
@@ -165,6 +171,7 @@
         SELECT COUNT(*)
         FROM tb_account a
         LEFT JOIN tb_employee creator ON a.creator_id = creator.id
+        LEFT JOIN tb_employee e ON a.creator_id = e.id
         LEFT JOIN tb_role creator_role ON creator.role_id = creator_role.id
         WHERE 1=1
         <!-- BOSS能看所有 -->
@@ -181,6 +188,12 @@
         </if>
         <if test="status != null">
             AND a.status = #{status}
+        </if>
+        <if test="type != null">
+            AND a.type = #{type}
+        </if>
+        <if test="creatorName != null and creatorName != ''">
+            AND e.name LIKE CONCAT('%', #{creatorName}, '%')
         </if>
     </select>
 
