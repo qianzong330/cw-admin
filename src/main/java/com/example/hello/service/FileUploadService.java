@@ -1,13 +1,14 @@
 package com.example.hello.service;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
-import software.amazon.awssdk.core.sync.RequestBody;
-import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
+import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -15,40 +16,38 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * 文件上传服务
+ * 文件上传服务 - 本地存储版本
  */
 @Service
 public class FileUploadService {
 
-    @Autowired
-    private S3Client s3Client;
-
-    @Autowired
-    private String bucketName;
+    @Value("${file.upload.path:uploads/invoices}")
+    private String uploadPath;
 
     private static final String INVOICE_FOLDER = "invoices/";
     private static final long MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
     private static final List<String> ALLOWED_TYPES = List.of("image/jpeg", "image/png", "image/gif", "image/webp");
 
     /**
-     * 上传单张发票图片
+     * 上传单张发票图片到本地
      */
     public String uploadInvoice(MultipartFile file) throws IOException {
         validateFile(file);
         
         String fileName = generateFileName(file.getOriginalFilename());
-        String key = INVOICE_FOLDER + fileName;
         
-        PutObjectRequest putObjectRequest = PutObjectRequest.builder()
-                .bucket(bucketName)
-                .key(key)
-                .contentType(file.getContentType())
-                .build();
+        // 创建上传目录
+        Path uploadDir = Paths.get(uploadPath);
+        if (!Files.exists(uploadDir)) {
+            Files.createDirectories(uploadDir);
+        }
         
-        s3Client.putObject(putObjectRequest, RequestBody.fromBytes(file.getBytes()));
+        // 保存文件
+        Path filePath = uploadDir.resolve(fileName);
+        Files.write(filePath, file.getBytes());
         
-        // 返回访问URL
-        return "https://static-host-z4bn2xr7-hsc-images.sealoshzh.site/" + key;
+        // 返回访问URL（相对路径）
+        return "/uploads/invoices/" + fileName;
     }
 
     /**

@@ -349,7 +349,7 @@
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body py-3">
-                        <form id="addAccountForm" action="/account/save" method="post">
+                        <form id="addAccountForm" action="/account/save" method="post" enctype="multipart/form-data">
                             <div class="d-flex align-items-center gap-2 mb-2">
                                 <label class="fw-bold text-nowrap mb-0" style="min-width: 70px; font-size: 14px;">项目<span class="text-danger">*</span></label>
                                 <select class="form-select form-select-sm" name="projectId" id="projectId" required style="flex: 1;">
@@ -412,7 +412,7 @@
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body py-3">
-                        <form id="editAccountForm" action="/account/save" method="post">
+                        <form id="editAccountForm" action="/account/save" method="post" enctype="multipart/form-data">
                             <input type="hidden" name="id" id="editId">
                             <div class="d-flex align-items-center gap-2 mb-2">
                                 <label class="fw-bold text-nowrap mb-0" style="min-width: 70px; font-size: 14px;">项目<span class="text-danger">*</span></label>
