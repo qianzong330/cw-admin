@@ -72,18 +72,11 @@
                         
                         <!-- 图表区域 -->
                         <div class="row">
-                            <div class="col-md-4">
+                            <div class="col-md-6">
                                 <div class="card h-100">
-                                    <div class="card-header d-flex align-items-center">
-                                        <i class="bi bi-pie-chart text-primary me-2"></i>
-                                        <h6 class="mb-0">收支占比</h6>
-                                    </div>
-                                    <div class="card-body d-flex align-items-center justify-content-center">
-                                        <canvas id="overviewPieChart" style="max-height: 180px;"></canvas>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-4">
+                                    <div class="card-header d-flex align-items-center border-start border-4 border-success">
+                                        <i class="bi bi-trophy text-success me-2"></i>
+                                        <h6 class="mb-0">收入TOP5分类</h6>
                                 <div class="card h-100">
                                     <div class="card-header d-flex align-items-center border-start border-4 border-success">
                                         <i class="bi bi-trophy text-success me-2"></i>
@@ -114,7 +107,7 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="col-md-4">
+                            <div class="col-md-6">
                                 <div class="card h-100">
                                     <div class="card-header d-flex align-items-center border-start border-4 border-danger">
                                         <i class="bi bi-trophy text-danger me-2"></i>
@@ -209,58 +202,6 @@
             var totalExpense = /*[[${totalExpense ?: 0}]]*/ 0;
             
             // 等待 Chart.js 加载完成后再渲染图表
-            function renderCharts() {
-                if (typeof Chart === 'undefined') {
-                    console.log('Chart.js 尚未加载，1秒后重试...');
-                    setTimeout(renderCharts, 1000);
-                    return;
-                }
-                
-                try {
-                    // 收支占比饼图 - 商务风格配色
-                    var pieElement = document.getElementById('overviewPieChart');
-                    if (pieElement) {
-                        var pieCtx = pieElement.getContext('2d');
-                        new Chart(pieCtx, {
-                            type: 'pie',
-                            data: {
-                                labels: ['收入', '支出'],
-                                datasets: [{
-                                    data: [totalIncome, totalExpense],
-                                    backgroundColor: ['#276749', '#c53030'],
-                                    borderWidth: 2,
-                                    borderColor: '#fff'
-                                }]
-                            },
-                            options: {
-                                responsive: true,
-                                maintainAspectRatio: false,
-                                plugins: {
-                                    legend: {
-                                        position: 'bottom',
-                                        labels: {
-                                            padding: 15,
-                                            font: {
-                                                size: 12
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        });
-                    }
-                } catch (e) {
-                    console.error('图表渲染失败:', e);
-                }
-            }
-            
-            // 页面加载完成后渲染图表
-            if (document.readyState === 'loading') {
-                document.addEventListener('DOMContentLoaded', renderCharts);
-            } else {
-                renderCharts();
-            }
-            
             // 时间范围切换
             function onTimeRangeChange() {
                 var timeRange = document.getElementById('timeRangeSelect').value;
