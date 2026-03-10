@@ -446,14 +446,14 @@
         LIMIT 5
     </select>
 
-    <!-- 项目收入分类统计 - 暂按记账人分组 -->
+    <!-- 项目收入分类统计 - 按费用分类分组 -->
     <select id="getProjectIncomeByCategory" resultType="com.example.hello.dto.CategoryStatsDTO">
         SELECT 
-            e.id as categoryId,
-            e.name as categoryName,
+            c.id as categoryId,
+            c.name as categoryName,
             COALESCE(SUM(a.amount), 0) as amount
         FROM tb_account a
-        LEFT JOIN tb_employee e ON a.creator_id = e.id
+        LEFT JOIN tb_category c ON a.category_id = c.id
         WHERE a.project_id = #{projectId} AND a.type = 1 AND a.status = 5
         <if test="startDate != null and startDate != ''">
             AND DATE(a.create_time) &gt;= #{startDate}
@@ -461,19 +461,19 @@
         <if test="endDate != null and endDate != ''">
             AND DATE(a.create_time) &lt;= #{endDate}
         </if>
-        GROUP BY e.id, e.name
+        GROUP BY c.id, c.name
         HAVING amount > 0
         ORDER BY amount DESC
     </select>
 
-    <!-- 项目支出分类统计 - 暂按记账人分组 -->
+    <!-- 项目支出分类统计 - 按费用分类分组 -->
     <select id="getProjectExpenseByCategory" resultType="com.example.hello.dto.CategoryStatsDTO">
         SELECT 
-            e.id as categoryId,
-            e.name as categoryName,
+            c.id as categoryId,
+            c.name as categoryName,
             COALESCE(SUM(a.amount), 0) as amount
         FROM tb_account a
-        LEFT JOIN tb_employee e ON a.creator_id = e.id
+        LEFT JOIN tb_category c ON a.category_id = c.id
         WHERE a.project_id = #{projectId} AND a.type = 2 AND a.status = 5
         <if test="startDate != null and startDate != ''">
             AND DATE(a.create_time) &gt;= #{startDate}
@@ -481,7 +481,7 @@
         <if test="endDate != null and endDate != ''">
             AND DATE(a.create_time) &lt;= #{endDate}
         </if>
-        GROUP BY e.id, e.name
+        GROUP BY c.id, c.name
         HAVING amount > 0
         ORDER BY amount DESC
     </select>

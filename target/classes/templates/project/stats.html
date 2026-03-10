@@ -59,12 +59,9 @@
                 <!-- 第二行：操作按钮 -->
                 <div class="stats-actions d-flex align-items-center gap-2 flex-wrap">
                     <a th:href="@{/account/add(projectId=${project.id})}" class="btn btn-outline-primary btn-sm">
-                        <i class="bi bi-plus-lg"></i> 记账
+                        <i class="bi bi-plus-lg"></i> 去记账
                     </a>
-                    <a th:href="@{/account/pending}" class="btn btn-outline-success btn-sm">
-                        <i class="bi bi-check-circle"></i> 审批
-                    </a>
-                    <a href="/index" class="btn btn-outline-secondary btn-sm">返回</a>
+                    <a href="/index" class="btn btn-outline-secondary btn-sm">返回首页</a>
                 </div>
             </div>
             <div class="card-body">
