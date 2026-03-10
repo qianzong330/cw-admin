@@ -115,12 +115,10 @@
                                 <td th:text="${acc.categoryName != null and acc.categoryName != ''} ? ${acc.categoryName} : '-'">-</td>
                                 <td>
                                     <button th:if="${acc.invoiceImages != null && !acc.invoiceImages.isEmpty()}" 
-                                            class="btn btn-outline-info btn-sm d-inline-flex align-items-center gap-1" 
+                                            class="btn btn-outline-info btn-sm" 
+                                            style="white-space: nowrap;"
                                             th:onclick="'showInvoiceImages(' + ${acc.id} + ')'">
-                                        <i class="bi bi-images"></i>
-                                        <span>票据</span>
-                                        <span th:if="${#strings.arraySplit(acc.invoiceImages, ',').length > 1}" 
-                                              th:text="'(' + ${#strings.arraySplit(acc.invoiceImages, ',').length} + ')'"></span>
+                                        <i class="bi bi-images"></i> 票据<span th:if="${#strings.arraySplit(acc.invoiceImages, ',').length > 1}" th:text="'(' + ${#strings.arraySplit(acc.invoiceImages, ',').length} + ')'"></span>
                                     </button>
                                     <span th:if="${acc.invoiceImages == null || acc.invoiceImages.isEmpty()}">-</span>
                                 </td>
