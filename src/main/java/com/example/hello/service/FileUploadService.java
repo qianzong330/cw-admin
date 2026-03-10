@@ -23,7 +23,7 @@ public class FileUploadService {
     private static final String INVOICE_FOLDER = "invoices/";
     private static final long MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
     private static final List<String> ALLOWED_TYPES = List.of("image/jpeg", "image/png", "image/gif", "image/webp");
-    private static final String UPLOAD_URL = "http://z4bn2xr7-hsc-images.objectstorage.sealoshzh.site/";
+    private static final String UPLOAD_URL = "http://static-host-z4bn2xr7-hsc-images.sealoshzh.site/";
 
     /**
      * 上传单张发票图片到Sealos对象存储
