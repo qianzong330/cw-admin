@@ -1,6 +1,7 @@
 com/example/hello/controller/AccountController.class
 com/example/hello/service/AccountDetailService.class
 com/example/hello/config/BasicConfigMenuInitializer.class
+com/example/hello/controller/FileUploadController.class
 com/example/hello/config/WorkHourTableInitializer.class
 com/example/hello/service/OvertimePayService.class
 com/example/hello/controller/ProjectController.class
@@ -83,6 +84,8 @@ com/example/hello/entity/SalaryMonthStatus.class
 com/example/hello/service/MenuService.class
 com/example/hello/controller/JobCategoryController.class
 com/example/hello/service/JobCategoryService.class
+com/example/hello/service/FileUploadService.class
 com/example/hello/mapper/MenuMapper.class
 com/example/hello/config/WebMvcConfig.class
 com/example/hello/mapper/ProjectMapper.class
+com/example/hello/config/SealosS3Config.class
