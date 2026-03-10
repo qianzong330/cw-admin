@@ -127,9 +127,14 @@
                                 <td th:text="${acc.remark} ?: '-'" style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"></td>
                                 <td th:text="${#temporals.format(acc.createTime, 'yyyy-MM-dd HH:mm')}"></td>
                                 <td>
+                                    <!-- 预览按钮：始终显示，用于查看详情（所有状态都可见） -->
+                                    <button class="btn btn-outline-primary btn-sm" th:onclick="'openViewModal(' + ${acc.id} + ')'">
+                                        <i class="bi bi-eye"></i> 预览
+                                    </button>
+                                    
                                     <!-- 编辑按钮：状态为审核未通过(12) + 是自己的帐条 + 有编辑权限 -->
                                     <button th:if="${acc.status == 12 and acc.creatorId == currentUser.id and session.currentUser != null and session.currentUser.hasPermission('account:edit')}" 
-                                            class="btn btn-outline-primary btn-sm" th:onclick="'openEditModal(' + ${acc.id} + ')'">
+                                            class="btn btn-outline-warning btn-sm ms-1" th:onclick="'openEditModal(' + ${acc.id} + ')'">
                                         <i class="bi bi-pencil"></i> 编辑
                                     </button>
                                                                     
@@ -159,12 +164,6 @@
                                             class="btn btn-outline-danger btn-sm ms-1" 
                                             th:onclick="'approve(' + ${acc.id} + ', false, ' + ${acc.approvalStage != null ? acc.approvalStage : 1} + ')'">
                                         <i class="bi bi-x-circle"></i> 拒绝
-                                    </button>
-                                                                    
-                                    <!-- 预览按钮：审批通过后显示（审批人和发起人可见） -->
-                                    <button th:if="${acc.status == 5 and (acc.creatorId == currentUser.id or session.currentUser.finance or session.currentUser.boss)}" 
-                                            class="btn btn-outline-primary btn-sm ms-1" th:onclick="'openViewModal(' + ${acc.id} + ')'">
-                                        <i class="bi bi-eye"></i> 预览
                                     </button>
                                     
                                     <!-- 日志按钮：始终显示 -->
@@ -298,6 +297,10 @@
                             <label class="fw-bold text-nowrap mb-1" style="font-size: 14px;">备注</label>
                             <textarea class="form-control form-control-sm" id="viewRemark" rows="2" readonly></textarea>
                         </div>
+                        <div class="mb-2">
+                            <label class="fw-bold text-nowrap mb-1" style="font-size: 14px;">发票图片</label>
+                            <div id="viewInvoiceImages" class="d-flex flex-wrap gap-2"></div>
+                        </div>
                     </div>
                     <div class="modal-footer py-2">
                         <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">关闭</button>
@@ -377,9 +380,18 @@
                                 <input type="number" step="0.01" class="form-control form-control-sm" name="amount" id="amount" required style="flex: 1;">
                             </div>
                             
-                            <div class="d-flex align-items-start gap-2">
+                            <div class="d-flex align-items-start gap-2 mb-2">
                                 <label class="fw-bold text-nowrap mb-0 mt-1" style="min-width: 70px; font-size: 14px;">备注</label>
                                 <textarea class="form-control form-control-sm" name="remark" id="remark" rows="2" style="flex: 1;"></textarea>
+                            </div>
+                            
+                            <div class="d-flex align-items-start gap-2">
+                                <label class="fw-bold text-nowrap mb-0 mt-1" style="min-width: 70px; font-size: 14px;">发票</label>
+                                <div style="flex: 1;">
+                                    <input type="file" class="form-control form-control-sm" name="invoiceFiles" id="invoiceFiles" accept="image/*" multiple onchange="previewAddImages(this)">
+                                    <div class="form-text" style="font-size: 12px;">支持多张图片，单张不超过10MB</div>
+                                    <div id="addImagePreview" class="d-flex flex-wrap gap-2 mt-2"></div>
+                                </div>
                             </div>
                         </form>
                     </div>
@@ -535,8 +547,25 @@
                             document.getElementById('viewCategoryName').value = account.categoryName || '-';
                             document.getElementById('viewAmount').value = account.amount ? '¥' + account.amount : '-';
                             document.getElementById('viewCreatorName').value = account.creatorName || '-';
-                            document.getElementById('viewStatus').value = '生效';
+                            document.getElementById('viewStatus').value = account.statusText || '-';
                             document.getElementById('viewRemark').value = account.remark || '';
+                            
+                            // 显示发票图片
+                            var imagesContainer = document.getElementById('viewInvoiceImages');
+                            imagesContainer.innerHTML = '';
+                            if (account.invoiceImages && account.invoiceImages.length > 0) {
+                                var images = account.invoiceImages.split(',');
+                                images.forEach(function(url) {
+                                    if (url.trim()) {
+                                        var imgDiv = document.createElement('div');
+                                        imgDiv.innerHTML = '<img src="' + url.trim() + '" style="width: 80px; height: 80px; object-fit: cover; border-radius: 4px; border: 1px solid #ddd; cursor: pointer;" onclick="showLargeImage(\'' + url.trim() + '\')">';
+                                        imagesContainer.appendChild(imgDiv);
+                                    }
+                                });
+                            } else {
+                                imagesContainer.innerHTML = '<span class="text-muted">无发票图片</span>';
+                            }
+                            
                             new bootstrap.Modal(document.getElementById('viewAccountModal')).show();
                         } else {
                             showAlertModal('错误', data.message || '获取帐条详情失败');
@@ -623,6 +652,35 @@
                     confirmCallback = null;
                 }
             });
+            
+            // 新增记账图片预览
+            function previewAddImages(input) {
+                var preview = document.getElementById('addImagePreview');
+                preview.innerHTML = '';
+                
+                if (input.files && input.files.length > 0) {
+                    for (var i = 0; i < input.files.length; i++) {
+                        var file = input.files[i];
+                        var reader = new FileReader();
+                        
+                        reader.onload = function(e) {
+                            var div = document.createElement('div');
+                            div.className = 'position-relative';
+                            div.innerHTML = '<img src="' + e.target.result + '" style="width: 60px; height: 60px; object-fit: cover; border-radius: 4px; border: 1px solid #ddd; cursor: pointer;" onclick="showLargeImage(\'' + e.target.result + '\')">';
+                            preview.appendChild(div);
+                        };
+                        
+                        reader.readAsDataURL(file);
+                    }
+                }
+            }
+            
+            // 显示大图
+            function showLargeImage(imageUrl) {
+                document.getElementById('largeImage').src = imageUrl;
+                var modal = new bootstrap.Modal(document.getElementById('imageModal'));
+                modal.show();
+            }
             
             // 显示日志弹窗
             function showLogModal(accountId) {
@@ -788,6 +846,21 @@
                 });
             }
         </script>
+        
+        <!-- 大图展示弹窗 -->
+        <div class="modal fade" id="imageModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h6 class="modal-title">查看图片</h6>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body text-center">
+                        <img id="largeImage" src="" style="max-width: 100%; max-height: 80vh; object-fit: contain;">
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </body>
 </html>

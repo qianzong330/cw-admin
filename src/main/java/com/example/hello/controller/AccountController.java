@@ -150,7 +150,6 @@ public class AccountController {
     @ResponseBody
     public Map<String, Object> getDetail(@PathVariable Long id, HttpSession session) {
         Map<String, Object> result = new HashMap<>();
-        Employee currentUser = (Employee) session.getAttribute("currentUser");
         Account account = accountService.findById(id);
         
         // 空值检查
@@ -160,19 +159,7 @@ public class AccountController {
             return result;
         }
         
-        // 权限检查：只能编辑自己的帐条
-        if (!account.getCreatorId().equals(currentUser.getId())) {
-            result.put("success", false);
-            result.put("message", "只能编辑自己的帐条");
-            return result;
-        }
-        
-        if (account.getStatus() != 12) {
-            result.put("success", false);
-            result.put("message", "只能编辑审核未通过的帐条");
-            return result;
-        }
-        
+        // 预览功能：所有用户都可以查看帐条详情
         result.put("success", true);
         result.put("account", account);
         return result;
