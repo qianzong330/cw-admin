@@ -539,7 +539,10 @@
                 
                 isSubmitting = true;
                 var formData = new FormData();
-                formData.append('id', projectId);
+                // 只有当projectId有值时才添加，否则后端会认为是更新操作
+                if (projectId && projectId.trim() !== '') {
+                    formData.append('id', projectId);
+                }
                 formData.append('name', projectName);
                 
                 // 添加选中的管理员ID
