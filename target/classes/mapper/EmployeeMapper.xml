@@ -11,24 +11,20 @@
         <result column="salary_amount" property="salaryAmount"/>
         <result column="salary_type" property="salaryType"/>
         <result column="password" property="password"/>
-        <result column="finance_contact_id" property="financeContactId"/>
         <result column="status" property="status"/>
         <result column="create_time" property="createTime"/>
         <result column="update_time" property="updateTime"/>
         <result column="role_name" property="roleName"/>
         <result column="role_code" property="roleCode"/>
         <result column="job_category_name" property="jobCategoryName"/>
-        <result column="finance_contact_name" property="financeContactName"/>
     </resultMap>
 
     <select id="findById" resultMap="BaseResultMap">
         SELECT e.*, r.role_name as role_name, r.role_code as role_code,
-               jc.name as job_category_name,
-               fe.name as finance_contact_name
+               jc.name as job_category_name
         FROM tb_employee e
         LEFT JOIN tb_role r ON e.role_id = r.id
         LEFT JOIN tb_job_category jc ON e.job_category_id = jc.id
-        LEFT JOIN tb_employee fe ON e.finance_contact_id = fe.id
         WHERE e.id = #{id}
     </select>
 
@@ -60,46 +56,38 @@
 
     <select id="findAll" resultMap="BaseResultMap">
         SELECT e.*, r.role_name as role_name, r.role_code as role_code,
-               jc.name as job_category_name,
-               fe.name as finance_contact_name
+               jc.name as job_category_name
         FROM tb_employee e
         LEFT JOIN tb_role r ON e.role_id = r.id
         LEFT JOIN tb_job_category jc ON e.job_category_id = jc.id
-        LEFT JOIN tb_employee fe ON e.finance_contact_id = fe.id
         ORDER BY e.create_time DESC
     </select>
 
     <select id="findByRoleCode" resultMap="BaseResultMap">
         SELECT e.*, r.role_name as role_name, r.role_code as role_code,
-               jc.name as job_category_name,
-               fe.name as finance_contact_name
+               jc.name as job_category_name
         FROM tb_employee e
         LEFT JOIN tb_role r ON e.role_id = r.id
         LEFT JOIN tb_job_category jc ON e.job_category_id = jc.id
-        LEFT JOIN tb_employee fe ON e.finance_contact_id = fe.id
         WHERE r.role_code = #{roleCode} AND e.status = 1
     </select>
 
     <select id="findFinanceList" resultMap="BaseResultMap">
         SELECT e.*, r.role_name as role_name, r.role_code as role_code,
-               jc.name as job_category_name,
-               fe.name as finance_contact_name
+               jc.name as job_category_name
         FROM tb_employee e
         LEFT JOIN tb_role r ON e.role_id = r.id
         LEFT JOIN tb_job_category jc ON e.job_category_id = jc.id
-        LEFT JOIN tb_employee fe ON e.finance_contact_id = fe.id
         WHERE LOWER(r.role_code) = 'finance' AND e.status = 1
     </select>
 
     <select id="findByProjectId" resultMap="BaseResultMap">
         SELECT e.*, r.role_name as role_name, r.role_code as role_code,
-               jc.name as job_category_name,
-               fe.name as finance_contact_name
+               jc.name as job_category_name
         FROM tb_employee e
         INNER JOIN tb_employee_project ep ON e.id = ep.employee_id
         LEFT JOIN tb_role r ON e.role_id = r.id
         LEFT JOIN tb_job_category jc ON e.job_category_id = jc.id
-        LEFT JOIN tb_employee fe ON e.finance_contact_id = fe.id
         WHERE ep.project_id = #{projectId}
         ORDER BY e.create_time DESC
     </select>
@@ -120,9 +108,9 @@
 
     <insert id="insert" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO tb_employee (name, role_id, phone, job_category_id, salary_amount, salary_type, 
-                                 password, finance_contact_id, status)
+                                 password, status)
         VALUES (#{name}, #{roleId}, #{phone}, #{jobCategoryId}, #{salaryAmount}, #{salaryType}, 
-                #{password}, #{financeContactId}, #{status})
+                #{password}, #{status})
     </insert>
 
     <update id="update">
@@ -134,7 +122,6 @@
             salary_amount = #{salaryAmount},
             salary_type = #{salaryType},
             password = #{password},
-            finance_contact_id = #{financeContactId},
             status = #{status}
         WHERE id = #{id}
     </update>

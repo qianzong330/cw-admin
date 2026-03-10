@@ -109,16 +109,27 @@ public class AccountController {
                               HttpSession session) {
         Employee currentUser = (Employee) session.getAttribute("currentUser");
         
-        // 查询待审批的帐条（状态为1-审批中，且当前用户是财务对接人或BOSS）
-        List<Account> accounts = accountService.findPendingByFinanceContactIdWithPage(
+        // 查询待审批的帐条（状态为1-审批中）
+        // 财务看approvalStage=1，BOSS看approvalStage=2
+        List<Account> accounts = accountService.findByConditionWithPage(
             currentUser.getId(), 
             currentUser.isBoss(),
+            currentUser.isFinance(),
+            null, // projectId
+            1,    // status = 1 审批中
+            null, // type
+            null, // creatorName
             page,
             pageSize
         );
-        int totalCount = accountService.countPendingByFinanceContactId(
+        int totalCount = accountService.countByCondition(
             currentUser.getId(), 
-            currentUser.isBoss()
+            currentUser.isBoss(),
+            currentUser.isFinance(),
+            null, // projectId
+            1,    // status = 1 审批中
+            null, // type
+            null  // creatorName
         );
         int totalPages = (int) Math.ceil((double) totalCount / pageSize);
         
