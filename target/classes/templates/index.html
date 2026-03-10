@@ -64,7 +64,7 @@
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                <tr th:each="item, iterStat : ${top5Income}">
+                                                <tr th:each="item, iterStat : ${top5Income}" th:if="${iterStat.index < 5}">
                                                     <td class="ps-3">
                                                         <span class="badge rounded-pill" th:classappend="${iterStat.index == 0} ? 'bg-warning' : (${iterStat.index == 1} ? 'bg-secondary' : (${iterStat.index == 2} ? 'bg-info' : 'bg-light text-muted border'))" th:text="${iterStat.index + 1}">1</span>
                                                     </td>
@@ -95,7 +95,7 @@
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                <tr th:each="item, iterStat : ${top5Expense}">
+                                                <tr th:each="item, iterStat : ${top5Expense}" th:if="${iterStat.index < 5}">
                                                     <td class="ps-3">
                                                         <span class="badge rounded-pill" th:classappend="${iterStat.index == 0} ? 'bg-warning' : (${iterStat.index == 1} ? 'bg-secondary' : (${iterStat.index == 2} ? 'bg-info' : 'bg-light text-muted border'))" th:text="${iterStat.index + 1}">1</span>
                                                     </td>
