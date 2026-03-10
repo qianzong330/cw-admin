@@ -48,8 +48,8 @@ public class FileUploadService {
             
             s3Client.putObject(putObjectRequest, RequestBody.fromBytes(file.getBytes()));
             
-            // 返回访问URL
-            return "https://static-host-z4bn2xr7-hsc-images.sealoshzh.site/" + key;
+            // 返回访问URL（使用HTTP）
+            return "http://static-host-z4bn2xr7-hsc-images.sealoshzh.site/" + key;
         } catch (Exception e) {
             throw new IOException("发票上传失败，请检查Sealos对象存储服务是否可用: " + e.getMessage(), e);
         }
