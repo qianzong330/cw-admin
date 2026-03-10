@@ -109,7 +109,7 @@
                     </div>
                     <div class="modal-footer py-2">
                         <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">取消</button>
-                        <button type="button" class="btn btn-outline-primary btn-sm" onclick="submitProjectForm()">保存</button>
+                        <button type="button" class="btn btn-outline-primary btn-sm" id="saveProjectBtn">保存</button>
                     </div>
                 </div>
             </div>
@@ -581,6 +581,12 @@
             // 页面加载时渲染项目列表
             document.addEventListener('DOMContentLoaded', function() {
                 renderProjectList();
+                
+                // 绑定保存按钮事件
+                document.getElementById('saveProjectBtn').addEventListener('click', function() {
+                    console.log('保存按钮被点击');
+                    submitProjectForm();
+                });
             });
         </script>
     </div>
