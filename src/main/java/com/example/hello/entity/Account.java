@@ -17,6 +17,7 @@ public class Account {
     private String approvalProgressId;
     private BigDecimal amount;
     private String remark;
+    private String invoiceImages; // 发票图片URL列表，逗号分隔
     private LocalDateTime createTime;
     private LocalDateTime updateTime;
 
@@ -232,6 +233,14 @@ public class Account {
 
     public void setFinalApproverId(Long finalApproverId) {
         this.finalApproverId = finalApproverId;
+    }
+
+    public String getInvoiceImages() {
+        return invoiceImages;
+    }
+
+    public void setInvoiceImages(String invoiceImages) {
+        this.invoiceImages = invoiceImages;
     }
 
     public String getStatusText() {

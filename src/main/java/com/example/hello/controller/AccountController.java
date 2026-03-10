@@ -7,6 +7,7 @@ import com.example.hello.entity.Project;
 import com.example.hello.service.AccountService;
 import com.example.hello.service.CategoryService;
 import com.example.hello.service.EmployeeService;
+import com.example.hello.service.FileUploadService;
 import com.example.hello.service.ProjectService;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,6 +38,9 @@ public class AccountController {
     
     @Autowired
     private EmployeeService employeeService;
+    
+    @Autowired
+    private FileUploadService fileUploadService;
 
     @GetMapping("/list")
     public String list(@RequestParam(required = false) Long projectId,
@@ -176,7 +180,8 @@ public class AccountController {
 
     @PostMapping("/save")
     public String save(Account account, 
-                       @RequestParam(required = false) MultipartFile invoiceFile,
+                       @RequestParam(required = false) List<MultipartFile> invoiceFiles,
+                       @RequestParam(required = false) String existingImages,
                        HttpSession session) {
         Employee currentUser = (Employee) session.getAttribute("currentUser");
         
@@ -200,17 +205,27 @@ public class AccountController {
             }
         }
         
-        // 处理文件上传
-        if (invoiceFile != null && !invoiceFile.isEmpty()) {
-            String fileName = UUID.randomUUID().toString() + "_" + invoiceFile.getOriginalFilename();
-            String uploadPath = System.getProperty("user.dir") + "/src/main/resources/static/uploads/";
-            File dest = new File(uploadPath + fileName);
+        // 处理发票图片上传
+        List<String> imageUrls = new java.util.ArrayList<>();
+        
+        // 保留已有的图片
+        if (existingImages != null && !existingImages.isEmpty()) {
+            imageUrls.addAll(java.util.Arrays.asList(existingImages.split(",")));
+        }
+        
+        // 上传新图片
+        if (invoiceFiles != null && !invoiceFiles.isEmpty()) {
             try {
-                invoiceFile.transferTo(dest);
-                account.setInvoiceNo(fileName);
+                List<String> newUrls = fileUploadService.uploadInvoices(invoiceFiles);
+                imageUrls.addAll(newUrls);
             } catch (IOException e) {
                 e.printStackTrace();
             }
+        }
+        
+        // 设置图片URL（逗号分隔）
+        if (!imageUrls.isEmpty()) {
+            account.setInvoiceImages(String.join(",", imageUrls));
         }
         
         accountService.save(account, currentUser);

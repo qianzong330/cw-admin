@@ -84,10 +84,11 @@
                                 </td>
                                 <td th:text="${acc.categoryName != null and acc.categoryName != ''} ? ${acc.categoryName} : '-'">-</td>
                                 <td>
-                                    <a th:if="${acc.invoiceNo != null && !acc.invoiceNo.isEmpty()}" th:href="@{/uploads/{file}(file=${acc.invoiceNo})}" target="_blank" class="btn btn-link btn-sm p-0">
+                                    <a th:if="${acc.invoiceImages != null && !acc.invoiceImages.isEmpty()}" th:href="${#strings.arraySplit(acc.invoiceImages, ',')[0]}" target="_blank" class="btn btn-link btn-sm p-0">
                                         <i class="bi bi-file-earmark-image"></i> 查看
+                                        <span th:if="${#strings.arraySplit(acc.invoiceImages, ',').length > 1}" th:text="'(' + ${#strings.arraySplit(acc.invoiceImages, ',').length} + ')'"></span>
                                     </a>
-                                    <span th:if="${acc.invoiceNo == null || acc.invoiceNo.isEmpty()}">-</span>
+                                    <span th:if="${acc.invoiceImages == null || acc.invoiceImages.isEmpty()}">-</span>
                                 </td>
                                 <td>
                                     <!-- 待财务审批 -->
