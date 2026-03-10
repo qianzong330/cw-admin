@@ -13,6 +13,7 @@
 /home/devbox/project/src/main/java/com/example/hello/config/MenuUrlFixInitializer.java
 /home/devbox/project/src/main/java/com/example/hello/config/MyBatisConfig.java
 /home/devbox/project/src/main/java/com/example/hello/config/PermissionInitializer.java
+/home/devbox/project/src/main/java/com/example/hello/config/ProjectMenuInitializer.java
 /home/devbox/project/src/main/java/com/example/hello/config/RemoveDuplicateRoleMenu.java
 /home/devbox/project/src/main/java/com/example/hello/config/SealosS3Config.java
 /home/devbox/project/src/main/java/com/example/hello/config/SecurityConfig.java

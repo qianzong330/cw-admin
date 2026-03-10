@@ -2,13 +2,16 @@ package com.example.hello.service;
 
 import com.example.hello.entity.EmployeeProject;
 import com.example.hello.entity.Project;
+import com.example.hello.entity.ProjectAdmin;
 import com.example.hello.mapper.EmployeeProjectMapper;
+import com.example.hello.mapper.ProjectAdminMapper;
 import com.example.hello.mapper.ProjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class ProjectService {
@@ -18,6 +21,9 @@ public class ProjectService {
 
     @Autowired
     private EmployeeProjectMapper employeeProjectMapper;
+
+    @Autowired
+    private ProjectAdminMapper projectAdminMapper;
 
     public Project findById(Long id) {
         return projectMapper.findById(id);
@@ -45,6 +51,70 @@ public class ProjectService {
         } else {
             return projectMapper.update(project) > 0;
         }
+    }
+
+    /**
+     * 保存项目并设置管理员
+     */
+    @Transactional
+    public boolean saveWithAdmins(Project project, List<Long> adminIds) {
+        // 1. 保存项目
+        boolean success;
+        if (project.getId() == null) {
+            success = projectMapper.insert(project) > 0;
+        } else {
+            success = projectMapper.update(project) > 0;
+        }
+        
+        if (!success) {
+            return false;
+        }
+        
+        // 2. 删除旧的管理员关联
+        projectAdminMapper.deleteByProjectId(project.getId());
+        
+        // 3. 添加新的管理员关联
+        if (adminIds != null && !adminIds.isEmpty()) {
+            for (Long adminId : adminIds) {
+                ProjectAdmin pa = new ProjectAdmin();
+                pa.setProjectId(project.getId());
+                pa.setEmployeeId(adminId);
+                projectAdminMapper.insert(pa);
+            }
+        }
+        
+        return true;
+    }
+
+    /**
+     * 查询所有项目（带管理员信息）
+     */
+    public List<Project> findAllWithAdmins() {
+        List<Project> projects = projectMapper.findAll();
+        for (Project project : projects) {
+            List<ProjectAdmin> admins = projectAdminMapper.findByProjectId(project.getId());
+            project.setAdmins(admins);
+            // 设置管理员姓名列表（逗号分隔）
+            if (admins != null && !admins.isEmpty()) {
+                String adminNames = admins.stream()
+                    .map(ProjectAdmin::getEmployeeName)
+                    .collect(Collectors.joining(", "));
+                project.setAdminNames(adminNames);
+            }
+        }
+        return projects;
+    }
+
+    /**
+     * 根据ID查询项目（带管理员信息）
+     */
+    public Project findByIdWithAdmins(Long id) {
+        Project project = projectMapper.findById(id);
+        if (project != null) {
+            List<ProjectAdmin> admins = projectAdminMapper.findByProjectId(id);
+            project.setAdmins(admins);
+        }
+        return project;
     }
 
     public boolean deleteById(Long id) {

@@ -64,6 +64,7 @@ com/example/hello/controller/LoginController$DateRange.class
 com/example/hello/entity/Category.class
 com/example/hello/service/PasswordEncryptionService.class
 com/example/hello/controller/TestController.class
+com/example/hello/config/ProjectMenuInitializer.class
 com/example/hello/service/CategoryService.class
 com/example/hello/mapper/SalarySlipMapper.class
 com/example/hello/entity/SalarySlip.class

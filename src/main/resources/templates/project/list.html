@@ -21,6 +21,7 @@
                             <tr>
                                 <th>ID</th>
                                 <th>项目名称</th>
+                                <th>管理员</th>
                                 <th>创建时间</th>
                                 <th>操作</th>
                             </tr>
@@ -82,9 +83,18 @@
                         <form id="projectForm" action="/project/save" method="post">
                             <input type="hidden" id="projectId" name="id">
                             
-                            <div class="d-flex align-items-center gap-2">
+                            <div class="d-flex align-items-center gap-2 mb-3">
                                 <label class="fw-bold text-nowrap mb-0" style="min-width: 70px; font-size: 14px;">项目名称<span class="text-danger">*</span></label>
                                 <input type="text" class="form-control form-control-sm" id="projectName" name="name" required style="flex: 1;">
+                            </div>
+                            
+                            <div class="d-flex align-items-start gap-2">
+                                <label class="fw-bold text-nowrap mt-1" style="min-width: 70px; font-size: 14px;">管理员</label>
+                                <div style="flex: 1;">
+                                    <select class="form-select form-select-sm" id="adminIds" name="adminIds" multiple style="width: 100%;">
+                                    </select>
+                                    <small class="text-muted">按住Ctrl可多选</small>
+                                </div>
                             </div>
                         </form>
                     </div>
@@ -123,6 +133,7 @@
         <script th:inline="javascript">
             var projectsData = /*[[${projects}]]*/ [];
             var employeesData = /*[[${employees}]]*/ [];
+            var adminEmployeesData = /*[[${adminEmployees}]]*/ [];
             var projectEmployeesMap = {}; // 缓存项目已关联员工数据
             
             // 初始化项目列表
@@ -130,9 +141,11 @@
                 var html = '';
                 if (projectsData && projectsData.length > 0) {
                     projectsData.forEach(function(proj) {
+                        var adminNames = proj.adminNames || '-';
                         html += '<tr id="projectRow_' + proj.id + '">' +
                                 '  <td>' + proj.id + '</td>' +
                                 '  <td>' + proj.name + '</td>' +
+                                '  <td>' + adminNames + '</td>' +
                                 '  <td>' + formatDate(proj.createTime) + '</td>' +
                                 '  <td>' +
                                 '    <button class="btn btn-outline-info btn-sm me-1" onclick="toggleProjectEmployees(' + proj.id + ')">' +
@@ -150,7 +163,7 @@
                                 '  </td>' +
                                 '</tr>' +
                                 '<tr id="employeesRow_' + proj.id + '" style="display: none;">' +
-                                '  <td colspan="4" class="p-0">' +
+                                '  <td colspan="5" class="p-0">' +
                                 '    <div class="bg-light p-3">' +
                                 '      <h6 class="mb-2">已关联员工</h6>' +
                                 '      <div id="employeesList_' + proj.id + '">' +
@@ -344,7 +357,24 @@
                 document.getElementById('projectModalTitle').textContent = '新增项目';
                 document.getElementById('projectForm').reset();
                 document.getElementById('projectId').value = '';
+                // 填充管理员下拉框
+                populateAdminSelect([]);
                 new bootstrap.Modal(document.getElementById('projectModal')).show();
+            }
+            
+            // 填充管理员下拉框
+            function populateAdminSelect(selectedIds) {
+                var select = document.getElementById('adminIds');
+                select.innerHTML = '';
+                adminEmployeesData.forEach(function(emp) {
+                    var option = document.createElement('option');
+                    option.value = emp.id;
+                    option.textContent = emp.name;
+                    if (selectedIds && selectedIds.includes(emp.id)) {
+                        option.selected = true;
+                    }
+                    select.appendChild(option);
+                });
             }
             
             function openEditProjectModal(id) {
@@ -354,6 +384,13 @@
                 document.getElementById('projectModalTitle').textContent = '编辑项目';
                 document.getElementById('projectId').value = proj.id;
                 document.getElementById('projectName').value = proj.name;
+                
+                // 填充管理员下拉框并选中已有的管理员
+                var selectedAdminIds = [];
+                if (proj.admins && proj.admins.length > 0) {
+                    selectedAdminIds = proj.admins.map(function(a) { return a.employeeId; });
+                }
+                populateAdminSelect(selectedAdminIds);
                 
                 new bootstrap.Modal(document.getElementById('projectModal')).show();
             }
@@ -419,6 +456,13 @@
                 
                 isSubmitting = true;
                 var formData = new FormData(form);
+                
+                // 添加选中的管理员ID
+                var adminSelect = document.getElementById('adminIds');
+                var selectedAdmins = Array.from(adminSelect.selectedOptions).map(opt => opt.value);
+                selectedAdmins.forEach(function(adminId) {
+                    formData.append('adminIds', adminId);
+                });
                 
                 fetch('/project/save', {
                     method: 'POST',

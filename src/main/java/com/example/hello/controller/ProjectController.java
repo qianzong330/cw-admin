@@ -3,6 +3,7 @@ package com.example.hello.controller;
 import com.example.hello.entity.Employee;
 import com.example.hello.entity.EmployeeProject;
 import com.example.hello.entity.Project;
+import com.example.hello.entity.ProjectAdmin;
 import com.example.hello.service.EmployeeService;
 import com.example.hello.service.ProjectService;
 import jakarta.servlet.http.HttpSession;
@@ -26,10 +27,13 @@ public class ProjectController {
     @GetMapping("/list")
     public String list(Model model, HttpSession session) {
         Employee currentUser = (Employee) session.getAttribute("currentUser");
-        List<Project> projects = projectService.findAll();
+        List<Project> projects = projectService.findAllWithAdmins();
         List<Employee> employees = employeeService.findAll();
+        // 获取admin角色的员工列表（用于新增/编辑时的管理员选择）
+        List<Employee> adminEmployees = employeeService.findByRoleCode("admin");
         model.addAttribute("projects", projects);
         model.addAttribute("employees", employees);
+        model.addAttribute("adminEmployees", adminEmployees);
         model.addAttribute("currentUser", currentUser);
         return "project/list";
     }
@@ -37,24 +41,32 @@ public class ProjectController {
     @GetMapping("/add")
     public String addPage(Model model) {
         model.addAttribute("project", new Project());
+        // 获取admin角色的员工列表
+        List<Employee> adminEmployees = employeeService.findByRoleCode("admin");
+        model.addAttribute("adminEmployees", adminEmployees);
         return "project/form";
     }
 
     @GetMapping("/edit/{id}")
     public String editPage(@PathVariable Long id, Model model) {
-        Project project = projectService.findById(id);
+        Project project = projectService.findByIdWithAdmins(id);
         model.addAttribute("project", project);
+        // 获取admin角色的员工列表
+        List<Employee> adminEmployees = employeeService.findByRoleCode("admin");
+        model.addAttribute("adminEmployees", adminEmployees);
         return "project/form";
     }
 
     @PostMapping("/save")
-    public String save(Project project, HttpSession session) {
+    public String save(Project project, 
+                       @RequestParam(required = false) List<Long> adminIds,
+                       HttpSession session) {
         Employee currentUser = (Employee) session.getAttribute("currentUser");
         if (!currentUser.hasPermission("project")) {
             return "redirect:/index";
         }
         
-        projectService.save(project);
+        projectService.saveWithAdmins(project, adminIds);
         return "redirect:/project/list";
     }
 
