@@ -5,39 +5,15 @@
 </head>
 <body>
     <div th:fragment="content">
-        <!-- 快捷操作按钮 -->
-        <div class="row mb-4">
-            <div class="col-md-12">
-                <div class="d-flex gap-3">
-                    <a href="/account/list" class="btn btn-outline-primary btn-sm d-flex align-items-center gap-2">
-                        <i class="bi bi-plus-circle"></i>
-                        <span>去记账</span>
-                    </a>
-                    <a th:if="${session.currentUser != null && session.currentUser.hasPermission('account')}" 
-                       href="/account/pending" class="btn btn-outline-primary d-flex align-items-center gap-2">
-                        <i class="bi bi-clock-history"></i>
-                        <span>去审批</span>
-                    </a>
-                </div>
-            </div>
-        </div>
-        
         <!-- 公司整体收支统计 -->
         <div class="row mb-4">
             <div class="col-md-12">
                 <div class="card">
                     <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
                         <h5 class="mb-0 d-flex align-items-center gap-2"><i class="bi bi-graph-up text-primary"></i> <span class="d-none d-sm-inline">公司收支总览</span><span class="d-sm-none">收支统计</span></h5>
-                        <select class="form-select form-select-sm" style="width: auto; min-width: 100px;" id="timeRangeSelect" onchange="onTimeRangeChange()">
-                            <option value="" th:selected="${timeRange == null || timeRange == ''}">全部时间</option>
-                            <option value="week" th:selected="${timeRange == 'week'}">本周</option>
-                            <option value="month" th:selected="${timeRange == 'month'}">本月</option>
-                            <option value="quarter" th:selected="${timeRange == 'quarter'}">本季度</option>
-                            <option value="halfYear" th:selected="${timeRange == 'halfYear'}">近半年</option>
-                            <option value="year" th:selected="${timeRange == 'year'}">近一年</option>
-                            <option value="twoYears" th:selected="${timeRange == 'twoYears'}">近两年</option>
-                            <option value="threeYears" th:selected="${timeRange == 'threeYears'}">近三年</option>
-                        </select>
+                        <a href="/account/list" class="btn btn-outline-primary btn-sm">
+                            <i class="bi bi-plus-circle"></i> 去记账
+                        </a>
                     </div>
                     <div class="card-body">
                         <!-- 统计卡片 -->
@@ -73,10 +49,6 @@
                         <!-- 图表区域 -->
                         <div class="row">
                             <div class="col-md-6">
-                                <div class="card h-100">
-                                    <div class="card-header d-flex align-items-center border-start border-4 border-success">
-                                        <i class="bi bi-trophy text-success me-2"></i>
-                                        <h6 class="mb-0">收入TOP5分类</h6>
                                 <div class="card h-100">
                                     <div class="card-header d-flex align-items-center border-start border-4 border-success">
                                         <i class="bi bi-trophy text-success me-2"></i>
@@ -195,25 +167,10 @@
             </div>
         </div>
         
-        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-        <script th:inline="javascript">
+        <script>
             /*<![CDATA[*/
             var totalIncome = /*[[${totalIncome ?: 0}]]*/ 0;
             var totalExpense = /*[[${totalExpense ?: 0}]]*/ 0;
-            
-            // 等待 Chart.js 加载完成后再渲染图表
-            // 时间范围切换
-            function onTimeRangeChange() {
-                var timeRange = document.getElementById('timeRangeSelect').value;
-                var url = new URL(window.location.href);
-                if (timeRange) {
-                    url.searchParams.set('timeRange', timeRange);
-                } else {
-                    url.searchParams.delete('timeRange');
-                }
-                url.searchParams.set('page', '1');
-                window.location.href = url.toString();
-            }
             /*]]>*/
         </script>
         
