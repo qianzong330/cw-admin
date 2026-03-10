@@ -8,6 +8,7 @@ import com.example.hello.entity.Employee;
 import com.example.hello.mapper.AccountMapper;
 import com.example.hello.mapper.AccountDetailMapper;
 import com.example.hello.mapper.EmployeeMapper;
+import com.example.hello.mapper.ProjectAdminMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,6 +28,9 @@ public class AccountService {
 
     @Autowired
     private EmployeeMapper employeeMapper;
+
+    @Autowired
+    private ProjectAdminMapper projectAdminMapper;
 
     public Account findById(Long id) {
         return accountMapper.findById(id);
@@ -143,7 +147,7 @@ public class AccountService {
         auditDetail.setOperatorName(currentUser.getName());
         auditDetail.setOperatorId(currentUser.getId());
         auditDetail.setActionType("SUBMIT_AUDIT");
-        auditDetail.setRemark("提交审批，等待财务审批");
+        auditDetail.setRemark("提交审批，等待管理员审批");
         auditDetail.setOperateTime(LocalDateTime.now());
         accountDetailMapper.insert(auditDetail);
     }
@@ -157,7 +161,12 @@ public class AccountService {
         
         String roleCode = currentUser.getRoleCode() != null ? currentUser.getRoleCode().toLowerCase() : "";
         boolean isBoss = "boss".equals(roleCode) || "root".equals(roleCode);
-        boolean isFinance = currentUser.isFinance();
+        
+        // 检查是否是项目管理员
+        boolean isProjectAdmin = false;
+        if (account.getProjectId() != null) {
+            isProjectAdmin = projectAdminMapper.isProjectAdmin(account.getProjectId(), currentUser.getId());
+        }
         
         Integer approvalStage = account.getApprovalStage();
         if (approvalStage == null) {
@@ -166,28 +175,28 @@ public class AccountService {
         
         if (approved) {
             // 审批通过
-            if (isFinance && approvalStage == 1) {
-                // 财务审批通过，进入BOSS审批阶段
-                String approvedByFinance = account.getApprovedByFinance();
-                if (approvedByFinance == null) {
-                    approvedByFinance = "";
+            if (isProjectAdmin && approvalStage == 1) {
+                // 项目管理员审批通过，进入BOSS审批阶段
+                String approvedByAdmin = account.getApprovedByAdmin();
+                if (approvedByAdmin == null) {
+                    approvedByAdmin = "";
                 }
                 
-                // 记录已审批的财务
-                if (!approvedByFinance.isEmpty()) {
-                    approvedByFinance += ",";
+                // 记录已审批的管理员
+                if (!approvedByAdmin.isEmpty()) {
+                    approvedByAdmin += ",";
                 }
-                approvedByFinance += currentUser.getId();
+                approvedByAdmin += currentUser.getId();
                 
-                account.setApprovedByFinance(approvedByFinance);
+                account.setApprovedByAdmin(approvedByAdmin);
                 account.setApprovalStage(2); // 进入BOSS审批
                 accountMapper.updateApprovalStage(account);
                 
                 // 记录操作明细
-                recordApprovalDetail(account, currentUser, "APPROVE", "财务审批通过，转BOSS审批");
+                recordApprovalDetail(account, currentUser, "APPROVE", "管理员审批通过，转BOSS审批");
                 
-            } else if (isBoss || (isFinance && approvalStage == 2)) {
-                // BOSS审批通过，或财务在BOSS阶段审批（兜底）
+            } else if (isBoss || (isProjectAdmin && approvalStage == 2)) {
+                // BOSS审批通过，或管理员在BOSS阶段审批（兜底）
                 account.setStatus(5); // 生效
                 account.setApprovalStage(null);
                 account.setFinalApproverId(currentUser.getId());
@@ -195,7 +204,7 @@ public class AccountService {
                 accountMapper.updateStatus(accountId, 5);
                 
                 // 记录操作明细，包含审批通过时的金额
-                String approverType = isBoss ? "BOSS" : "财务";
+                String approverType = isBoss ? "BOSS" : "管理员";
                 String amountStr = account.getAmount() != null ? account.getAmount().toString() : "0";
                 recordApprovalDetail(account, currentUser, "APPROVE", 
                     approverType + "审批通过，金额：" + amountStr + "元，帐条生效");

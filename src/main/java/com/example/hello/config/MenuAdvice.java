@@ -156,18 +156,42 @@ public class MenuAdvice {
     }
     
     /**
-     * 记账待财务审批数量
+     * 记账待管理员审批数量（当前用户是项目管理员的项目中的待审批帐条）
      */
-    @ModelAttribute("pendingAccountFinanceCount")
-    public Integer pendingAccountFinanceCount(HttpSession session) {
+    @ModelAttribute("pendingAccountAdminCount")
+    public Integer pendingAccountAdminCount(HttpSession session) {
         if (session.getAttribute("currentUser") == null) {
             return 0;
         }
         try {
-            Integer count = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM tb_account WHERE status = 1 AND approval_stage = 1",
-                Integer.class);
-            return count != null ? count : 0;
+            // 获取当前用户ID
+            Map<String, Object> user = (Map<String, Object>) session.getAttribute("currentUser");
+            Object userIdObj = user.get("id");
+            if (userIdObj == null) {
+                return 0;
+            }
+            Long userId = ((Number) userIdObj).longValue();
+            
+            // 检查是否是BOSS角色
+            Object roleCodeObj = user.get("roleCode");
+            String roleCode = roleCodeObj != null ? roleCodeObj.toString().toLowerCase() : "";
+            boolean isBoss = "boss".equals(roleCode) || "root".equals(roleCode);
+            
+            if (isBoss) {
+                // BOSS看到所有待管理员审批的帐条
+                Integer count = jdbcTemplate.queryForObject(
+                    "SELECT COUNT(*) FROM tb_account WHERE status = 1 AND approval_stage = 1",
+                    Integer.class);
+                return count != null ? count : 0;
+            } else {
+                // 普通用户只看到自己作为管理员的项目中的待审批帐条
+                Integer count = jdbcTemplate.queryForObject(
+                    "SELECT COUNT(*) FROM tb_account a " +
+                    "WHERE a.status = 1 AND a.approval_stage = 1 " +
+                    "AND a.project_id IN (SELECT pa.project_id FROM tb_project_admin pa WHERE pa.employee_id = ?)",
+                    Integer.class, userId);
+                return count != null ? count : 0;
+            }
         } catch (Exception e) {
             return 0;
         }

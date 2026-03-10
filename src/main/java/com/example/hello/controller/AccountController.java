@@ -4,6 +4,7 @@ import com.example.hello.entity.Account;
 import com.example.hello.entity.Category;
 import com.example.hello.entity.Employee;
 import com.example.hello.entity.Project;
+import com.example.hello.mapper.ProjectAdminMapper;
 import com.example.hello.service.AccountService;
 import com.example.hello.service.CategoryService;
 import com.example.hello.service.EmployeeService;
@@ -32,6 +33,9 @@ public class AccountController {
 
     @Autowired
     private ProjectService projectService;
+
+    @Autowired
+    private ProjectAdminMapper projectAdminMapper;
 
     @Autowired
     private CategoryService categoryService;
@@ -75,6 +79,29 @@ public class AccountController {
             creatorName
         );
         int totalPages = (int) Math.ceil((double) totalCount / pageSize);
+        
+        // 为每个帐条设置canApprove字段
+        boolean isBoss = currentUser.isBoss();
+        for (Account acc : accounts) {
+            boolean canApprove = false;
+            if (acc.getStatus() != null && acc.getStatus() == 1) {
+                Integer stage = acc.getApprovalStage();
+                if (stage == null) stage = 1;
+                
+                if (stage == 1) {
+                    // 阶段1：项目管理员或BOSS可以审批
+                    if (isBoss) {
+                        canApprove = true;
+                    } else if (acc.getProjectId() != null) {
+                        canApprove = projectAdminMapper.isProjectAdmin(acc.getProjectId(), currentUser.getId());
+                    }
+                } else if (stage == 2) {
+                    // 阶段2：只有BOSS可以审批
+                    canApprove = isBoss;
+                }
+            }
+            acc.setCanApprove(canApprove);
+        }
         
         // 根据权限获取项目列表：BOSS/财务看所有，普通员工只看关联的
         List<Project> projects = projectService.findByUserId(currentUser.getId(), currentUser.isBoss());
@@ -271,18 +298,23 @@ public class AccountController {
         // 权限检查
         String roleCode = currentUser.getRoleCode() != null ? currentUser.getRoleCode().toLowerCase() : "";
         boolean isBoss = "boss".equals(roleCode) || "root".equals(roleCode);
-        boolean isFinance = currentUser.isFinance();
+        
+        // 检查是否是项目管理员
+        boolean isProjectAdmin = false;
+        if (account.getProjectId() != null) {
+            isProjectAdmin = projectAdminMapper.isProjectAdmin(account.getProjectId(), currentUser.getId());
+        }
         
         Integer approvalStage = account.getApprovalStage();
         if (approvalStage == null) {
             approvalStage = 1;
         }
         
-        // 阶段1(待财务审批)：只有财务角色可以审批
+        // 阶段1(待管理员审批)：只有项目管理员或BOSS可以审批
         // 阶段2(待BOSS审批)：只有BOSS可以审批
         if (approvalStage == 1) {
-            if (!isFinance && !isBoss) {
-                return "error:无权限审批，当前阶段需要财务角色审批";
+            if (!isProjectAdmin && !isBoss) {
+                return "error:无权限审批，当前阶段需要项目管理员审批";
             }
         } else if (approvalStage == 2) {
             if (!isBoss) {

@@ -120,19 +120,9 @@
                                     <span th:if="${acc.invoiceImages == null || acc.invoiceImages.isEmpty()}">-</span>
                                 </td>
                                 <td>
-                                    <!-- 待财务审批 -->
+                                    <!-- 待管理员审批 -->
                                     <div th:if="${acc.status == 1 and acc.approvalStage == 1}">
-                                        <span class="badge bg-warning">待财务审批</span>
-                                        <!-- 审批人信息：只有财务/BOSS或自己的帐条才显示 -->
-                                        <div class="mt-1" th:if="${session.currentUser != null and (session.currentUser.finance or session.currentUser.boss or acc.creatorId == session.currentUser.id)}">
-                                            <small class="text-muted">
-                                                <i class="bi bi-people-fill me-1"></i>
-                                                <span th:each="f, iterStat : ${financeList}" th:if="${f.status == 1}">
-                                                    <span th:text="${f.name}"></span>
-                                                    <span th:if="${!iterStat.last}">、</span>
-                                                </span>
-                                            </small>
-                                        </div>
+                                        <span class="badge bg-warning">待管理员审批</span>
                                     </div>
                                     <!-- 待BOSS审批 -->
                                     <div th:if="${acc.status == 1 and acc.approvalStage == 2}">
@@ -179,23 +169,15 @@
                                         <i class="bi bi-x-circle"></i> 撤销
                                     </button>
                                                                     
-                                    <!-- 通过按钮：状态为审批中 (1) -->
-                                    <!-- 阶段1(待财务审批)：所有财务角色可见 -->
-                                    <!-- 阶段2(待BOSS审批)：BOSS可见 -->
-                                    <button th:if="${acc.status == 1 and session.currentUser != null and 
-                                                    ((acc.approvalStage == 1 and session.currentUser.finance) or 
-                                                     (acc.approvalStage == 2 and session.currentUser.boss) or
-                                                     session.currentUser.boss)}" 
+                                    <!-- 通过按钮：状态为审批中 (1) 且当前用户有审批权限 -->
+                                    <button th:if="${acc.status == 1 and acc.canApprove}" 
                                             class="btn btn-outline-success btn-sm ms-1" 
                                             th:onclick="'approve(' + ${acc.id} + ', true, ' + ${acc.approvalStage != null ? acc.approvalStage : 1} + ')'">
                                         <i class="bi bi-check-circle"></i> 通过
                                     </button>
                                                                     
-                                    <!-- 拒绝按钮：状态为审批中 (1) -->
-                                    <button th:if="${acc.status == 1 and session.currentUser != null and 
-                                                    ((acc.approvalStage == 1 and session.currentUser.finance) or 
-                                                     (acc.approvalStage == 2 and session.currentUser.boss) or
-                                                     session.currentUser.boss)}" 
+                                    <!-- 拒绝按钮：状态为审批中 (1) 且当前用户有审批权限 -->
+                                    <button th:if="${acc.status == 1 and acc.canApprove}" 
                                             class="btn btn-outline-danger btn-sm ms-1" 
                                             th:onclick="'approve(' + ${acc.id} + ', false, ' + ${acc.approvalStage != null ? acc.approvalStage : 1} + ')'">
                                         <i class="bi bi-x-circle"></i> 拒绝
@@ -840,7 +822,7 @@
                 // 根据审批阶段和当前用户角色显示不同文案
                 var stageText = '';
                 if (approvalStage == 1) {
-                    stageText = '财务审批';
+                    stageText = '管理员审批';
                 } else if (approvalStage == 2) {
                     stageText = 'BOSS审批';
                 }
@@ -870,19 +852,12 @@
                             tipHtml += '</div>';
                         }
                     }
-                    // 财务审批时显示提示
-                    else if (approvalStage == 1 && isCurrentUserFinance) {
-                        var otherFinances = [];
-                        /*[# th:each="f : ${financeList}" th:if="${f.status == 1 && f.id != currentUser.id}"]
-                        otherFinances.push('[[${f.name}]]');
-                        /*[/]*/
-                        
-                        if (otherFinances.length > 0) {
-                            tipHtml += '<div class="alert alert-warning py-2 mb-0">';
-                            tipHtml += '<small><i class="bi bi-info-circle me-1"></i>';
-                            tipHtml += '您或 ' + otherFinances.join('、') + ' 审批后，将流转至BOSS审批';
-                            tipHtml += '</small></div>';
-                        }
+                    // 管理员审批时显示提示
+                    else if (approvalStage == 1) {
+                        tipHtml += '<div class="alert alert-warning py-2 mb-0">';
+                        tipHtml += '<small><i class="bi bi-info-circle me-1"></i>';
+                        tipHtml += '审批后将流转至BOSS审批';
+                        tipHtml += '</small></div>';
                     }
                     
                     tipHtml += '</div>';

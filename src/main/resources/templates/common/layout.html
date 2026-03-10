@@ -707,9 +707,9 @@
                                         <!-- 工资条管理独立菜单待审批数量徽章 -->
                                         <span th:if="${menu.menu_code == 'salary' && pendingSalaryCount != null && pendingSalaryCount > 0}"
                                               class="badge bg-danger ms-auto salary-pending-badge" th:text="${pendingSalaryCount}">0</span>
-                                        <!-- 记账管理独立菜单待审批数量徽章 - 财务角色显示待财务审批数，BOSS角色显示待BOSS审批数 -->
-                                        <span th:if="${menu.menu_code == 'account' && session.currentUser != null && session.currentUser.finance && pendingAccountFinanceCount != null && pendingAccountFinanceCount > 0}"
-                                              class="badge bg-danger ms-auto" th:text="${pendingAccountFinanceCount}">0</span>
+                                        <!-- 记账管理独立菜单待审批数量徽章 - 项目管理员显示待管理员审批数，BOSS角色显示待BOSS审批数 -->
+                                        <span th:if="${menu.menu_code == 'account' && session.currentUser != null && !session.currentUser.boss && pendingAccountAdminCount != null && pendingAccountAdminCount > 0}"
+                                              class="badge bg-danger ms-auto" th:text="${pendingAccountAdminCount}">0</span>
                                         <span th:if="${menu.menu_code == 'account' && session.currentUser != null && session.currentUser.boss && pendingAccountBossCount != null && pendingAccountBossCount > 0}"
                                               class="badge bg-danger ms-auto" th:text="${pendingAccountBossCount}">0</span>
                                     </a>

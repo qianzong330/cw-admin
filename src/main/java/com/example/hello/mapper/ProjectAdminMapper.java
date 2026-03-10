@@ -29,4 +29,8 @@ public interface ProjectAdminMapper {
 
     @Select("SELECT employee_id FROM tb_project_admin WHERE project_id = #{projectId}")
     List<Long> findEmployeeIdsByProjectId(Long projectId);
+
+    // 检查某员工是否是某项目的管理员
+    @Select("SELECT COUNT(*) > 0 FROM tb_project_admin WHERE project_id = #{projectId} AND employee_id = #{employeeId}")
+    boolean isProjectAdmin(@Param("projectId") Long projectId, @Param("employeeId") Long employeeId);
 }

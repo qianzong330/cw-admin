@@ -29,9 +29,12 @@ public class Account {
     private String categoryName;
     
     // 多级审批字段
-    private Integer approvalStage; // 审批阶段：1-待财务审批，2-待BOSS审批
-    private String approvedByFinance; // 已审批的财务人员ID列表（逗号分隔）
+    private Integer approvalStage; // 审批阶段：1-待管理员审批，2-待BOSS审批
+    private String approvedByAdmin; // 已审批的管理员ID列表（逗号分隔）
     private Long finalApproverId; // 最终审批人ID（BOSS）
+    
+    // 前端显示字段
+    private Boolean canApprove; // 当前用户是否可以审批
 
     public Long getId() {
         return id;
@@ -201,12 +204,12 @@ public class Account {
         this.approvalStage = approvalStage;
     }
 
-    public String getApprovedByFinance() {
-        return approvedByFinance;
+    public String getApprovedByAdmin() {
+        return approvedByAdmin;
     }
 
-    public void setApprovedByFinance(String approvedByFinance) {
-        this.approvedByFinance = approvedByFinance;
+    public void setApprovedByAdmin(String approvedByAdmin) {
+        this.approvedByAdmin = approvedByAdmin;
     }
 
     public Long getFinalApproverId() {
@@ -236,5 +239,13 @@ public class Account {
 
     public String getTypeText() {
         return type == 1 ? "收入" : "支出";
+    }
+
+    public Boolean getCanApprove() {
+        return canApprove;
+    }
+
+    public void setCanApprove(Boolean canApprove) {
+        this.canApprove = canApprove;
     }
 }

@@ -461,17 +461,17 @@ public class DatabaseInitializer implements CommandLineRunner {
                 "SELECT COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='tb_account' AND column_name='approval_stage'",
                 Integer.class);
             if (approvalStageExists == null || approvalStageExists == 0) {
-                jdbcTemplate.execute("ALTER TABLE tb_account ADD COLUMN approval_stage TINYINT DEFAULT 1 COMMENT '审批阶段：1-待财务审批，2-待BOSS审批'");
+                jdbcTemplate.execute("ALTER TABLE tb_account ADD COLUMN approval_stage TINYINT DEFAULT 1 COMMENT '审批阶段：1-待管理员审批，2-待BOSS审批'");
                 System.out.println("tb_account.approval_stage 字段已添加");
             }
             
-            // 检查并添加 approved_by_finance 字段
-            Integer approvedByFinanceExists = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='tb_account' AND column_name='approved_by_finance'",
+            // 检查并添加 approved_by_admin 字段
+            Integer approvedByAdminExists = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='tb_account' AND column_name='approved_by_admin'",
                 Integer.class);
-            if (approvedByFinanceExists == null || approvedByFinanceExists == 0) {
-                jdbcTemplate.execute("ALTER TABLE tb_account ADD COLUMN approved_by_finance VARCHAR(500) COMMENT '已审批的财务人员ID列表'");
-                System.out.println("tb_account.approved_by_finance 字段已添加");
+            if (approvedByAdminExists == null || approvedByAdminExists == 0) {
+                jdbcTemplate.execute("ALTER TABLE tb_account ADD COLUMN approved_by_admin VARCHAR(500) COMMENT '已审批的管理员ID列表'");
+                System.out.println("tb_account.approved_by_admin 字段已添加");
             }
             
             // 检查并添加 final_approver_id 字段
