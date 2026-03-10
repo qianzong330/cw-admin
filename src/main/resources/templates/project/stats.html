@@ -141,41 +141,65 @@
                 
                 <!-- 记账明细列表 -->
                 <div class="row mt-4">
-                    <div class="col-12">
-                        <div class="card">
-                            <div class="card-header bg-light">
-                                <h6 class="mb-0"><i class="bi bi-list-ul me-2"></i>记账明细</h6>
+                    <!-- 收入明细 -->
+                    <div class="col-md-6">
+                        <div class="card h-100">
+                            <div class="card-header bg-success text-white">
+                                <h6 class="mb-0"><i class="bi bi-arrow-up-circle me-2"></i>收入明细</h6>
                             </div>
                             <div class="card-body p-0">
                                 <div class="table-responsive">
                                     <table class="table table-sm table-hover mb-0">
                                         <thead class="table-light">
                                             <tr>
-                                                <th class="ps-3" style="width: 60px;">序号</th>
-                                                <th>收支</th>
+                                                <th class="ps-3">金额</th>
                                                 <th>费用分类</th>
-                                                <th>金额</th>
                                                 <th>记账人</th>
-                                                <th>备注</th>
                                                 <th>时间</th>
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            <tr th:each="item, iterStat : ${accountList}">
-                                                <td class="ps-3" th:text="${iterStat.index + 1}">1</td>
-                                                <td>
-                                                    <span class="badge" th:classappend="${item.type == 'INCOME'} ? 'bg-success' : 'bg-danger'" 
-                                                          th:text="${item.type == 'INCOME'} ? '收入' : '支出'">收入</span>
-                                                </td>
+                                            <tr th:each="item, iterStat : ${accountList}" th:if="${item.type == 'INCOME'}">
+                                                <td class="ps-3 text-success fw-semibold" th:text="'¥' + ${#numbers.formatDecimal(item.amount, 1, 2)}">¥0.00</td>
                                                 <td th:text="${item.categoryName} ?: '-'">费用分类</td>
-                                                <td th:classappend="${item.type == 'INCOME'} ? 'text-success' : 'text-danger'" 
-                                                    th:text="'¥' + ${#numbers.formatDecimal(item.amount, 1, 2)}">¥0.00</td>
                                                 <td th:text="${item.creatorName} ?: '-'">记账人</td>
-                                                <td th:text="${item.remark} ?: '-'" style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">备注</td>
                                                 <td th:text="${#temporals.format(item.createTime, 'yyyy-MM-dd')}">2024-01-01</td>
                                             </tr>
-                                            <tr th:if="${accountList == null || accountList.isEmpty()}">
-                                                <td colspan="7" class="text-center text-muted py-4">暂无记账记录</td>
+                                            <tr th:if="${accountList == null || accountList.isEmpty() || !accountList.?[type == 'INCOME'].size()}">
+                                                <td colspan="4" class="text-center text-muted py-4">暂无收入记录</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- 支出明细 -->
+                    <div class="col-md-6">
+                        <div class="card h-100">
+                            <div class="card-header bg-danger text-white">
+                                <h6 class="mb-0"><i class="bi bi-arrow-down-circle me-2"></i>支出明细</h6>
+                            </div>
+                            <div class="card-body p-0">
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-hover mb-0">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th class="ps-3">金额</th>
+                                                <th>费用分类</th>
+                                                <th>记账人</th>
+                                                <th>时间</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr th:each="item, iterStat : ${accountList}" th:if="${item.type == 'EXPENSE'}">
+                                                <td class="ps-3 text-danger fw-semibold" th:text="'¥' + ${#numbers.formatDecimal(item.amount, 1, 2)}">¥0.00</td>
+                                                <td th:text="${item.categoryName} ?: '-'">费用分类</td>
+                                                <td th:text="${item.creatorName} ?: '-'">记账人</td>
+                                                <td th:text="${#temporals.format(item.createTime, 'yyyy-MM-dd')}">2024-01-01</td>
+                                            </tr>
+                                            <tr th:if="${accountList == null || accountList.isEmpty() || !accountList.?[type == 'EXPENSE'].size()}">
+                                                <td colspan="4" class="text-center text-muted py-4">暂无支出记录</td>
                                             </tr>
                                         </tbody>
                                     </table>

@@ -531,4 +531,27 @@
         DELETE FROM tb_account WHERE id = #{id}
     </delete>
 
+    <select id="findByProjectIdAndStatus" resultMap="BaseResultMap">
+        SELECT a.*, 
+               p.name as project_name,
+               e.name as creator_name,
+               jc.name as job_category_name,
+               r.role_name as role_name,
+               c.name as category_name,
+               fe.id as finance_contact_id,
+               fe.name as finance_contact_name
+        FROM tb_account a
+        LEFT JOIN tb_project p ON a.project_id = p.id
+        LEFT JOIN tb_employee e ON a.creator_id = e.id
+        LEFT JOIN tb_job_category jc ON a.job_category_id = jc.id
+        LEFT JOIN tb_role r ON a.role_id = r.id
+        LEFT JOIN tb_category c ON a.category_id = c.id
+        LEFT JOIN tb_employee fe ON e.finance_contact_id = fe.id
+        WHERE a.project_id = #{projectId}
+        <if test="status != null">
+            AND a.status = #{status}
+        </if>
+        ORDER BY a.create_time DESC
+    </select>
+
 </mapper>
