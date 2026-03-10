@@ -257,6 +257,18 @@
         </if>
     </select>
 
+    <!-- 统计待财务审批的数量 -->
+    <select id="countPendingFinanceApproval" resultType="int">
+        SELECT COUNT(*) FROM tb_account 
+        WHERE status = 1 AND approval_stage = 1
+    </select>
+
+    <!-- 统计待BOSS审批的数量 -->
+    <select id="countPendingBossApproval" resultType="int">
+        SELECT COUNT(*) FROM tb_account 
+        WHERE status = 1 AND approval_stage = 2
+    </select>
+
     <!-- 统计方法 - 支持时间筛选 -->
     <select id="getProjectStats" resultType="com.example.hello.dto.ProjectStatsDTO">
         SELECT 
