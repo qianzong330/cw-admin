@@ -247,6 +247,14 @@ public class LoginController {
         // 获取该项目已生效的记账明细
         List<com.example.hello.entity.Account> accountList = accountService.findByProjectIdAndStatus(id, 5);
         
+        // 分离收入和支出列表
+        List<com.example.hello.entity.Account> incomeList = accountList.stream()
+                .filter(a -> "INCOME".equals(a.getType()))
+                .collect(java.util.stream.Collectors.toList());
+        List<com.example.hello.entity.Account> expenseList = accountList.stream()
+                .filter(a -> "EXPENSE".equals(a.getType()))
+                .collect(java.util.stream.Collectors.toList());
+        
         // 获取项目列表（用于新增弹窗）
         List<Project> projects = projectService.findByUserId(currentUser.getId(), currentUser.isBoss());
         
@@ -258,6 +266,8 @@ public class LoginController {
         model.addAttribute("incomeByCategory", incomeByCategory);
         model.addAttribute("expenseByCategory", expenseByCategory);
         model.addAttribute("accountList", accountList);
+        model.addAttribute("incomeList", incomeList);
+        model.addAttribute("expenseList", expenseList);
         model.addAttribute("projects", projects);
         model.addAttribute("categories", categories);
         model.addAttribute("currentUser", currentUser);

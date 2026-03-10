@@ -159,13 +159,13 @@
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            <tr th:each="item, iterStat : ${accountList}" th:if="${item.type == 'INCOME'}">
+                                            <tr th:each="item : ${incomeList}">
                                                 <td class="ps-3 text-success fw-semibold" th:text="'¥' + ${#numbers.formatDecimal(item.amount, 1, 2)}">¥0.00</td>
                                                 <td th:text="${item.categoryName} ?: '-'">费用分类</td>
                                                 <td th:text="${item.creatorName} ?: '-'">记账人</td>
                                                 <td th:text="${#temporals.format(item.createTime, 'yyyy-MM-dd')}">2024-01-01</td>
                                             </tr>
-                                            <tr th:if="${accountList == null || accountList.isEmpty() || !accountList.?[type == 'INCOME'].size()}">
+                                            <tr th:if="${incomeList == null || incomeList.isEmpty()}">
                                                 <td colspan="4" class="text-center text-muted py-4">暂无收入记录</td>
                                             </tr>
                                         </tbody>
@@ -192,13 +192,13 @@
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            <tr th:each="item, iterStat : ${accountList}" th:if="${item.type == 'EXPENSE'}">
+                                            <tr th:each="item : ${expenseList}">
                                                 <td class="ps-3 text-danger fw-semibold" th:text="'¥' + ${#numbers.formatDecimal(item.amount, 1, 2)}">¥0.00</td>
                                                 <td th:text="${item.categoryName} ?: '-'">费用分类</td>
                                                 <td th:text="${item.creatorName} ?: '-'">记账人</td>
                                                 <td th:text="${#temporals.format(item.createTime, 'yyyy-MM-dd')}">2024-01-01</td>
                                             </tr>
-                                            <tr th:if="${accountList == null || accountList.isEmpty() || !accountList.?[type == 'EXPENSE'].size()}">
+                                            <tr th:if="${expenseList == null || expenseList.isEmpty()}">
                                                 <td colspan="4" class="text-center text-muted py-4">暂无支出记录</td>
                                             </tr>
                                         </tbody>
