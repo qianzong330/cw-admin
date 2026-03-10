@@ -1,13 +1,13 @@
 package com.example.hello.service;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
-import software.amazon.awssdk.core.sync.RequestBody;
-import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 import java.io.IOException;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -15,23 +15,18 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * 文件上传服务 - Sealos S3对象存储
+ * 文件上传服务 - 使用HTTP直接上传到Sealos对象存储
  */
 @Service
 public class FileUploadService {
 
-    @Autowired
-    private S3Client s3Client;
-
-    @Autowired
-    private String bucketName;
-
     private static final String INVOICE_FOLDER = "invoices/";
     private static final long MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
     private static final List<String> ALLOWED_TYPES = List.of("image/jpeg", "image/png", "image/gif", "image/webp");
+    private static final String UPLOAD_URL = "http://z4bn2xr7-hsc-images.objectstorage.sealoshzh.site/";
 
     /**
-     * 上传单张发票图片到Sealos S3
+     * 上传单张发票图片到Sealos对象存储
      */
     public String uploadInvoice(MultipartFile file) throws IOException {
         validateFile(file);
@@ -40,18 +35,25 @@ public class FileUploadService {
         String key = INVOICE_FOLDER + fileName;
         
         try {
-            PutObjectRequest putObjectRequest = PutObjectRequest.builder()
-                    .bucket(bucketName)
-                    .key(key)
-                    .contentType(file.getContentType())
+            HttpClient client = HttpClient.newBuilder()
+                    .followRedirects(HttpClient.Redirect.NORMAL)
                     .build();
             
-            s3Client.putObject(putObjectRequest, RequestBody.fromBytes(file.getBytes()));
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(UPLOAD_URL + key))
+                    .header("Content-Type", file.getContentType())
+                    .PUT(HttpRequest.BodyPublishers.ofByteArray(file.getBytes()))
+                    .build();
             
-            // 返回访问URL（使用HTTP，虚拟主机格式）
-            return "http://z4bn2xr7-hsc-images.objectstorage.sealoshzh.site/" + key;
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            
+            if (response.statusCode() == 200 || response.statusCode() == 201) {
+                return UPLOAD_URL + key;
+            } else {
+                throw new IOException("上传失败，状态码: " + response.statusCode());
+            }
         } catch (Exception e) {
-            throw new IOException("发票上传失败，请检查Sealos对象存储服务是否可用: " + e.getMessage(), e);
+            throw new IOException("发票上传失败: " + e.getMessage(), e);
         }
     }
 
