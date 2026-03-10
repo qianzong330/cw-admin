@@ -67,11 +67,19 @@ public class ProjectController {
             return "redirect:/index";
         }
         
+        System.out.println("=== ProjectController.save 接收参数 ===");
+        System.out.println("id: " + id);
+        System.out.println("name: " + name);
+        System.out.println("adminIds: " + adminIds);
+        
         Project project = new Project();
         project.setId(id);
         project.setName(name);
         
-        projectService.saveWithAdmins(project, adminIds);
+        boolean result = projectService.saveWithAdmins(project, adminIds);
+        System.out.println("保存结果: " + result);
+        System.out.println("项目ID: " + project.getId());
+        
         return "redirect:/project/list";
     }
 

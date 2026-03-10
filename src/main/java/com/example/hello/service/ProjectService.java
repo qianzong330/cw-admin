@@ -58,23 +58,34 @@ public class ProjectService {
      */
     @Transactional
     public boolean saveWithAdmins(Project project, List<Long> adminIds) {
+        System.out.println("=== ProjectService.saveWithAdmins ===");
+        System.out.println("project.id: " + project.getId());
+        System.out.println("project.name: " + project.getName());
+        System.out.println("adminIds: " + adminIds);
+        
         // 1. 保存项目
         boolean success;
         if (project.getId() == null) {
+            System.out.println("执行insert操作");
             success = projectMapper.insert(project) > 0;
+            System.out.println("insert结果: " + success + ", 新ID: " + project.getId());
         } else {
+            System.out.println("执行update操作");
             success = projectMapper.update(project) > 0;
         }
         
         if (!success) {
+            System.out.println("项目保存失败");
             return false;
         }
         
         // 2. 删除旧的管理员关联
+        System.out.println("删除旧管理员关联，projectId: " + project.getId());
         projectAdminMapper.deleteByProjectId(project.getId());
         
         // 3. 添加新的管理员关联
         if (adminIds != null && !adminIds.isEmpty()) {
+            System.out.println("添加新管理员关联: " + adminIds);
             for (Long adminId : adminIds) {
                 ProjectAdmin pa = new ProjectAdmin();
                 pa.setProjectId(project.getId());
@@ -83,6 +94,7 @@ public class ProjectService {
             }
         }
         
+        System.out.println("保存完成");
         return true;
     }
 
