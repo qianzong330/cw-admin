@@ -400,6 +400,52 @@
         LIMIT 5
     </select>
 
+    <!-- 收入TOP5费用分类 -->
+    <select id="getTop5IncomeCategories" resultType="com.example.hello.dto.ProjectStatsDTO">
+        SELECT 
+            c.id as projectId,
+            c.name as projectName,
+            COALESCE(SUM(a.amount), 0) as income,
+            0 as expense,
+            0 as balance
+        FROM tb_category c
+        LEFT JOIN tb_account a ON c.id = a.category_id AND a.type = 1 AND a.status = 5
+        WHERE 1=1
+        <if test="startDate != null and startDate != ''">
+            AND DATE(a.create_time) &gt;= #{startDate}
+        </if>
+        <if test="endDate != null and endDate != ''">
+            AND DATE(a.create_time) &lt;= #{endDate}
+        </if>
+        GROUP BY c.id, c.name
+        HAVING income > 0
+        ORDER BY income DESC
+        LIMIT 5
+    </select>
+
+    <!-- 支出TOP5费用分类 -->
+    <select id="getTop5ExpenseCategories" resultType="com.example.hello.dto.ProjectStatsDTO">
+        SELECT 
+            c.id as projectId,
+            c.name as projectName,
+            0 as income,
+            COALESCE(SUM(a.amount), 0) as expense,
+            0 as balance
+        FROM tb_category c
+        LEFT JOIN tb_account a ON c.id = a.category_id AND a.type = 2 AND a.status = 5
+        WHERE 1=1
+        <if test="startDate != null and startDate != ''">
+            AND DATE(a.create_time) &gt;= #{startDate}
+        </if>
+        <if test="endDate != null and endDate != ''">
+            AND DATE(a.create_time) &lt;= #{endDate}
+        </if>
+        GROUP BY c.id, c.name
+        HAVING expense > 0
+        ORDER BY expense DESC
+        LIMIT 5
+    </select>
+
     <!-- 项目收入分类统计 - 暂按记账人分组 -->
     <select id="getProjectIncomeByCategory" resultType="com.example.hello.dto.CategoryStatsDTO">
         SELECT 

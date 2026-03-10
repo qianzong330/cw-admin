@@ -153,7 +153,7 @@
                                         </div>
                                     </div>
                                     <!-- 其他状态 -->
-                                    <span th:if="${acc.status == 5}" class="badge bg-success">生效</span>
+                                    <span th:if="${acc.status == 5}" class="badge bg-success">生效中，已锁定</span>
                                     <span th:if="${acc.status == 12}" class="badge bg-danger">审核未通过</span>
                                 </td>
                                 <td th:text="${acc.amount}" style="white-space: nowrap;"></td>
