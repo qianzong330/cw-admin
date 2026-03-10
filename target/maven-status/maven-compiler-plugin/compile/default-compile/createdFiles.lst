@@ -40,6 +40,7 @@ com/example/hello/HelloApplication.class
 com/example/hello/controller/PendingCountController.class
 com/example/hello/config/CharacterEncodingFilter.class
 com/example/hello/mapper/SalaryMonthStatusMapper.class
+com/example/hello/controller/DebugMenuController.class
 com/example/hello/config/JobCategoryInitializer.class
 com/example/hello/entity/Project.class
 com/example/hello/entity/Employee.class

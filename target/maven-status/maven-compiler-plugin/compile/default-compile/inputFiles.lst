@@ -25,6 +25,7 @@
 /home/devbox/project/src/main/java/com/example/hello/controller/CategoryController.java
 /home/devbox/project/src/main/java/com/example/hello/controller/DataCleanupRunner.java
 /home/devbox/project/src/main/java/com/example/hello/controller/DebugController.java
+/home/devbox/project/src/main/java/com/example/hello/controller/DebugMenuController.java
 /home/devbox/project/src/main/java/com/example/hello/controller/EmployeeController.java
 /home/devbox/project/src/main/java/com/example/hello/controller/FeeItemController.java
 /home/devbox/project/src/main/java/com/example/hello/controller/FileUploadController.java

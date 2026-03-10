@@ -660,7 +660,7 @@
                     <th:block th:if="${navMenus != null}">
                         <!-- 遍历所有菜单，只处理顶层菜单（parent_id 为 null 或 0） -->
                         <th:block th:each="menu : ${navMenus}">
-                            <th:block th:if="${menu.parent_id == null || menu.parent_id.toString() == '0'}">
+                            <th:block th:if="${menu.parent_id == null || menu.parent_id == 0 || #strings.toString(menu.parent_id) == '0'}">
                                 <!-- 首页：直接链接，无需权限判断 -->
                                 <th:block th:if="${menu.menu_code == 'home'}">
                                     <li class="nav-item">
