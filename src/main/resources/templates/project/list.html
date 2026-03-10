@@ -522,10 +522,18 @@
             }
             
             function submitProjectForm() {
-                if (isSubmitting) return;
+                console.log('=== submitProjectForm 被调用 ===');
+                
+                if (isSubmitting) {
+                    console.log('正在提交中，返回');
+                    return;
+                }
                 
                 var projectId = document.getElementById('projectId').value;
                 var projectName = document.getElementById('projectName').value.trim();
+                
+                console.log('projectId:', projectId);
+                console.log('projectName:', projectName);
                 
                 if (!projectName) {
                     showAlertModal('提示', '请输入项目名称');
@@ -547,20 +555,26 @@
                 
                 // 添加选中的管理员ID
                 var hiddenInputs = document.querySelectorAll('#adminIdsContainer input[name="adminIds"]');
+                console.log('管理员数量:', hiddenInputs.length);
                 hiddenInputs.forEach(function(input) {
+                    console.log('添加管理员ID:', input.value);
                     formData.append('adminIds', input.value);
                 });
                 
+                console.log('开始发送请求...');
                 fetch('/project/save', {
                     method: 'POST',
                     body: formData,
                     redirect: 'manual'
                 })
                 .then(response => {
+                    console.log('请求成功:', response);
                     window.location.href = '/project/list';
                 })
                 .catch(error => {
-                    window.location.href = '/project/list';
+                    console.error('请求失败:', error);
+                    isSubmitting = false; // 重置提交状态
+                    showAlertModal('错误', '保存失败，请重试');
                 });
             }
             
