@@ -26,8 +26,7 @@ public class SealosS3Config {
     @Value("${sealos.s3.secret-key:4v5csvjh4mcfs2dw}")
     private String secretKey;
 
-    // 使用虚拟主机格式，bucketName为空（已包含在endpoint中）
-    @Value("${sealos.s3.bucket:}")
+    @Value("${sealos.s3.bucket:z4bn2xr7-hsc-images}")
     private String bucketName;
 
     @Value("${sealos.s3.region:us-east-1}")
