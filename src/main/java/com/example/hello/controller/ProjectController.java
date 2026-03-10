@@ -63,7 +63,9 @@ public class ProjectController {
                        @RequestParam(required = false) List<Long> adminIds,
                        HttpSession session) {
         Employee currentUser = (Employee) session.getAttribute("currentUser");
-        if (!currentUser.hasPermission("project")) {
+        // BOSS/管理员/有project权限的用户可以保存项目
+        if (!currentUser.isBoss() && !currentUser.hasPermission("project") && !currentUser.hasPermission("project:list")) {
+            System.out.println("权限不足，无法保存项目");
             return "redirect:/index";
         }
         
