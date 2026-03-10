@@ -9,7 +9,6 @@
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">项目列表</h5>
                 <button type="button" class="btn btn-outline-primary btn-sm"
-                        th:if="${session.currentUser != null and session.currentUser.hasPermission('project:add')}"
                         onclick="openProjectModal()">
                     <i class="bi bi-plus"></i> 新增项目
                 </button>
