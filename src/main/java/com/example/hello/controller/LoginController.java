@@ -247,12 +247,12 @@ public class LoginController {
         // 获取该项目已生效的记账明细
         List<com.example.hello.entity.Account> accountList = accountService.findByProjectIdAndStatus(id, 5);
         
-        // 分离收入和支出列表
+        // 分离收入和支出列表 (type: 1=收入, 2=支出)
         List<com.example.hello.entity.Account> incomeList = accountList.stream()
-                .filter(a -> "INCOME".equals(a.getType()))
+                .filter(a -> a.getType() != null && a.getType() == 1)
                 .collect(java.util.stream.Collectors.toList());
         List<com.example.hello.entity.Account> expenseList = accountList.stream()
-                .filter(a -> "EXPENSE".equals(a.getType()))
+                .filter(a -> a.getType() != null && a.getType() == 2)
                 .collect(java.util.stream.Collectors.toList());
         
         // 获取项目列表（用于新增弹窗）
