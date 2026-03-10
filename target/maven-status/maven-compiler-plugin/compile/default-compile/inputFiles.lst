@@ -1,6 +1,7 @@
 /home/devbox/project/src/main/java/com/example/hello/HelloApplication.java
 /home/devbox/project/src/main/java/com/example/hello/PermissionTestRunner.java
 /home/devbox/project/src/main/java/com/example/hello/UpdateAdminPassword.java
+/home/devbox/project/src/main/java/com/example/hello/config/AdminRoleInitializer.java
 /home/devbox/project/src/main/java/com/example/hello/config/AttendanceDataFix.java
 /home/devbox/project/src/main/java/com/example/hello/config/BasicConfigMenuInitializer.java
 /home/devbox/project/src/main/java/com/example/hello/config/CharacterEncodingFilter.java
@@ -13,6 +14,7 @@
 /home/devbox/project/src/main/java/com/example/hello/config/MenuUrlFixInitializer.java
 /home/devbox/project/src/main/java/com/example/hello/config/MyBatisConfig.java
 /home/devbox/project/src/main/java/com/example/hello/config/PermissionInitializer.java
+/home/devbox/project/src/main/java/com/example/hello/config/ProjectAdminTableInitializer.java
 /home/devbox/project/src/main/java/com/example/hello/config/ProjectMenuInitializer.java
 /home/devbox/project/src/main/java/com/example/hello/config/RemoveDuplicateRoleMenu.java
 /home/devbox/project/src/main/java/com/example/hello/config/SealosS3Config.java

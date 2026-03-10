@@ -43,7 +43,6 @@
                                 <th>工种</th>
                                 <th>隶属项目</th>
                                 <th>薪资</th>
-                                <th>财务对接人</th>
                                 <th>状态</th>
                                 <th>操作</th>
                             </tr>
@@ -65,7 +64,6 @@
                                     <span th:if="${emp.salaryType == 2}">/月</span>
                                     <span th:if="${emp.salaryType == 3}">/年</span>
                                 </td>
-                                <td th:text="${emp.financeContactName}"></td>
                                 <td>
                                     <span th:if="${emp.status == 1}" class="badge bg-success">在职</span>
                                     <span th:if="${emp.status == 0}" class="badge bg-secondary">离职</span>
@@ -183,14 +181,6 @@
                                 <select class="form-select form-select-sm" id="employeeSalaryType" name="salaryType" required style="flex: 1;">
                                     <option value="">请选择</option>
                                     <option th:each="config : ${workHourConfigs}" th:value="${config.calcType}" th:text="${config.calcType == 1 ? '日薪计算' : '月薪计算'}"></option>
-                                </select>
-                            </div>
-                            
-                            <div class="d-flex align-items-center gap-2 mb-2">
-                                <label class="fw-bold text-nowrap mb-0" style="min-width: 70px; font-size: 14px;">财务对接人</label>
-                                <select class="form-select form-select-sm" id="employeeFinanceContactId" name="financeContactId" style="flex: 1;">
-                                    <option value="">请选择</option>
-                                    <option th:each="f : ${financeList}" th:value="${f.id}" th:text="${f.name}"></option>
                                 </select>
                             </div>
                             
@@ -321,7 +311,6 @@
                 document.getElementById('employeeJobCategoryId').value = emp.jobCategoryId || '';
                 document.getElementById('employeeSalaryAmount').value = emp.salaryAmount || '';
                 document.getElementById('employeeSalaryType').value = emp.salaryType || 1;
-                document.getElementById('employeeFinanceContactId').value = emp.financeContactId || '';
                 document.getElementById('employeeStatus').value = emp.status;
                 document.getElementById('statusDiv').style.display = 'block';
                 
