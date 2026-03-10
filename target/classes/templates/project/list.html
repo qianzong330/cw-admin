@@ -90,16 +90,9 @@
                             <div class="d-flex align-items-start gap-2">
                                 <label class="fw-bold text-nowrap mt-1" style="min-width: 70px; font-size: 14px;">管理员</label>
                                 <div style="flex: 1;">
-                                    <!-- 自定义多选下拉框 -->
-                                    <div class="dropdown" id="adminDropdown">
-                                        <button class="btn btn-light border btn-sm dropdown-toggle w-100 text-start bg-white" type="button" data-bs-toggle="dropdown" aria-expanded="false" id="adminDropdownBtn" style="background-color: #fff !important; color: #333;">
-                                            <span id="adminDropdownText">请选择管理员</span>
-                                        </button>
-                                        <div class="dropdown-menu w-100 p-2 bg-white" style="max-height: 200px; overflow-y: auto; background-color: #fff !important;">
-                                            <div id="adminCheckboxList">
-                                                <!-- 动态生成复选框列表 -->
-                                            </div>
-                                        </div>
+                                    <!-- 管理员多选框列表 -->
+                                    <div id="adminCheckboxList" style="max-height: 150px; overflow-y: auto; border: 1px solid #dee2e6; border-radius: 0.25rem; padding: 8px; background-color: #fff;">
+                                        <!-- 动态生成复选框列表 -->
                                     </div>
                                     <!-- 隐藏的input用于提交选中的值 -->
                                     <div id="adminIdsContainer" style="display: none;"></div>
@@ -379,15 +372,14 @@
                 hiddenContainer.innerHTML = '';
                 
                 if (!adminEmployeesData || adminEmployeesData.length === 0) {
-                    container.innerHTML = '<div class="text-muted small p-2">暂无可选管理员</div>';
-                    updateAdminDropdownText([]);
+                    container.innerHTML = '<div class="text-muted small">暂无可选管理员</div>';
                     return;
                 }
                 
                 adminEmployeesData.forEach(function(emp) {
                     // 创建复选框项
                     var itemDiv = document.createElement('div');
-                    itemDiv.className = 'form-check';
+                    itemDiv.className = 'form-check mb-1';
                     
                     var checkbox = document.createElement('input');
                     checkbox.type = 'checkbox';
@@ -414,8 +406,6 @@
                         addHiddenAdminInput(emp.id);
                     }
                 });
-                
-                updateAdminDropdownText(selectedIds || []);
             }
             
             // 更新管理员选择（复选框变化时调用）
@@ -431,8 +421,6 @@
                         addHiddenAdminInput(emp.id);
                     }
                 });
-                
-                updateAdminDropdownText(selectedIds);
             }
             
             // 添加隐藏的adminId input
