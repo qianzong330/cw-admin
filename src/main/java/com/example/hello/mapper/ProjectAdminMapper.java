@@ -33,4 +33,8 @@ public interface ProjectAdminMapper {
     // 检查某员工是否是某项目的管理员
     @Select("SELECT COUNT(*) > 0 FROM tb_project_admin WHERE project_id = #{projectId} AND employee_id = #{employeeId}")
     boolean isProjectAdmin(@Param("projectId") Long projectId, @Param("employeeId") Long employeeId);
+    
+    // 检查某员工是否是任何项目的管理员
+    @Select("SELECT COUNT(*) > 0 FROM tb_project_admin WHERE employee_id = #{employeeId}")
+    boolean hasAnyProjectAdmin(@Param("employeeId") Long employeeId);
 }

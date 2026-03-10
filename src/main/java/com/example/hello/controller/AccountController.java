@@ -57,11 +57,14 @@ public class AccountController {
                        HttpSession session) {
         Employee currentUser = (Employee) session.getAttribute("currentUser");
         
+        // 检查是否是项目管理员
+        boolean isProjectAdmin = projectAdminMapper.hasAnyProjectAdmin(currentUser.getId());
+        
         // 分页查询
         List<Account> accounts = accountService.findByConditionWithPage(
             currentUser.getId(), 
             currentUser.isBoss(),
-            currentUser.isFinance(),
+            isProjectAdmin,
             projectId, 
             status,
             type,
@@ -72,7 +75,7 @@ public class AccountController {
         int totalCount = accountService.countByCondition(
             currentUser.getId(), 
             currentUser.isBoss(),
-            currentUser.isFinance(),
+            isProjectAdmin,
             projectId, 
             status,
             type,

@@ -8,6 +8,7 @@
 /home/devbox/project/src/main/java/com/example/hello/config/CreateProjectMenu.java
 /home/devbox/project/src/main/java/com/example/hello/config/DatabaseInitializer.java
 /home/devbox/project/src/main/java/com/example/hello/config/DatabaseMigration.java
+/home/devbox/project/src/main/java/com/example/hello/config/EmployeeMenuPermissionFix.java
 /home/devbox/project/src/main/java/com/example/hello/config/JobCategoryInitializer.java
 /home/devbox/project/src/main/java/com/example/hello/config/MenuAdvice.java
 /home/devbox/project/src/main/java/com/example/hello/config/MenuPermissionMigration.java
