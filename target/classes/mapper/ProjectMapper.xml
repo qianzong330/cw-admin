@@ -24,6 +24,13 @@
         ORDER BY p.create_time DESC
     </select>
 
+    <select id="findByAdminId" resultType="com.example.hello.entity.Project">
+        SELECT p.* FROM tb_project p
+        INNER JOIN tb_project_admin pa ON p.id = pa.project_id
+        WHERE pa.employee_id = #{adminId}
+        ORDER BY p.create_time DESC
+    </select>
+
     <insert id="insert" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO tb_project (name) VALUES (#{name})
     </insert>

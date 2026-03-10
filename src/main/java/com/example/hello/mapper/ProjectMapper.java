@@ -17,6 +17,11 @@ public interface ProjectMapper {
      */
     List<Project> findByEmployeeId(Long employeeId);
     
+    /**
+     * 根据管理员ID查询管理的项目列表
+     */
+    List<Project> findByAdminId(Long adminId);
+    
     int insert(Project project);
     
     int update(Project project);

@@ -35,11 +35,14 @@ public class ProjectService {
 
     /**
      * 根据用户ID查询可见的项目列表
-     * BOSS/财务可以看到所有项目，普通员工只能看到关联的项目
+     * BOSS可以看到所有项目，项目管理员看到自己管理的项目，普通员工只能看到关联的项目
      */
-    public List<Project> findByUserId(Long userId, boolean isBoss) {
+    public List<Project> findByUserId(Long userId, boolean isBoss, boolean isProjectAdmin) {
         if (isBoss) {
             return projectMapper.findAll();
+        } else if (isProjectAdmin) {
+            // 项目管理员看到自己管理的项目
+            return projectMapper.findByAdminId(userId);
         } else {
             return projectMapper.findByEmployeeId(userId);
         }

@@ -107,7 +107,7 @@ public class AccountController {
         }
         
         // 根据权限获取项目列表：BOSS/财务看所有，普通员工只看关联的
-        List<Project> projects = projectService.findByUserId(currentUser.getId(), currentUser.isBoss());
+        List<Project> projects = projectService.findByUserId(currentUser.getId(), currentUser.isBoss(), isProjectAdmin);
         List<Category> categories = categoryService.findAll();
         
         // 获取审批人信息（用于前端展示）
@@ -184,8 +184,11 @@ public class AccountController {
     public String addPage(Model model, HttpSession session) {
         Employee currentUser = (Employee) session.getAttribute("currentUser");
         
-        // 根据权限获取项目列表：BOSS/财务看所有，普通员工只看关联的
-        List<Project> projects = projectService.findByUserId(currentUser.getId(), currentUser.isBoss());
+        // 检查是否是项目管理员
+        boolean isProjectAdmin = projectAdminMapper.hasAnyProjectAdmin(currentUser.getId());
+        
+        // 根据权限获取项目列表：BOSS看所有，项目管理员看管理的，普通员工看关联的
+        List<Project> projects = projectService.findByUserId(currentUser.getId(), currentUser.isBoss(), isProjectAdmin);
         List<Category> categories = categoryService.findAll();
         
         model.addAttribute("projects", projects);
@@ -234,7 +237,9 @@ public class AccountController {
         
         // 权限检查：所有非BOSS角色只能在自己关联的项目中记账（包括财务）
         if (!currentUser.isBoss()) {
-            List<Long> assignedProjectIds = projectService.findByUserId(currentUser.getId(), false)
+            // 检查是否是项目管理员
+            boolean isProjectAdmin = projectAdminMapper.hasAnyProjectAdmin(currentUser.getId());
+            List<Long> assignedProjectIds = projectService.findByUserId(currentUser.getId(), false, isProjectAdmin)
                     .stream().map(Project::getId).toList();
             if (!assignedProjectIds.contains(account.getProjectId())) {
                 return "redirect:/account/list?error=无权在该项目记账";
@@ -273,8 +278,11 @@ public class AccountController {
         Employee currentUser = (Employee) session.getAttribute("currentUser");
         Account account = accountService.findById(id);
         
-        // 根据权限获取项目列表：BOSS/财务看所有，普通员工只看关联的
-        List<Project> projects = projectService.findByUserId(currentUser.getId(), currentUser.isBoss());
+        // 检查是否是项目管理员
+        boolean isProjectAdmin = projectAdminMapper.hasAnyProjectAdmin(currentUser.getId());
+        
+        // 根据权限获取项目列表：BOSS看所有，项目管理员看管理的，普通员工看关联的
+        List<Project> projects = projectService.findByUserId(currentUser.getId(), currentUser.isBoss(), isProjectAdmin);
         List<Category> categories = categoryService.findAll();
         
         model.addAttribute("projects", projects);

@@ -27,6 +27,8 @@ import java.time.temporal.WeekFields;
 import java.util.List;
 import java.util.Locale;
 
+import com.example.hello.mapper.ProjectAdminMapper;
+
 @Controller
 public class LoginController {
 
@@ -47,6 +49,9 @@ public class LoginController {
     
     @Autowired
     private EmployeeMapper employeeMapper;
+    
+    @Autowired
+    private ProjectAdminMapper projectAdminMapper;
 
     @GetMapping("/login")
     public String loginPage() {
@@ -256,7 +261,8 @@ public class LoginController {
                 .collect(java.util.stream.Collectors.toList());
         
         // 获取项目列表（用于新增弹窗）
-        List<Project> projects = projectService.findByUserId(currentUser.getId(), currentUser.isBoss());
+        boolean isProjectAdmin = projectAdminMapper.hasAnyProjectAdmin(currentUser.getId());
+        List<Project> projects = projectService.findByUserId(currentUser.getId(), currentUser.isBoss(), isProjectAdmin);
         
         // 获取费用分类列表（用于新增弹窗）
         List<Category> categories = categoryService.findAll();
