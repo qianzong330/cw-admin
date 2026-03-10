@@ -47,6 +47,16 @@ public class MenuAdvice {
             );
             List<Map<String, Object>> allMenus = new java.util.ArrayList<>(topMenus);
             allMenus.addAll(subMenus);
+            
+            // 调试日志：输出菜单数量
+            System.out.println("[MenuAdvice] 顶层菜单数量: " + topMenus.size() + ", 子菜单数量: " + subMenus.size());
+            for (Map<String, Object> menu : topMenus) {
+                System.out.println("[MenuAdvice] 顶层菜单: " + menu.get("menu_code") + " - " + menu.get("menu_name"));
+            }
+            for (Map<String, Object> menu : subMenus) {
+                System.out.println("[MenuAdvice] 子菜单: " + menu.get("menu_code") + " - " + menu.get("menu_name") + ", parent_id=" + menu.get("parent_id"));
+            }
+            
             return allMenus;
         } catch (Exception e) {
             System.err.println("MenuAdvice 查询失败: " + e.getMessage());

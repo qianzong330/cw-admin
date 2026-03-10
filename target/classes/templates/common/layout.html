@@ -684,7 +684,7 @@
                                     <li th:id="'submenu-' + ${menu.id}" style="display:none; list-style:none; padding:0; margin:0;" th:data-parent-id="${menu.id}">
                                         <ul class="nav flex-column" style="list-style:none; padding:0; margin:0;">
                                         <th:block th:each="subMenu : ${navMenus}">
-                                            <li class="nav-item" th:if="${subMenu.parent_id != null && subMenu.parent_id.toString() == menu.id.toString()}"
+                                            <li class="nav-item" th:if="${subMenu.parent_id != null && #strings.toString(subMenu.parent_id) == #strings.toString(menu.id)}"
                                                 style="padding-left: 1.5rem;">
                                                 <a class="nav-link" th:href="${subMenu.menu_url}"
                                                    th:data-url="${subMenu.menu_url}">
