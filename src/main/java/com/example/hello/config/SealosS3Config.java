@@ -17,7 +17,7 @@ import java.net.URI;
 @Configuration
 public class SealosS3Config {
 
-    @Value("${sealos.s3.endpoint:https://objectstorage.sealoshzh.site}")
+    @Value("${sealos.s3.endpoint:http://objectstorage.sealoshzh.site}")
     private String endpoint;
 
     @Value("${sealos.s3.access-key:z4bn2xr7}")
