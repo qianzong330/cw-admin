@@ -62,16 +62,11 @@ public class AccountService {
             if (isBoss) {
                 account.setStatus(5); // 生效
                 account.setApprovalStage(null);
-            } else if (isFinance) {
-                // 财务发起的记账，直接到BOSS审批阶段
-                account.setStatus(1); // 审批中
-                account.setApprovalStage(2); // 待BOSS审批
-                account.setApprovedByFinance("FINANCE"); // 标记为财务发起，跳过财务审批
             } else {
-                // 普通员工，需要财务审批
+                // 普通员工/财务发起的记账，需要管理员审批
                 account.setStatus(1); // 审批中
-                account.setApprovalStage(1); // 待财务审批
-                account.setApprovedByFinance(""); // 初始化空字符串
+                account.setApprovalStage(1); // 待管理员审批
+                account.setApprovedByAdmin(""); // 初始化空字符串
             }
             
             accountMapper.insert(account);
@@ -102,22 +97,12 @@ public class AccountService {
             // 先更新帐条基本信息
             accountMapper.update(account);
             
-            // 编辑后重置审批状态：财务直接到BOSS审批，普通员工到财务审批
-            String roleCode = currentUser.getRoleCode() != null ? currentUser.getRoleCode().toLowerCase() : "";
-            boolean isFinance = currentUser.isFinance();
-            
+            // 编辑后重置审批状态：到管理员审批
             Account statusUpdate = new Account();
             statusUpdate.setId(account.getId());
             statusUpdate.setStatus(1); // 审批中
-            if (isFinance) {
-                // 财务编辑，直接到BOSS审批
-                statusUpdate.setApprovalStage(2);
-                statusUpdate.setApprovedByFinance("FINANCE");
-            } else {
-                // 普通员工编辑，到财务审批
-                statusUpdate.setApprovalStage(1);
-                statusUpdate.setApprovedByFinance("");
-            }
+            statusUpdate.setApprovalStage(1); // 待管理员审批
+            statusUpdate.setApprovedByAdmin("");
             accountMapper.updateApprovalStage(statusUpdate);
             
             // 记录操作明细：重新提交审批，使用用户填写的备注
