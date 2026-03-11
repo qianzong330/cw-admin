@@ -382,10 +382,10 @@
                             <div class="d-flex align-items-center gap-2 mb-2">
                                 <label class="fw-bold text-nowrap mb-0" style="min-width: 70px; font-size: 14px;">收支类型<span class="text-danger">*</span></label>
                                 <select class="form-select form-select-sm" name="type" id="type" required style="flex: 1;">
-                                    <option value="">请选择</option>
-                                    <!-- BOSS/管理员显示收入和支出，员工只显示支出 -->
+                                    <!-- BOSS/管理员显示收入和支出选项，员工只显示支出且默认选中 -->
+                                    <option th:if="${session.currentUser != null and (session.currentUser.boss or session.currentUser.roleCode == 'admin')}" value="">请选择</option>
                                     <option th:if="${session.currentUser != null and (session.currentUser.boss or session.currentUser.roleCode == 'admin')}" value="1">收入</option>
-                                    <option value="2">支出</option>
+                                    <option value="2" selected>支出</option>
                                 </select>
                             </div>
                             
