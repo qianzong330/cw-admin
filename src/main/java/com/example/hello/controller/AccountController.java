@@ -274,9 +274,7 @@ public class AccountController {
         }
         
         // 设置图片URL（逗号分隔）
-        if (!imageUrls.isEmpty()) {
-            account.setInvoiceImages(String.join(",", imageUrls));
-        }
+        account.setInvoiceImages(String.join(",", imageUrls));
         
         accountService.save(account, currentUser);
         return "redirect:/account/list";

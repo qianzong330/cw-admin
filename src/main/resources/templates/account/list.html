@@ -123,18 +123,20 @@
                                     <!-- 待管理员审批 -->
                                     <div th:if="${acc.status == 1 and acc.approvalStage == 1}">
                                         <span class="badge bg-warning">待管理员审批</span>
+                                        <!-- 显示项目管理员审批人 -->
+                                        <div class="mt-1">
+                                            <small class="text-muted">
+                                                <i class="bi bi-people-fill me-1"></i>待审批
+                                            </small>
+                                        </div>
                                     </div>
                                     <!-- 待BOSS审批 -->
                                     <div th:if="${acc.status == 1 and acc.approvalStage == 2}">
                                         <span class="badge bg-info">待BOSS审批</span>
-                                        <!-- 审批人信息：只有BOSS或自己的帐条才显示 -->
-                                        <div class="mt-1" th:if="${session.currentUser != null and (session.currentUser.boss or acc.creatorId == session.currentUser.id)}">
+                                        <!-- 审批人信息 -->
+                                        <div class="mt-1">
                                             <small class="text-muted">
-                                                <i class="bi bi-people-fill me-1"></i>
-                                                <span th:each="b, iterStat : ${bossList}" th:if="${b.status == 1}">
-                                                    <span th:text="${b.name}"></span>
-                                                    <span th:if="${!iterStat.last}">、</span>
-                                                </span>
+                                                <i class="bi bi-people-fill me-1"></i>待审批
                                             </small>
                                         </div>
                                     </div>
@@ -381,7 +383,8 @@
                                 <label class="fw-bold text-nowrap mb-0" style="min-width: 70px; font-size: 14px;">收支类型<span class="text-danger">*</span></label>
                                 <select class="form-select form-select-sm" name="type" id="type" required style="flex: 1;">
                                     <option value="">请选择</option>
-                                    <option value="1">收入</option>
+                                    <!-- BOSS/管理员显示收入和支出，员工只显示支出 -->
+                                    <option th:if="${session.currentUser != null and (session.currentUser.boss or session.currentUser.roleCode == 'admin')}" value="1">收入</option>
                                     <option value="2">支出</option>
                                 </select>
                             </div>
