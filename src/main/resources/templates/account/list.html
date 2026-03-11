@@ -467,6 +467,17 @@
                                 <label class="fw-bold text-nowrap mb-0 mt-1" style="min-width: 70px; font-size: 14px;">备注</label>
                                 <textarea class="form-control form-control-sm" name="remark" id="editRemark" rows="2" style="flex: 1;"></textarea>
                             </div>
+                            
+                            <div class="d-flex align-items-start gap-2 mt-2">
+                                <label class="fw-bold text-nowrap mb-0 mt-1" style="min-width: 70px; font-size: 14px;">发票</label>
+                                <div style="flex: 1;">
+                                    <input type="file" class="form-control form-control-sm" name="invoiceFiles" id="editInvoiceFiles" accept="image/*" multiple onchange="previewEditImages(this)">
+                                    <div class="form-text" style="font-size: 12px;">支持多张图片，单张不超过10MB</div>
+                                    <div id="editImagePreview" class="d-flex flex-wrap gap-2 mt-2"></div>
+                                    <!-- 隐藏字段存储已有的发票图片URL -->
+                                    <input type="hidden" name="existingImages" id="editExistingImages">
+                                </div>
+                            </div>
                         </form>
                     </div>
                     <div class="modal-footer py-2">
@@ -567,6 +578,31 @@
                             document.getElementById('editCategoryId').value = data.account.categoryId;
                             document.getElementById('editAmount').value = data.account.amount;
                             document.getElementById('editRemark').value = data.account.remark || '';
+                            
+                            // 清空文件选择
+                            document.getElementById('editInvoiceFiles').value = '';
+                            
+                            // 显示已有发票图片
+                            var previewContainer = document.getElementById('editImagePreview');
+                            previewContainer.innerHTML = '';
+                            var existingImagesInput = document.getElementById('editExistingImages');
+                            
+                            if (data.account.invoiceImages && data.account.invoiceImages.length > 0) {
+                                existingImagesInput.value = data.account.invoiceImages;
+                                var images = data.account.invoiceImages.split(',');
+                                images.forEach(function(url) {
+                                    if (url.trim()) {
+                                        var imgDiv = document.createElement('div');
+                                        imgDiv.style.position = 'relative';
+                                        imgDiv.innerHTML = '<img src="' + url.trim() + '" style="width: 80px; height: 80px; object-fit: cover; border-radius: 4px; border: 1px solid #ddd;">' +
+                                            '<button type="button" class="btn btn-danger btn-sm" style="position: absolute; top: -5px; right: -5px; padding: 0 4px; font-size: 10px;" onclick="removeEditImage(this, \'' + url.trim() + '\')">×</button>';
+                                        previewContainer.appendChild(imgDiv);
+                                    }
+                                });
+                            } else {
+                                existingImagesInput.value = '';
+                            }
+                            
                             new bootstrap.Modal(document.getElementById('editAccountModal')).show();
                         } else {
                             showAlertModal('错误', data.message || '获取帐条详情失败');
@@ -667,6 +703,38 @@
                 var alertModalEl = document.getElementById('alertModal');
                 var modal = new bootstrap.Modal(alertModalEl);
                 modal.show();
+            }
+            
+            // 编辑弹窗图片预览
+            function previewEditImages(input) {
+                var previewContainer = document.getElementById('editImagePreview');
+                
+                if (input.files && input.files.length > 0) {
+                    Array.from(input.files).forEach(function(file) {
+                        var reader = new FileReader();
+                        reader.onload = function(e) {
+                            var imgDiv = document.createElement('div');
+                            imgDiv.style.position = 'relative';
+                            imgDiv.innerHTML = '<img src="' + e.target.result + '" style="width: 80px; height: 80px; object-fit: cover; border-radius: 4px; border: 1px solid #ddd;">' +
+                                '<span class="badge bg-success" style="position: absolute; top: -5px; right: -5px; font-size: 10px;">新</span>';
+                            previewContainer.appendChild(imgDiv);
+                        };
+                        reader.readAsDataURL(file);
+                    });
+                }
+            }
+            
+            // 删除编辑弹窗中的已有图片
+            function removeEditImage(btn, imageUrl) {
+                // 从DOM中移除
+                btn.parentElement.remove();
+                
+                // 更新隐藏字段
+                var existingImagesInput = document.getElementById('editExistingImages');
+                var images = existingImagesInput.value.split(',').filter(function(url) {
+                    return url.trim() !== imageUrl;
+                });
+                existingImagesInput.value = images.join(',');
             }
             
             // 通用确认弹窗
