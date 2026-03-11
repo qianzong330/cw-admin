@@ -108,9 +108,9 @@
             </div>
         </div>
         
-        <!-- 关联员工搜索弹窗 -->
+        <!-- 关联员工弹窗 -->
         <div class="modal fade" id="assignSearchModal" tabindex="-1" aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered" style="max-width: 420px;">
+            <div class="modal-dialog modal-dialog-centered" style="max-width: 500px;">
                 <div class="modal-content">
                     <div class="modal-header py-2">
                         <h6 class="modal-title fw-bold">关联员工到项目</h6>
@@ -118,15 +118,20 @@
                     </div>
                     <div class="modal-body py-3">
                         <input type="hidden" id="assignProjectId">
-                        <div class="mb-3">
-                            <label class="form-label">请输入要关联的员工</label>
-                            <input type="text" class="form-control" id="searchEmployeeName" placeholder="请输入员工姓名">
+                        <div class="mb-2">
+                            <label class="form-label fw-bold">选择要关联的员工（可多选）</label>
                         </div>
-                        <div id="searchResult" class="mt-2"></div>
+                        <div id="unassignedEmployeesList" style="max-height: 300px; overflow-y: auto; border: 1px solid #dee2e6; border-radius: 0.25rem; padding: 10px;">
+                            <div class="text-muted">加载中...</div>
+                        </div>
+                        <div class="mt-2">
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="toggleSelectAllUnassigned()">全选/取消全选</button>
+                        </div>
+                        <div id="assignResult" class="mt-2"></div>
                     </div>
                     <div class="modal-footer py-2">
                         <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">取消</button>
-                        <button type="button" class="btn btn-outline-primary btn-sm" onclick="searchAndAssignEmployee()">确认</button>
+                        <button type="button" class="btn btn-outline-primary btn-sm" onclick="batchAssignEmployees()">确认关联</button>
                     </div>
                 </div>
             </div>
@@ -196,17 +201,57 @@
             function toggleProjectEmployees(projectId) {
                 var employeesRow = document.getElementById('employeesRow_' + projectId);
                 var toggleBtn = document.getElementById('toggleBtn_' + projectId);
+                var projectRow = document.getElementById('projectRow_' + projectId);
                 
                 if (employeesRow.style.display === 'none') {
-                    // 展开
+                    // 展开 - 先隐藏所有其他项目行
+                    hideAllOtherProjects(projectId);
+                    
+                    // 展开当前项目
                     employeesRow.style.display = '';
                     toggleBtn.textContent = '收起';
                     loadProjectEmployees(projectId);
+                    
+                    // 高亮当前项目行
+                    projectRow.classList.add('table-primary');
                 } else {
-                    // 收起
+                    // 收起 - 恢复显示所有项目
+                    showAllProjects();
+                    
+                    // 收起当前项目
                     employeesRow.style.display = 'none';
                     toggleBtn.textContent = '查看已关联员工';
+                    
+                    // 取消高亮
+                    projectRow.classList.remove('table-primary');
                 }
+            }
+            
+            // 隐藏其他所有项目行
+            function hideAllOtherProjects(activeProjectId) {
+                projectsData.forEach(function(proj) {
+                    if (proj.id != activeProjectId) {
+                        var row = document.getElementById('projectRow_' + proj.id);
+                        var empRow = document.getElementById('employeesRow_' + proj.id);
+                        if (row) row.style.display = 'none';
+                        if (empRow) empRow.style.display = 'none';
+                    }
+                });
+            }
+            
+            // 显示所有项目行
+            function showAllProjects() {
+                projectsData.forEach(function(proj) {
+                    var row = document.getElementById('projectRow_' + proj.id);
+                    var empRow = document.getElementById('employeesRow_' + proj.id);
+                    var toggleBtn = document.getElementById('toggleBtn_' + proj.id);
+                    if (row) {
+                        row.style.display = '';
+                        row.classList.remove('table-primary');
+                    }
+                    if (empRow) empRow.style.display = 'none';
+                    if (toggleBtn) toggleBtn.textContent = '查看已关联员工';
+                });
             }
             
             // 加载项目已关联员工
@@ -281,50 +326,105 @@
                 });
             }
             
-            // 打开关联员工搜索弹窗
+            // 打开关联员工弹窗
             function openAssignSearchModal(projectId) {
+                // 先隐藏其他项目，置顶当前项目
+                hideAllOtherProjects(projectId);
+                
+                // 高亮当前项目行
+                var projectRow = document.getElementById('projectRow_' + projectId);
+                if (projectRow) projectRow.classList.add('table-primary');
+                
                 document.getElementById('assignProjectId').value = projectId;
-                document.getElementById('searchEmployeeName').value = '';
-                document.getElementById('searchResult').innerHTML = '';
-                new bootstrap.Modal(document.getElementById('assignSearchModal')).show();
+                document.getElementById('assignResult').innerHTML = '';
+                loadUnassignedEmployees(projectId);
+                
+                // 弹窗关闭时恢复显示所有项目
+                var modal = document.getElementById('assignSearchModal');
+                modal.addEventListener('hidden.bs.modal', function() {
+                    showAllProjects();
+                }, { once: true });
+                
+                new bootstrap.Modal(modal).show();
             }
             
-            // 搜索并关联员工
-            function searchAndAssignEmployee() {
+            // 加载未关联该项目的员工列表
+            function loadUnassignedEmployees(projectId) {
+                var container = document.getElementById('unassignedEmployeesList');
+                container.innerHTML = '<div class="text-muted">加载中...</div>';
+                
+                // 获取该项目已关联的员工ID列表
+                fetch('/project/employees/' + projectId)
+                    .then(res => res.json())
+                    .then(assignedEmployees => {
+                        var assignedIds = assignedEmployees.map(e => e.employeeId);
+                        
+                        // 过滤出未关联的员工
+                        var unassignedEmployees = employeesData.filter(function(emp) {
+                            return !assignedIds.includes(emp.id);
+                        });
+                        
+                        renderUnassignedEmployees(unassignedEmployees);
+                    })
+                    .catch(() => {
+                        container.innerHTML = '<div class="text-danger">加载失败</div>';
+                    });
+            }
+            
+            // 渲染未关联员工列表
+            function renderUnassignedEmployees(employees) {
+                var container = document.getElementById('unassignedEmployeesList');
+                
+                if (!employees || employees.length === 0) {
+                    container.innerHTML = '<div class="text-muted">所有员工已关联到该项目</div>';
+                    return;
+                }
+                
+                var html = '<div class="d-flex flex-column gap-2">';
+                employees.forEach(function(emp) {
+                    html += '<div class="form-check">' +
+                            '  <input class="form-check-input" type="checkbox" value="' + emp.id + '" id="empCheckbox_' + emp.id + '">' +
+                            '  <label class="form-check-label" for="empCheckbox_' + emp.id + '">' +
+                            '    <span class="fw-bold">' + emp.name + '</span>' +
+                            '    <span class="text-muted small ms-2">' + (emp.jobCategoryName || '未分配工种') + '</span>' +
+                            '  </label>' +
+                            '</div>';
+                });
+                html += '</div>';
+                container.innerHTML = html;
+            }
+            
+            // 全选/取消全选
+            function toggleSelectAllUnassigned() {
+                var checkboxes = document.querySelectorAll('#unassignedEmployeesList input[type="checkbox"]');
+                var allChecked = Array.from(checkboxes).every(cb => cb.checked);
+                checkboxes.forEach(function(cb) {
+                    cb.checked = !allChecked;
+                });
+            }
+            
+            // 批量关联员工
+            function batchAssignEmployees() {
                 var projectId = document.getElementById('assignProjectId').value;
-                var searchName = document.getElementById('searchEmployeeName').value.trim();
-                var resultDiv = document.getElementById('searchResult');
+                var resultDiv = document.getElementById('assignResult');
                 
-                if (!searchName) {
-                    resultDiv.innerHTML = '<div class="text-warning">请输入员工姓名</div>';
+                // 获取选中的员工ID
+                var checkedBoxes = document.querySelectorAll('#unassignedEmployeesList input[type="checkbox"]:checked');
+                var employeeIds = Array.from(checkedBoxes).map(cb => cb.value);
+                
+                if (employeeIds.length === 0) {
+                    resultDiv.innerHTML = '<div class="text-warning">请至少选择一名员工</div>';
                     return;
                 }
                 
-                // 查找员工
-                var matchedEmployee = employeesData.find(function(emp) {
-                    return emp.name === searchName;
-                });
+                resultDiv.innerHTML = '<div class="text-info">正在关联...</div>';
                 
-                if (!matchedEmployee) {
-                    resultDiv.innerHTML = '<div class="text-danger">未找到姓名为「' + searchName + '」的员工</div>';
-                    return;
-                }
-                
-                // 检查是否已关联
-                var cachedEmployees = projectEmployeesMap[projectId] || [];
-                var isAlreadyAssigned = cachedEmployees.some(function(emp) {
-                    return emp.employeeId == matchedEmployee.id;
-                });
-                
-                if (isAlreadyAssigned) {
-                    resultDiv.innerHTML = '<div class="text-warning">员工「' + searchName + '」已加入该项目</div>';
-                    return;
-                }
-                
-                // 执行关联
+                // 构建表单数据
                 var formData = new FormData();
-                formData.append('employeeIds', matchedEmployee.id);
                 formData.append('projectId', projectId);
+                employeeIds.forEach(function(id) {
+                    formData.append('employeeIds', id);
+                });
                 
                 fetch('/project/assign', {
                     method: 'POST',
@@ -333,7 +433,7 @@
                 .then(res => res.text())
                 .then(result => {
                     if (result === 'success' || result === 'partial') {
-                        resultDiv.innerHTML = '<div class="text-success">成功关联员工「' + searchName + '」到项目</div>';
+                        resultDiv.innerHTML = '<div class="text-success">成功关联 ' + employeeIds.length + ' 名员工</div>';
                         // 清除缓存，下次展开时重新加载
                         delete projectEmployeesMap[projectId];
                         // 如果当前正在展开状态，刷新显示
@@ -341,7 +441,7 @@
                         if (employeesRow && employeesRow.style.display !== 'none') {
                             loadProjectEmployees(projectId);
                         }
-                        // 2秒后关闭弹窗
+                        // 1.5秒后关闭弹窗
                         setTimeout(function() {
                             bootstrap.Modal.getInstance(document.getElementById('assignSearchModal')).hide();
                         }, 1500);
