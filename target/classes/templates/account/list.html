@@ -79,7 +79,7 @@
                     </form>
                     <button type="button" class="btn btn-primary btn-sm ms-auto"
                             th:if="${session.currentUser != null and session.currentUser.hasPermission('account:add')}"
-                            data-bs-toggle="modal" data-bs-target="#addAccountModal">
+                            onclick="openAddAccountModal()">
                         <i class="bi bi-plus"></i> 新增帐条
                     </button>
                 </div>
@@ -537,6 +537,22 @@
                 document.getElementById('addAccountForm').reset();
                 isSubmitting = false;
             });
+            
+            // 打开新增帐条弹窗
+            function openAddAccountModal() {
+                // 获取当前筛选的项目ID
+                var filterProjectId = document.getElementById('filterProjectId').value;
+                
+                // 如果有筛选项目，则设置默认值
+                if (filterProjectId) {
+                    document.getElementById('projectId').value = filterProjectId;
+                } else {
+                    document.getElementById('projectId').value = '';
+                }
+                
+                // 打开弹窗
+                new bootstrap.Modal(document.getElementById('addAccountModal')).show();
+            }
             
             // 打开编辑弹窗
             function openEditModal(id) {
