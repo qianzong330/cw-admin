@@ -102,12 +102,28 @@ public class AccountService {
             // 先更新帐条基本信息
             accountMapper.update(account);
             
-            // 编辑后重置审批状态：到管理员审批
+            // 编辑后重置审批状态：根据用户角色设置审批阶段
+            String editRoleCode = currentUser.getRoleCode() != null ? currentUser.getRoleCode().toLowerCase() : "";
+            boolean editIsBoss = "boss".equals(editRoleCode) || "root".equals(editRoleCode);
+            boolean editIsAdmin = "admin".equals(editRoleCode);
+            
             Account statusUpdate = new Account();
             statusUpdate.setId(account.getId());
             statusUpdate.setStatus(1); // 审批中
-            statusUpdate.setApprovalStage(1); // 待管理员审批
-            statusUpdate.setApprovedByAdmin("");
+            
+            if (editIsBoss) {
+                // BOSS编辑直接生效
+                statusUpdate.setStatus(5);
+                statusUpdate.setApprovalStage(null);
+            } else if (editIsAdmin) {
+                // 管理员编辑直接进入BOSS审批
+                statusUpdate.setApprovalStage(2);
+                statusUpdate.setApprovedByAdmin("admin");
+            } else {
+                // 普通员工编辑进入管理员审批
+                statusUpdate.setApprovalStage(1);
+                statusUpdate.setApprovedByAdmin("");
+            }
             accountMapper.updateApprovalStage(statusUpdate);
             
             // 记录操作明细：重新提交审批，使用用户填写的备注
