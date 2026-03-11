@@ -672,9 +672,10 @@
                     })
                     .then(response => {
                         if (response.ok || response.redirected) {
-                            // 保存成功，关闭弹窗并刷新列表
+                            // 保存成功，关闭弹窗并立即刷新列表
                             bootstrap.Modal.getInstance(document.getElementById('editAccountModal')).hide();
-                            window.location.reload();
+                            // 强制刷新页面，清除缓存
+                            window.location.href = window.location.href.split('?')[0] + '?t=' + new Date().getTime();
                         } else {
                             return response.text().then(text => { throw new Error(text); });
                         }
