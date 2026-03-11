@@ -59,12 +59,15 @@ public class AccountController {
         
         // 检查是否是项目管理员
         boolean isProjectAdmin = projectAdminMapper.hasAnyProjectAdmin(currentUser.getId());
+        // 检查是否是管理员角色
+        boolean isAdmin = "admin".equalsIgnoreCase(currentUser.getRoleCode());
         
-        // 分页查询 - BOSS看所有，项目管理员看管理的项目，普通员工看自己的
+        // 分页查询 - BOSS看所有，管理员看管理的项目(不含BOSS记账)，项目管理员看管理的项目，普通员工看自己的
         List<Account> accounts = accountService.findByConditionWithPage(
             currentUser.getId(), 
             currentUser.isBoss(),
             isProjectAdmin,
+            isAdmin,
             projectId, 
             status,
             type,
@@ -76,6 +79,7 @@ public class AccountController {
             currentUser.getId(), 
             currentUser.isBoss(),
             isProjectAdmin,
+            isAdmin,
             projectId, 
             status,
             type,
@@ -139,12 +143,16 @@ public class AccountController {
                               HttpSession session) {
         Employee currentUser = (Employee) session.getAttribute("currentUser");
         
+        // 检查是否是管理员角色
+        boolean isAdmin = "admin".equalsIgnoreCase(currentUser.getRoleCode());
+        
         // 查询待审批的帐条（状态为1-审批中）
         // 财务看approvalStage=1，BOSS看approvalStage=2
         List<Account> accounts = accountService.findByConditionWithPage(
             currentUser.getId(), 
             currentUser.isBoss(),
             currentUser.isFinance(),
+            isAdmin,
             null, // projectId
             1,    // status = 1 审批中
             null, // type
@@ -156,6 +164,7 @@ public class AccountController {
             currentUser.getId(), 
             currentUser.isBoss(),
             currentUser.isFinance(),
+            isAdmin,
             null, // projectId
             1,    // status = 1 审批中
             null, // type

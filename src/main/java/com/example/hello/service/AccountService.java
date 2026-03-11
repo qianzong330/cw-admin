@@ -54,16 +54,21 @@ public class AccountService {
             account.setRoleId(currentUser.getRoleId());
             account.setJobCategoryId(currentUser.getJobCategoryId());
             
-            // BOSS直接生效，财务直接到BOSS审批，普通员工需要财务审批
+            // BOSS直接生效，管理员直接到BOSS审批，普通员工需要管理员审批
             String roleCode = currentUser.getRoleCode() != null ? currentUser.getRoleCode().toLowerCase() : "";
             boolean isBoss = "boss".equals(roleCode) || "root".equals(roleCode);
-            boolean isFinance = currentUser.isFinance();
+            boolean isAdmin = "admin".equals(roleCode);
             
             if (isBoss) {
-                account.setStatus(5); // 生效
+                account.setStatus(5); // BOSS记账直接生效
                 account.setApprovalStage(null);
+            } else if (isAdmin) {
+                // 管理员记账直接进入BOSS审批阶段
+                account.setStatus(1); // 审批中
+                account.setApprovalStage(2); // 待BOSS审批
+                account.setApprovedByAdmin("admin"); // 标记已通过管理员阶段
             } else {
-                // 普通员工/财务发起的记账，需要管理员审批
+                // 普通员工发起的记账，需要管理员审批
                 account.setStatus(1); // 审批中
                 account.setApprovalStage(1); // 待管理员审批
                 account.setApprovedByAdmin(""); // 初始化空字符串
@@ -251,13 +256,13 @@ public class AccountService {
         return accountMapper.deleteById(id) > 0;
     }
 
-    public List<Account> findByConditionWithPage(Long userId, boolean isBoss, boolean isProjectAdmin, Long projectId, Integer status, Integer type, String creatorName, int page, int pageSize) {
+    public List<Account> findByConditionWithPage(Long userId, boolean isBoss, boolean isProjectAdmin, boolean isAdmin, Long projectId, Integer status, Integer type, String creatorName, int page, int pageSize) {
         int offset = (page - 1) * pageSize;
-        return accountMapper.findByConditionWithPage(userId, isBoss, isProjectAdmin, projectId, status, type, creatorName, offset, pageSize);
+        return accountMapper.findByConditionWithPage(userId, isBoss, isProjectAdmin, isAdmin, projectId, status, type, creatorName, offset, pageSize);
     }
 
-    public int countByCondition(Long userId, boolean isBoss, boolean isProjectAdmin, Long projectId, Integer status, Integer type, String creatorName) {
-        return accountMapper.countByCondition(userId, isBoss, isProjectAdmin, projectId, status, type, creatorName);
+    public int countByCondition(Long userId, boolean isBoss, boolean isProjectAdmin, boolean isAdmin, Long projectId, Integer status, Integer type, String creatorName) {
+        return accountMapper.countByCondition(userId, isBoss, isProjectAdmin, isAdmin, projectId, status, type, creatorName);
     }
 
     // 获取待财务审批数量（用于菜单徽章）
