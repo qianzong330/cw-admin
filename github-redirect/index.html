@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>财务管理系统</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            text-align: center;
+            max-width: 400px;
+            width: 100%;
+        }
+        .logo {
+            width: 80px;
+            height: 80px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 30px;
+            font-size: 40px;
+        }
+        h1 {
+            color: #fff;
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            color: rgba(255,255,255,0.8);
+            font-size: 14px;
+            margin-bottom: 40px;
+        }
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 16px 30px;
+            background: #fff;
+            color: #667eea;
+            text-decoration: none;
+            border-radius: 30px;
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            transition: all 0.3s;
+            border: none;
+            cursor: pointer;
+        }
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 30px rgba(0,0,0,0.3);
+        }
+        .btn-outline {
+            background: transparent;
+            color: #fff;
+            border: 2px solid rgba(255,255,255,0.5);
+        }
+        .btn-outline:hover {
+            background: rgba(255,255,255,0.1);
+            border-color: #fff;
+        }
+        .tips {
+            margin-top: 30px;
+            padding: 15px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            color: rgba(255,255,255,0.9);
+            font-size: 13px;
+            line-height: 1.6;
+        }
+        .qrcode-section {
+            margin-top: 30px;
+            padding: 20px;
+            background: rgba(255,255,255,0.15);
+            border-radius: 16px;
+        }
+        .qrcode-section p {
+            color: rgba(255,255,255,0.9);
+            font-size: 13px;
+            margin-bottom: 12px;
+        }
+        .qrcode-section img {
+            width: 160px;
+            height: 160px;
+            border-radius: 8px;
+            background: #fff;
+            padding: 6px;
+        }
+        .qrcode-label {
+            color: rgba(255,255,255,0.7);
+            font-size: 12px;
+            margin-top: 8px;
+        }
+        .loading {
+            display: none;
+            margin-bottom: 20px;
+        }
+        .loading.active {
+            display: block;
+        }
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">💰</div>
+        <h1>财务管理系统</h1>
+        <p class="subtitle">便捷的财务记账与审批平台</p>
+        
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p style="color: rgba(255,255,255,0.8); font-size: 14px;">正在跳转...</p>
+        </div>
+        
+        <a href="https://wzpewavfyqry.sealoshzh.site" class="btn" id="enterBtn">进入系统</a>
+        <button class="btn btn-outline" onclick="copyUrl()">复制链接</button>
+        
+        <div class="tips">
+            <strong>💡 提示：</strong><br>
+            如果微信内无法访问，请点击右上角「···」<br>
+            选择「在浏览器打开」
+        </div>
+        
+        <!-- GitHub 仓库二维码 -->
+        <div class="qrcode-section">
+            <p>📦 扫码访问 GitHub 源码仓库</p>
+            <img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=https%3A%2F%2Fgithub.com%2Fqianzong330%2Fcw-admin" alt="GitHub仓库二维码">
+            <div class="qrcode-label">github.com/qianzong330/cw-admin</div>
+        </div>
+    </div>
+
+    <script>
+        // 检测是否在微信内置浏览器中
+        function isWeixin() {
+            var ua = navigator.userAgent.toLowerCase();
+            return ua.indexOf('micromessenger') !== -1;
+        }
+
+        // 复制链接功能
+        function copyUrl() {
+            var url = 'https://wzpewavfyqry.sealoshzh.site';
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(url).then(function() {
+                    alert('链接已复制到剪贴板');
+                });
+            } else {
+                var input = document.createElement('input');
+                input.value = url;
+                document.body.appendChild(input);
+                input.select();
+                document.execCommand('copy');
+                document.body.removeChild(input);
+                alert('链接已复制到剪贴板');
+            }
+        }
+
+        // 自动跳转（如果不是在微信中）
+        document.getElementById('enterBtn').addEventListener('click', function(e) {
+            if (!isWeixin()) {
+                e.preventDefault();
+                document.getElementById('loading').classList.add('active');
+                document.getElementById('enterBtn').style.display = 'none';
+                setTimeout(function() {
+                    window.location.href = 'https://wzpewavfyqry.sealoshzh.site';
+                }, 500);
+            }
+        });
+
+        // 如果在微信中，显示提示
+        if (isWeixin()) {
+            document.querySelector('.tips').innerHTML = '<strong>⚠️ 微信提示：</strong><br>请点击右上角「···」选择「在浏览器打开」即可正常访问';
+            document.querySelector('.tips').style.background = 'rgba(255,193,7,0.2)';
+        }
+    </script>
+</body>
+</html>
