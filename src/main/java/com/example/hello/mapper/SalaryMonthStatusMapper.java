@@ -9,8 +9,8 @@ public interface SalaryMonthStatusMapper {
     @Select("SELECT * FROM tb_salary_month_status WHERE `year_month` = #{yearMonth} AND project_id = #{projectId}")
     SalaryMonthStatus findByYearMonthAndProject(@Param("yearMonth") String yearMonth, @Param("projectId") Long projectId);
     
-    @Select("SELECT COUNT(*) FROM tb_salary_month_status WHERE `year_month` = #{yearMonth} AND status = 5")
-    int countApprovedByYearMonth(@Param("yearMonth") String yearMonth);
+    @Select("SELECT COUNT(*) FROM tb_salary_month_status WHERE `year_month` = #{yearMonth} AND status = 5 AND project_id = #{projectId}")
+    int countApprovedByYearMonth(@Param("yearMonth") String yearMonth, @Param("projectId") Long projectId);
 
     @Insert("INSERT INTO tb_salary_month_status (`year_month`, project_id, status, submit_by, submit_time, submit_remark) " +
             "VALUES (#{yearMonth}, #{projectId}, #{status}, #{submitBy}, #{submitTime}, #{submitRemark}) " +

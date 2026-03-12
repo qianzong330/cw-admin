@@ -68,11 +68,7 @@ public class WorkHourConfigController {
             if (config.getId() == null) {
                 workHourConfigService.createConfig(config, currentUser);
             } else {
-                // 编辑时检查权限
-                if (!currentUser.hasPermission("workhour:edit")) {
-                    return "没有编辑权限";
-                }
-                workHourConfigService.updateConfig(config);
+                workHourConfigService.updateConfig(config, currentUser);
             }
             return "success";
         } catch (Exception e) {
@@ -111,9 +107,9 @@ public class WorkHourConfigController {
                 return "请先登录";
             }
             
-            // 只有具备审批权限的角色才能审批
-            if (!currentUser.hasPermission("workhour:approve")) {
-                return "没有审批权限";
+            // 只有 BOSS 才能审批
+            if (!currentUser.isBoss()) {
+                return "只有BOSS才能审批工时配置";
             }
             
             workHourConfigService.approveConfig(id, currentUser, remark);
@@ -135,9 +131,9 @@ public class WorkHourConfigController {
                 return "请先登录";
             }
             
-            // 只有具备审批权限的角色才能拒绝
-            if (!currentUser.hasPermission("workhour:approve")) {
-                return "没有审批权限";
+            // 只有 BOSS 才能拒绝
+            if (!currentUser.isBoss()) {
+                return "只有BOSS才能审批工时配置";
             }
             
             workHourConfigService.rejectConfig(id, currentUser, remark);

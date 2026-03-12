@@ -210,7 +210,7 @@
         <!-- 右侧：主内容 -->
         <div class="main-panel">
             <!-- 权限标记（供JS使用） -->
-            <input type="hidden" id="canAddAttendance" th:value="${session.currentUser != null and session.currentUser.hasPermission('attendance:add')}"/>
+            <input type="hidden" id="canAddAttendance" th:value="${session.currentUser != null and !session.currentUser.roleCode.equals('employee')}"/>
             <input type="hidden" id="currentRoleCode" th:value="${currentRoleCode}"/>
 
             <!-- 工具栏 -->

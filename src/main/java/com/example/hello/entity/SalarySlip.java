@@ -15,6 +15,9 @@ public class SalarySlip {
     /** 员工ID */
     private Long employeeId;
 
+    /** 项目ID（标识工资条属于哪个项目） */
+    private Long projectId;
+
     /** 员工姓名（关联查询） */
     private String employeeName;
 
@@ -110,6 +113,9 @@ public class SalarySlip {
 
     public Long getEmployeeId() { return employeeId; }
     public void setEmployeeId(Long employeeId) { this.employeeId = employeeId; }
+
+    public Long getProjectId() { return projectId; }
+    public void setProjectId(Long projectId) { this.projectId = projectId; }
 
     public String getEmployeeName() { return employeeName; }
     public void setEmployeeName(String employeeName) { this.employeeName = employeeName; }

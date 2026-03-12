@@ -88,7 +88,7 @@
                             </div>
                             
                             <div class="d-flex align-items-start gap-2">
-                                <label class="fw-bold text-nowrap mt-1" style="min-width: 70px; font-size: 14px;">管理员</label>
+                                <label class="fw-bold text-nowrap mt-1" style="min-width: 70px; font-size: 14px;">管理员<span class="text-danger">*</span></label>
                                 <div style="flex: 1;">
                                     <!-- 管理员多选框列表 -->
                                     <div id="adminCheckboxList" style="max-height: 150px; overflow-y: auto; border: 1px solid #dee2e6; border-radius: 0.25rem; padding: 8px; background-color: #fff;">
@@ -632,6 +632,15 @@
                 if (checkDuplicateName(projectName, projectId)) {
                     showAlertModal('提示', '项目名称已存在，请使用其他名称');
                     return;
+                }
+                
+                // 新增项目时，管理员必填
+                if (!projectId || projectId.trim() === '') {
+                    var hiddenCheck = document.querySelectorAll('#adminIdsContainer input[name="adminIds"]');
+                    if (hiddenCheck.length === 0) {
+                        showAlertModal('提示', '请至少选择一位项目管理员');
+                        return;
+                    }
                 }
                 
                 isSubmitting = true;

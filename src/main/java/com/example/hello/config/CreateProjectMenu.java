@@ -50,13 +50,7 @@ public class CreateProjectMenu implements CommandLineRunner {
                     Long.class
                 );
                 System.out.println("=== 工程目录菜单创建成功，ID: " + projectDirId + " ===");
-
-                // 3. 给所有角色分配该菜单
-                jdbcTemplate.update(
-                    "INSERT IGNORE INTO tb_role_menu (role_id, menu_id) SELECT id, ? FROM tb_role",
-                    projectDirId
-                );
-                System.out.println("=== 已给所有角色分配工程目录菜单 ===");
+                // 注意：不自动给任何角色分配权限，由管理员在角色管理页面手动配置
             }
 
             // 4. 查找需要移动的独立页面菜单（排除首页和记账管理），包含工时配置

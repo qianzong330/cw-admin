@@ -51,7 +51,7 @@
                                             <button class="btn btn-sm btn-info me-1" th:data-role-id="${role.id}" th:data-role-name="${role.role_name}" th:data-role-remark="${role.remark}" onclick="editRole(this.dataset.roleId, this.dataset.roleName, this.dataset.roleRemark)">
                                                 <i class="bi bi-pencil"></i> 编辑
                                             </button>
-                                            <a th:if="${session.currentUser != null and session.currentUser.hasPermission('role:edit')}"
+                                            <a th:if="${session.currentUser != null and !session.currentUser.roleCode.equals('employee')}"
                                                th:href="@{/role/edit/{id}(id=${role.id})}" 
                                                class="btn btn-sm btn-primary me-1">
                                                 <i class="bi bi-shield-check"></i> 配置权限

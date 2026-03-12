@@ -105,7 +105,11 @@ public class LoginController {
                 System.out.println("=== 跳过菜单权限加载：roleId=" + employee.getRoleId() + ", roleCode=" + employee.getRoleCode());
             }
             session.setAttribute("currentUser", employee);
-            return "redirect:/index";
+            // BOSS/管理员留在首页，普通员工直接进入记账管理
+            if (employee.isBoss() || "admin".equalsIgnoreCase(employee.getRoleCode())) {
+                return "redirect:/index";
+            }
+            return "redirect:/account/list";
         } else {
             System.out.println("=== 登录失败：用户名或密码错误");
             model.addAttribute("error", "用户名或密码错误");

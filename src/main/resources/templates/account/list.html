@@ -72,13 +72,33 @@
                                 </button>
                             </div>
                         </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <label class="text-nowrap">时间范围：</label>
+                            <div class="input-group input-group-sm" style="width: 130px;">
+                                <select name="timeRange" id="filterTimeRange" class="form-select" style="border-radius: 0.25rem;" onchange="document.getElementById('filterForm').submit()">
+                                    <option value="" th:selected="${timeRange == null || timeRange == ''}">全部</option>
+                                    <option value="week" th:selected="${timeRange == 'week'}">最近一周</option>
+                                    <option value="month" th:selected="${timeRange == 'month'}">最近一月</option>
+                                    <option value="quarter" th:selected="${timeRange == 'quarter'}">最近三个月</option>
+                                    <option value="halfYear" th:selected="${timeRange == 'halfYear'}">最近半年</option>
+                                    <option value="year" th:selected="${timeRange == 'year'}">最近一年</option>
+                                    <option value="twoYears" th:selected="${timeRange == 'twoYears'}">最近2年</option>
+                                    <option value="threeYears" th:selected="${timeRange == 'threeYears'}">最近3年</option>
+                                </select>
+                                <button type="button" class="btn btn-outline-secondary" 
+                                        style="border-top-left-radius: 0; border-bottom-left-radius: 0; padding: 0.25rem 0.5rem;"
+                                        onclick="event.stopPropagation(); clearSelect('filterTimeRange')" 
+                                        th:if="${timeRange != null and timeRange != ''}">
+                                    <i class="bi bi-x-lg" style="font-size: 0.7rem;"></i>
+                                </button>
+                            </div>
+                        </div>
                         <button type="button" class="btn btn-primary btn-sm" onclick="document.getElementById('filterForm').submit()">
                             <i class="bi bi-search"></i> 查询
                         </button>
                         <button type="button" class="btn btn-outline-secondary btn-sm" onclick="clearAllFilters()">清空</button>
                     </form>
                     <button type="button" class="btn btn-primary btn-sm ms-auto"
-                            th:if="${session.currentUser != null and session.currentUser.hasPermission('account:add')}"
                             onclick="openAddAccountModal()">
                         <i class="bi bi-plus"></i> 新增帐条
                     </button>
@@ -124,9 +144,9 @@
                                     <div th:if="${acc.status == 1 and acc.approvalStage == 1}">
                                         <span class="badge bg-warning">待管理员审批</span>
                                         <!-- 显示项目管理员审批人 -->
-                                        <div class="mt-1">
+                                        <div class="mt-1" th:if="${acc.pendingApproverNames != null and !acc.pendingApproverNames.isEmpty()}">
                                             <small class="text-muted">
-                                                <i class="bi bi-people-fill me-1"></i>待审批
+                                                <i class="bi bi-people-fill me-1"></i>待 <span th:text="${acc.pendingApproverNames}"></span> 审批
                                             </small>
                                         </div>
                                     </div>
@@ -134,9 +154,9 @@
                                     <div th:if="${acc.status == 1 and acc.approvalStage == 2}">
                                         <span class="badge bg-info">待BOSS审批</span>
                                         <!-- 审批人信息 -->
-                                        <div class="mt-1">
+                                        <div class="mt-1" th:if="${acc.pendingApproverNames != null and !acc.pendingApproverNames.isEmpty()}">
                                             <small class="text-muted">
-                                                <i class="bi bi-people-fill me-1"></i>待审批
+                                                <i class="bi bi-people-fill me-1"></i>待 <span th:text="${acc.pendingApproverNames}"></span> 审批
                                             </small>
                                         </div>
                                     </div>
@@ -159,8 +179,8 @@
                                         <i class="bi bi-eye"></i> 预览
                                     </button>
                                     
-                                    <!-- 编辑按钮：状态为审核未通过(12) + 是自己的帐条 + 有编辑权限 -->
-                                    <button th:if="${acc.status == 12 and acc.creatorId == currentUser.id and session.currentUser != null and session.currentUser.hasPermission('account:edit')}" 
+                                    <!-- 编辑按钮：状态为审核未通过(12) + 是自己的帐条 -->
+                                    <button th:if="${acc.status == 12 and acc.creatorId == currentUser.id}" 
                                             class="btn btn-outline-warning btn-sm ms-1" th:onclick="'openEditModal(' + ${acc.id} + ')'">
                                         <i class="bi bi-pencil"></i> 编辑
                                     </button>
@@ -202,13 +222,13 @@
                             </div>
                             <ul class="pagination pagination-sm mb-0">
                                 <li class="page-item" th:classappend="${currentPage == 1} ? 'disabled'">
-                                    <a class="page-link" th:href="@{/account/list(projectId=${projectId},status=${status},page=${currentPage - 1})}">上一页</a>
+                                    <a class="page-link" th:href="@{/account/list(projectId=${projectId},status=${status},type=${type},creatorName=${creatorName},timeRange=${timeRange},page=${currentPage - 1})}">上一页</a>
                                 </li>
                                 <li class="page-item" th:each="i : ${#numbers.sequence(1, totalPages)}" th:classappend="${i == currentPage} ? 'active'">
-                                    <a class="page-link" th:href="@{/account/list(projectId=${projectId},status=${status},page=${i})}" th:text="${i}">1</a>
+                                    <a class="page-link" th:href="@{/account/list(projectId=${projectId},status=${status},type=${type},creatorName=${creatorName},timeRange=${timeRange},page=${i})}" th:text="${i}">1</a>
                                 </li>
                                 <li class="page-item" th:classappend="${currentPage == totalPages} ? 'disabled'">
-                                    <a class="page-link" th:href="@{/account/list(projectId=${projectId},status=${status},page=${currentPage + 1})}">下一页</a>
+                                    <a class="page-link" th:href="@{/account/list(projectId=${projectId},status=${status},type=${type},creatorName=${creatorName},timeRange=${timeRange},page=${currentPage + 1})}">下一页</a>
                                 </li>
                             </ul>
                         </div>
@@ -218,7 +238,7 @@
         </div>
         
         <!-- 通用提示弹窗 -->
-        <div class="modal fade" id="alertModal" tabindex="-1" aria-hidden="true" style="z-index: 99999;">
+        <div class="modal fade" id="alertModal" tabindex="-1" aria-hidden="true" style="z-index: 99999;" data-bs-backdrop="false">
             <div class="modal-dialog" style="max-width: 350px; margin-top: 80px;">
                 <div class="modal-content border-0 shadow-lg">
                     <div class="modal-header py-2 bg-primary text-white">
@@ -236,7 +256,7 @@
         </div>
         
         <!-- 确认弹窗 -->
-        <div class="modal fade" id="confirmModal" tabindex="-1" aria-hidden="true" style="z-index: 99999;">
+        <div class="modal fade" id="confirmModal" tabindex="-1" aria-hidden="true" style="z-index: 99999;" data-bs-backdrop="false">
             <div class="modal-dialog" style="max-width: 350px; margin-top: 80px;">
                 <div class="modal-content border-0 shadow-lg">
                     <div class="modal-header py-2 bg-warning text-dark">
@@ -370,7 +390,7 @@
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body py-3">
-                        <form id="addAccountForm" action="/account/save" method="post" enctype="multipart/form-data">
+                        <form id="addAccountForm" onsubmit="return false;" enctype="multipart/form-data">
                             <div class="d-flex align-items-center gap-2 mb-2">
                                 <label class="fw-bold text-nowrap mb-0" style="min-width: 70px; font-size: 14px;">项目<span class="text-danger">*</span></label>
                                 <select class="form-select form-select-sm" name="projectId" id="projectId" required style="flex: 1;">
@@ -382,10 +402,9 @@
                             <div class="d-flex align-items-center gap-2 mb-2">
                                 <label class="fw-bold text-nowrap mb-0" style="min-width: 70px; font-size: 14px;">收支类型<span class="text-danger">*</span></label>
                                 <select class="form-select form-select-sm" name="type" id="type" required style="flex: 1;">
-                                    <!-- BOSS/管理员显示收入和支出选项，员工只显示支出且默认选中 -->
-                                    <option th:if="${session.currentUser != null and (session.currentUser.boss or session.currentUser.roleCode == 'admin')}" value="">请选择</option>
+                                    <option value="">请选择</option>
                                     <option th:if="${session.currentUser != null and (session.currentUser.boss or session.currentUser.roleCode == 'admin')}" value="1">收入</option>
-                                    <option value="2" selected>支出</option>
+                                    <option value="2">支出</option>
                                 </select>
                             </div>
                             
@@ -434,7 +453,7 @@
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body py-3">
-                        <form id="editAccountForm" action="/account/save" method="post" enctype="multipart/form-data">
+                        <form id="editAccountForm" onsubmit="return false;" enctype="multipart/form-data">
                             <input type="hidden" name="id" id="editId">
                             <div class="d-flex align-items-center gap-2 mb-2">
                                 <label class="fw-bold text-nowrap mb-0" style="min-width: 70px; font-size: 14px;">项目<span class="text-danger">*</span></label>
@@ -521,6 +540,24 @@
             
             function submitAddForm() {
                 if (isSubmitting) return;
+                
+                // 前端校验必填项
+                var projectId = document.getElementById('projectId').value;
+                var type = document.getElementById('type').value;
+                var categoryId = document.getElementById('categoryId').value;
+                var amount = document.getElementById('amount').value;
+                
+                var missingFields = [];
+                if (!projectId) missingFields.push('项目');
+                if (!type) missingFields.push('收支类型');
+                if (!categoryId) missingFields.push('费用分类');
+                if (!amount) missingFields.push('金额');
+                
+                if (missingFields.length > 0) {
+                    showAlertModal('请完善信息', '以下必填项未填写：' + missingFields.join('、'), true);
+                    return;
+                }
+                
                 isSubmitting = true;
                 
                 var form = document.getElementById('addAccountForm');
@@ -530,18 +567,19 @@
                     method: 'POST',
                     body: formData
                 })
-                .then(response => {
-                    if (response.ok || response.redirected) {
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
                         // 保存成功，关闭弹窗并刷新列表
                         bootstrap.Modal.getInstance(document.getElementById('addAccountModal')).hide();
                         window.location.reload();
                     } else {
-                        alert('保存失败，请重试');
+                        showAlertModal('保存失败', data.message || '保存失败，请重试');
                         isSubmitting = false;
                     }
                 })
                 .catch(error => {
-                    alert('保存失败：' + error);
+                    showAlertModal('保存失败', '网络错误：' + error.message);
                     isSubmitting = false;
                 });
             }
@@ -662,6 +700,23 @@
             function submitEditForm() {
                 if (isSubmitting) return;
                 
+                // 前端校验必填项
+                var editProjectId = document.getElementById('editProjectId').value;
+                var editType = document.getElementById('editType').value;
+                var editCategoryId = document.getElementById('editCategoryId').value;
+                var editAmount = document.getElementById('editAmount').value;
+                
+                var missingFields = [];
+                if (!editProjectId) missingFields.push('项目');
+                if (!editType) missingFields.push('收支类型');
+                if (!editCategoryId) missingFields.push('费用分类');
+                if (!editAmount) missingFields.push('金额');
+                
+                if (missingFields.length > 0) {
+                    showAlertModal('请完善信息', '以下必填项未填写：' + missingFields.join('、'), true);
+                    return;
+                }
+                
                 // 显示确认弹窗
                 showConfirmModal('确认重新提交', '保存后将重新进入审批流程，确定要保存吗？', function() {
                     isSubmitting = true;
@@ -673,14 +728,15 @@
                         method: 'POST',
                         body: formData
                     })
-                    .then(response => {
-                        if (response.ok || response.redirected) {
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
                             // 保存成功，关闭弹窗并立即刷新列表
                             bootstrap.Modal.getInstance(document.getElementById('editAccountModal')).hide();
                             // 强制刷新页面，清除缓存
                             window.location.href = window.location.href.split('?')[0] + '?t=' + new Date().getTime();
                         } else {
-                            return response.text().then(text => { throw new Error(text); });
+                            showAlertModal('保存失败', data.message || '保存失败，请重试');
                         }
                     })
                     .catch(error => {
@@ -693,17 +749,20 @@
             }
             
             // 通用提示弹窗
-            function showAlertModal(title, content) {
+            // keepModals=true 时不关闭其他弹窗（用于表单校验提示）
+            function showAlertModal(title, content, keepModals) {
                 document.getElementById('alertModalTitle').textContent = title;
                 document.getElementById('alertModalContent').textContent = content;
-                // 先关闭其他弹窗
-                var openModals = document.querySelectorAll('.modal.show');
-                openModals.forEach(function(m) {
-                    if (m.id !== 'alertModal' && m.id !== 'confirmModal') {
-                        var instance = bootstrap.Modal.getInstance(m);
-                        if (instance) instance.hide();
-                    }
-                });
+                if (!keepModals) {
+                    // 关闭其他弹窗（不关闭弹窗自身）
+                    var openModals = document.querySelectorAll('.modal.show');
+                    openModals.forEach(function(m) {
+                        if (m.id !== 'alertModal' && m.id !== 'confirmModal') {
+                            var instance = bootstrap.Modal.getInstance(m);
+                            if (instance) instance.hide();
+                        }
+                    });
+                }
                 var alertModalEl = document.getElementById('alertModal');
                 var modal = new bootstrap.Modal(alertModalEl);
                 modal.show();
@@ -747,14 +806,6 @@
                 document.getElementById('confirmModalTitle').textContent = title;
                 document.getElementById('confirmModalContent').textContent = content;
                 confirmCallback = callback;
-                // 先关闭其他弹窗
-                var openModals = document.querySelectorAll('.modal.show');
-                openModals.forEach(function(m) {
-                    if (m.id !== 'alertModal' && m.id !== 'confirmModal') {
-                        var instance = bootstrap.Modal.getInstance(m);
-                        if (instance) instance.hide();
-                    }
-                });
                 var confirmModalEl = document.getElementById('confirmModal');
                 var modal = new bootstrap.Modal(confirmModalEl);
                 modal.show();

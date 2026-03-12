@@ -18,8 +18,9 @@ public class DatabaseInitializer implements CommandLineRunner {
         createAttendanceMonthStatusTable();
         createSalaryMonthStatusTable();
         ensureApprovalMenusExist();
-        ensureBossApprovalPermissions();
-        ensureFinanceAttendancePermissions();
+        // 权限分配由用户在角色管理页面维护，不再自动初始化
+        // ensureBossApprovalPermissions();
+        // ensureFinanceAttendancePermissions();
         ensureSalaryTableColumns();
         createFeeItemTable();
         ensureAccountTableColumns();

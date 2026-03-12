@@ -10,7 +10,7 @@
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h5 class="mb-0">工时管理配置</h5>
                 <button type="button" id="addConfigBtn" class="btn btn-primary"
-                        th:if="${session.currentUser != null and session.currentUser.hasPermission('workhour:add')}">
+                        th:if="${session.currentUser != null and !session.currentUser.roleCode.equals('employee')}">
                     <i class="bi bi-plus-lg"></i> 新增配置
                 </button>
             </div>
@@ -72,19 +72,17 @@
                                             <i class="bi bi-eye"></i> 预览
                                         </button>
                                         
-                                        <!-- 未生效状态 (12)：可编辑、可删除 -->
+                                        <!-- 未生效状态 (12)：boss 和非员工角色可编辑、可删除 -->
                                         <button type="button" class="btn btn-sm btn-outline-primary ms-1" 
-                                                th:if="${config.status == 12 and session.currentUser != null and session.currentUser.hasPermission('workhour:edit')}" 
-                                                th:onclick="'editConfig(' + ${config.id} + ')'"
+                                                th:if="${config.status == 12 and session.currentUser != null and !session.currentUser.roleCode.equals('employee')}" 
+                                                th:onclick="'editConfig(' + ${config.id} + ')'"  
                                                 style="padding: 4px 10px; font-size: 12px;">编辑</button>
                                         <button type="button" class="btn btn-sm btn-outline-danger ms-1" 
-                                                th:if="${config.status == 12 and session.currentUser != null and session.currentUser.hasPermission('workhour:delete')}" 
+                                                th:if="${config.status == 12 and session.currentUser != null and !session.currentUser.roleCode.equals('employee')}" 
                                                 th:onclick="'deleteConfig(' + ${config.id} + ')'"
                                                 style="padding: 4px 10px; font-size: 12px;">
                                             <i class="bi bi-trash"></i> 删除
                                         </button>
-                                        <!-- 未生效状态 (12)：无权限显示提示 -->
-                                        <span class="text-muted small" th:if="${config.status == 12 and (session.currentUser == null or !session.currentUser.hasPermission('workhour:edit'))}">不可操作</span>
                                                                             
                                         <!-- 审批中状态：发起人可撤销 -->
                                         <button type="button" class="btn btn-sm btn-outline-warning ms-1" 
@@ -94,32 +92,32 @@
                                             <i class="bi bi-arrow-counterclockwise"></i> 撤销
                                         </button>
                                                                             
-                                        <!-- 审批中状态：具有审批权限且非发起人，可通过、拒绝 -->
+                                        <!-- 审批中状态：只有BOSS可以审批通过或拒绝 -->
                                         <button type="button" class="btn btn-sm btn-success ms-1" 
-                                                th:if="${config.status == 1 and session.currentUser != null and session.currentUser.hasPermission('workhour:approve')}" 
+                                                th:if="${config.status == 1 and session.currentUser != null and session.currentUser.boss}" 
                                                 th:onclick="'showApproveModal(' + ${config.id} + ')'"
                                                 style="padding: 4px 10px; font-size: 12px;">
                                             <i class="bi bi-check-lg"></i> 通过
                                         </button>
                                         <button type="button" class="btn btn-sm btn-danger ms-1" 
-                                                th:if="${config.status == 1 and session.currentUser != null and session.currentUser.hasPermission('workhour:approve')}" 
+                                                th:if="${config.status == 1 and session.currentUser != null and session.currentUser.boss}" 
                                                 th:onclick="'showRejectModal(' + ${config.id} + ')'"
                                                 style="padding: 4px 10px; font-size: 12px;">
                                             <i class="bi bi-x-lg"></i> 拒绝
                                         </button>
                                                                             
-                                        <!-- 生效中状态 (5)：具有作废权限可作废 -->
+                                        <!-- 生效中状态 (5)：只有 root 角色可作废 -->
                                         <button type="button" class="btn btn-sm btn-outline-secondary ms-1" 
-                                                th:if="${config.status == 5 and session.currentUser != null and session.currentUser.hasPermission('workhour:invalidate')}" 
+                                                th:if="${config.status == 5 and session.currentUser != null and session.currentUser.roleCode == 'root'}" 
                                                 th:onclick="'invalidateConfig(' + ${config.id} + ')'"
                                                 style="padding: 4px 10px; font-size: 12px;">
                                             <i class="bi bi-slash-circle"></i> 作废
                                         </button>
-                                        <span class="text-muted small" th:if="${config.status == 5 and (session.currentUser == null or !session.currentUser.hasPermission('workhour:invalidate'))}">已生效，不可操作</span>
+
                                                                             
                                         <!-- 其他状态：具有删除权限可删除 -->
                                         <button type="button" class="btn btn-sm btn-outline-danger ms-1" 
-                                                th:if="${config.status != null and config.status != 1 and config.status != 5 and config.status != 12 and session.currentUser != null and session.currentUser.hasPermission('workhour:delete')}" 
+                                                th:if="${config.status != null and config.status != 1 and config.status != 5 and config.status != 12 and session.currentUser != null and !session.currentUser.roleCode.equals('employee')}"
                                                 th:onclick="'deleteConfig(' + ${config.id} + ')'"
                                                 style="padding: 4px 10px; font-size: 12px;">
                                             <i class="bi bi-trash"></i> 删除

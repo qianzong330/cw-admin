@@ -42,9 +42,12 @@ public class SalarySlipService {
         List<Employee> employees = employeeMapper.findByProjectId(projectId);
         log.info("[SalaryService] batchCreateForProject: projectId={}, period={}, employees={}", projectId, salaryPeriod, employees.size());
         for (Employee emp : employees) {
-            SalarySlip existing = salarySlipMapper.selectByEmployeeAndPeriod(emp.getId(), salaryPeriod);
+            SalarySlip existing = salarySlipMapper.selectByEmployeeAndPeriod(emp.getId(), salaryPeriod, projectId);
             if (existing != null) {
-                // 已存在则重新计算出勤天数和应付工资
+                // 已存在则重新计算出勤天数和应付工资（确保 projectId 已设置，考勤按项目过滤）
+                if (existing.getProjectId() == null) {
+                    existing.setProjectId(projectId);
+                }
                 recalcBaseAmount(existing);
                 existing.setAdditionAmount(existing.getAdditionAmount() != null ? existing.getAdditionAmount() : BigDecimal.ZERO);
                 existing.setDeductionAmount(existing.getDeductionAmount() != null ? existing.getDeductionAmount() : BigDecimal.ZERO);
@@ -57,6 +60,7 @@ public class SalarySlipService {
             log.info("[SalaryService] Creating slip for employee {} {}", emp.getId(), emp.getName());
             SalarySlip slip = new SalarySlip();
             slip.setEmployeeId(emp.getId());
+            slip.setProjectId(projectId);
             slip.setSalaryPeriod(salaryPeriod);
             slip.setIdCard(emp.getPhone());
             slip.setJobCategoryName(emp.getJobCategoryName());
@@ -75,9 +79,9 @@ public class SalarySlipService {
      */
     @Transactional
     public void createSalarySlip(SalarySlip slip) {
-        // 同月份不允许重复
+        // 同项目同月份不允许重复
         SalarySlip existing = salarySlipMapper.selectByEmployeeAndPeriod(
-                slip.getEmployeeId(), slip.getSalaryPeriod());
+                slip.getEmployeeId(), slip.getSalaryPeriod(), slip.getProjectId());
         if (existing != null) {
             throw new RuntimeException("该员工在 " + slip.getSalaryPeriod() + " 已有工资条");
         }
@@ -145,7 +149,7 @@ public class SalarySlipService {
      * 根据员工ID和薪资期间查询工资条（含费用项）
      */
     public SalarySlip getSalarySlipByEmployeeAndPeriod(Long employeeId, String salaryPeriod) {
-        SalarySlip slip = salarySlipMapper.selectByEmployeeAndPeriod(employeeId, salaryPeriod);
+        SalarySlip slip = salarySlipMapper.selectByEmployeeAndPeriod(employeeId, salaryPeriod, null);
         if (slip != null) {
             slip.setItems(salaryItemMapper.selectBySalarySlipId(slip.getId()));
         }
@@ -172,12 +176,12 @@ public class SalarySlipService {
     }
 
     /**
-     * 检查工资条所属月份是否已锁定（审批通过 status=5）
+     * 检查工资条所属月份是否已锁定（审批通过 status=5），按项目维度隔离
      */
     private void checkNotLocked(Long salarySlipId) {
         SalarySlip slip = salarySlipMapper.selectById(salarySlipId);
         if (slip == null) throw new RuntimeException("工资条不存在");
-        int approvedCount = salaryMonthStatusMapper.countApprovedByYearMonth(slip.getSalaryPeriod());
+        int approvedCount = salaryMonthStatusMapper.countApprovedByYearMonth(slip.getSalaryPeriod(), slip.getProjectId());
         if (approvedCount > 0) {
             throw new RuntimeException("工资条已审批锁定，不允许修改费用明细");
         }

@@ -1,5 +1,6 @@
 package com.example.hello.config;
 
+import com.example.hello.entity.Employee;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -28,35 +29,44 @@ public class MenuAdvice {
             return null;
         }
         try {
-            // 查询所有启用菜单（目录+页面，包含首页），按 sort_order 排序
-            // 注意：直接 ORDER BY sort_order 会把子菜单（sort_order=0,1,2）混在顶层菜单前面
-            // 所以先查顶层菜单，再追加子菜单，保证顶层顺序正确
-            List<Map<String, Object>> topMenus = jdbcTemplate.queryForList(
-                "SELECT id, menu_code, menu_name, menu_url, menu_icon, " +
-                "menu_type, parent_id, status, sort_order " +
-                "FROM tb_menu " +
-                "WHERE status = 1 AND menu_type IN (1, 2) AND (parent_id IS NULL OR parent_id = 0) " +
-                "ORDER BY sort_order ASC"
-            );
-            List<Map<String, Object>> subMenus = jdbcTemplate.queryForList(
-                "SELECT id, menu_code, menu_name, menu_url, menu_icon, " +
-                "menu_type, parent_id, status, sort_order " +
-                "FROM tb_menu " +
-                "WHERE status = 1 AND menu_type IN (1, 2) AND parent_id IS NOT NULL AND parent_id != 0 " +
-                "ORDER BY sort_order ASC"
-            );
+            Employee currentUser = (Employee) session.getAttribute("currentUser");
+            Long roleId = currentUser.getRoleId();
+            
+            List<Map<String, Object>> topMenus;
+            List<Map<String, Object>> subMenus;
+            
+            if (roleId != null) {
+                // 所有角色一律只查询该角色已分配的菜单
+                topMenus = jdbcTemplate.queryForList(
+                    "SELECT m.id, m.menu_code, m.menu_name, m.menu_url, m.menu_icon, " +
+                    "m.menu_type, m.parent_id, m.status, m.sort_order " +
+                    "FROM tb_menu m " +
+                    "INNER JOIN tb_role_menu rm ON m.id = rm.menu_id " +
+                    "WHERE m.status = 1 AND m.menu_type IN (1, 2) " +
+                    "AND (m.parent_id IS NULL OR m.parent_id = 0) " +
+                    "AND rm.role_id = ? " +
+                    "ORDER BY m.sort_order ASC",
+                    roleId
+                );
+                subMenus = jdbcTemplate.queryForList(
+                    "SELECT m.id, m.menu_code, m.menu_name, m.menu_url, m.menu_icon, " +
+                    "m.menu_type, m.parent_id, m.status, m.sort_order " +
+                    "FROM tb_menu m " +
+                    "INNER JOIN tb_role_menu rm ON m.id = rm.menu_id " +
+                    "WHERE m.status = 1 AND m.menu_type IN (1, 2) " +
+                    "AND m.parent_id IS NOT NULL AND m.parent_id != 0 " +
+                    "AND rm.role_id = ? " +
+                    "ORDER BY m.sort_order ASC",
+                    roleId
+                );
+            } else {
+                // 无角色ID，返回空列表
+                topMenus = new java.util.ArrayList<>();
+                subMenus = new java.util.ArrayList<>();
+            }
+            
             List<Map<String, Object>> allMenus = new java.util.ArrayList<>(topMenus);
             allMenus.addAll(subMenus);
-            
-            // 调试日志：输出菜单数量
-            System.out.println("[MenuAdvice] 顶层菜单数量: " + topMenus.size() + ", 子菜单数量: " + subMenus.size());
-            for (Map<String, Object> menu : topMenus) {
-                System.out.println("[MenuAdvice] 顶层菜单: " + menu.get("menu_code") + " - " + menu.get("menu_name"));
-            }
-            for (Map<String, Object> menu : subMenus) {
-                System.out.println("[MenuAdvice] 子菜单: " + menu.get("menu_code") + " - " + menu.get("menu_name") + ", parent_id=" + menu.get("parent_id"));
-            }
-            
             return allMenus;
         } catch (Exception e) {
             System.err.println("MenuAdvice 查询失败: " + e.getMessage());
@@ -164,27 +174,32 @@ public class MenuAdvice {
             return 0;
         }
         try {
-            // 获取当前用户ID
-            Map<String, Object> user = (Map<String, Object>) session.getAttribute("currentUser");
-            Object userIdObj = user.get("id");
-            if (userIdObj == null) {
+            Employee user = (Employee) session.getAttribute("currentUser");
+            Long userId = user.getId();
+            if (userId == null) {
                 return 0;
             }
-            Long userId = ((Number) userIdObj).longValue();
             
-            // 检查是否是BOSS角色
-            Object roleCodeObj = user.get("roleCode");
-            String roleCode = roleCodeObj != null ? roleCodeObj.toString().toLowerCase() : "";
+            String roleCode = user.getRoleCode() != null ? user.getRoleCode().toLowerCase() : "";
             boolean isBoss = "boss".equals(roleCode) || "root".equals(roleCode);
+            boolean isAdmin = "admin".equals(roleCode);
             
             if (isBoss) {
-                // BOSS看到所有待管理员审批的帐条
+                // BOSS看到所有待管理员审批的帐条（实际上不展示，因为boss看的是bossCount）
                 Integer count = jdbcTemplate.queryForObject(
                     "SELECT COUNT(*) FROM tb_account WHERE status = 1 AND approval_stage = 1",
                     Integer.class);
                 return count != null ? count : 0;
+            } else if (isAdmin) {
+                // admin角色：看自己管理的项目中待审批的帐条
+                Integer count = jdbcTemplate.queryForObject(
+                    "SELECT COUNT(*) FROM tb_account a " +
+                    "WHERE a.status = 1 AND a.approval_stage = 1 " +
+                    "AND a.project_id IN (SELECT pa.project_id FROM tb_project_admin pa WHERE pa.employee_id = ?)",
+                    Integer.class, userId);
+                return count != null ? count : 0;
             } else {
-                // 普通用户只看到自己作为管理员的项目中的待审批帐条
+                // 普通员工：看自己作为项目管理员的项目中的待审批帐条
                 Integer count = jdbcTemplate.queryForObject(
                     "SELECT COUNT(*) FROM tb_account a " +
                     "WHERE a.status = 1 AND a.approval_stage = 1 " +
@@ -206,6 +221,13 @@ public class MenuAdvice {
             return 0;
         }
         try {
+            Employee user = (Employee) session.getAttribute("currentUser");
+            String roleCode = user.getRoleCode() != null ? user.getRoleCode().toLowerCase() : "";
+            boolean isBoss = "boss".equals(roleCode) || "root".equals(roleCode);
+            // 只有BOSS角色才需要统计数量
+            if (!isBoss) {
+                return 0;
+            }
             Integer count = jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM tb_account WHERE status = 1 AND approval_stage = 2",
                 Integer.class);

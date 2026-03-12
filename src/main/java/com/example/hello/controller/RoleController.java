@@ -261,13 +261,17 @@ public class RoleController {
             // 删除旧的权限
             jdbcTemplate.update("DELETE FROM tb_role_menu WHERE role_id = ?", roleId);
             
-            // 添加新的权限
+            // 添加新的权限（去重）
             if (menuIds != null && !menuIds.isEmpty()) {
-                for (Long menuId : menuIds) {
-                    jdbcTemplate.update(
-                        "INSERT INTO tb_role_menu (role_id, menu_id) VALUES (?, ?)",
-                        roleId, menuId
-                    );
+                // 使用 Set 去重
+                java.util.Set<Long> uniqueMenuIds = new java.util.HashSet<>(menuIds);
+                for (Long menuId : uniqueMenuIds) {
+                    if (menuId != null) {
+                        jdbcTemplate.update(
+                            "INSERT IGNORE INTO tb_role_menu (role_id, menu_id) VALUES (?, ?)",
+                            roleId, menuId
+                        );
+                    }
                 }
             }
             

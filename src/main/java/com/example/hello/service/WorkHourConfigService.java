@@ -68,7 +68,7 @@ public class WorkHourConfigService {
      * 更新工时配置（仅允许更新未生效或生效中状态的配置）
      */
     @Transactional
-    public void updateConfig(WorkHourConfig config) throws Exception {
+    public void updateConfig(WorkHourConfig config, Employee currentUser) throws Exception {
         WorkHourConfig existing = workHourConfigMapper.selectById(config.getId());
         if (existing == null) {
             throw new Exception("配置不存在");
@@ -93,22 +93,16 @@ public class WorkHourConfigService {
         // 更新配置数据
         workHourConfigMapper.update(config);
         
-        // 如果是发起人撤销后重新编辑保存，需要重新发起审批（状态改为审批中）
-        // 但如果是 root 或 BOSS 编辑且没有生效中的配置，则直接生效
-        Employee creator = employeeMapper.findById(existing.getCreatedById());
-        boolean isDirectActive = creator != null && (
-            "root".equalsIgnoreCase(creator.getRoleCode()) || 
-            "boss".equalsIgnoreCase(creator.getRoleCode())
-        );
-        WorkHourConfig existingActive = workHourConfigMapper.selectActiveByCalcType(existing.getCalcType());
+        // 根据当前操作人角色判断是否直接生效
+        String roleCode = currentUser.getRoleCode();
+        boolean isDirectActive = "root".equalsIgnoreCase(roleCode) || "boss".equalsIgnoreCase(roleCode);
         
-        if (isDirectActive && existingActive == null) {
-            // root/BOSS 编辑且没有生效中的配置，直接生效
-            workHourConfigMapper.updateStatus(config.getId(), STATUS_ACTIVE, null, null, null, null);
+        if (isDirectActive) {
+            // root/BOSS 编辑，直接生效
+            workHourConfigMapper.updateStatus(config.getId(), STATUS_ACTIVE, currentUser.getId(), currentUser.getName(), LocalDateTime.now(), null);
         } else {
-            // 其他情况，重新进入审批流程，并更新发起时间
+            // 其他角色，重新进入审批流程，并更新发起时间
             workHourConfigMapper.updateStatus(config.getId(), STATUS_PENDING, null, null, null, null);
-            // 更新发起时间为当前系统时间
             workHourConfigMapper.updateCreatedTime(config.getId(), LocalDateTime.now());
         }
     }
@@ -217,12 +211,12 @@ public class WorkHourConfigService {
             throw new Exception("配置不存在");
         }
         
-        // root 角色可以删除任何非标准状态的记录
+        // root 角色可以删除除审批中和生效中以外的配置
         boolean isRoot = "root".equalsIgnoreCase(currentUser.getRoleCode());
         if (isRoot) {
-            // root 角色可以删除除审批中、生效中、未生效外的其他状态
-            if (config.getStatus() == STATUS_PENDING || config.getStatus() == STATUS_ACTIVE || config.getStatus() == STATUS_INACTIVE) {
-                throw new Exception("不能删除正常流转状态的配置");
+            // root 角色不能删除审批中和生效中的配置
+            if (config.getStatus() == STATUS_PENDING || config.getStatus() == STATUS_ACTIVE) {
+                throw new Exception("不能删除审批中或生效中的配置");
             }
             // root 角色可以直接删除
             workHourConfigMapper.deleteById(id);
@@ -259,14 +253,14 @@ public class WorkHourConfigService {
             throw new Exception("只能作废生效中的配置");
         }
         
-        // 验证权限：只有 root 或 BOSS 才能作废
+        // 验证权限：只有 root 才能作废
         String roleCode = currentUser.getRoleCode();
-        if (!"root".equalsIgnoreCase(roleCode) && !"boss".equalsIgnoreCase(roleCode)) {
-            throw new Exception("只有超级管理员或 BOSS 才能作废配置");
+        if (!"root".equalsIgnoreCase(roleCode)) {
+            throw new Exception("只有超级管理员才能作废配置");
         }
         
         // 更新状态为未生效
-        workHourConfigMapper.updateStatus(id, STATUS_INACTIVE, null, null, null, "BOSS 作废");
+        workHourConfigMapper.updateStatus(id, STATUS_INACTIVE, null, null, null, "");
     }
     
     public WorkHourConfig getConfigById(Long id) {

@@ -101,6 +101,9 @@
         <if test="overtimeType == null">
             AND (overtime_type IS NULL OR overtime_type = 0)
         </if>
+        <if test="projectId != null">
+            AND project_id = #{projectId}
+        </if>
     </select>
 
     <select id="selectByEmployeeAndDate" resultMap="BaseResultMap">
@@ -144,6 +147,7 @@
         WHERE a.employee_id = #{employeeId}
         AND a.work_date &gt;= #{startDate}
         AND a.work_date &lt;= #{endDate}
+        <if test="projectId != null">AND a.project_id = #{projectId}</if>
         ORDER BY a.work_date ASC
     </select>
 

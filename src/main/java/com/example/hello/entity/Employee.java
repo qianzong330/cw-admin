@@ -174,14 +174,9 @@ public class Employee {
     }
     
     /**
-     * 检查是否有菜单权限
-     * root 和 boss 角色拥有所有权限
+     * 检查是否有菜单权限（一律走权限表）
      */
     public boolean hasPermission(String menuCode) {
-        // root 和 boss 角色拥有所有权限
-        if ("root".equalsIgnoreCase(roleCode) || "boss".equalsIgnoreCase(roleCode)) {
-            return true;
-        }
         if (menuCodes == null || menuCodes.isEmpty()) {
             return false;
         }

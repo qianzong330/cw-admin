@@ -19,18 +19,13 @@ public class MenuService {
     private MenuMapper menuMapper;
     
     /**
-     * 根据角色编码查询菜单权限
-     * root 和 boss 角色返回所有菜单
+     * 根据角色编码查询菜单权限（一律走权限表）
      */
     public List<Menu> getMenusByRoleCode(String roleCode) {
         if (roleCode == null || roleCode.isEmpty()) {
             return new java.util.ArrayList<>();
         }
         try {
-            // root 和 boss 角色返回所有启用菜单
-            if ("root".equalsIgnoreCase(roleCode) || "boss".equalsIgnoreCase(roleCode)) {
-                return menuMapper.selectAllMenus();
-            }
             return menuMapper.selectMenusByRoleCode(roleCode);
         } catch (Exception e) {
             System.err.println("查询菜单权限失败：" + e.getMessage());

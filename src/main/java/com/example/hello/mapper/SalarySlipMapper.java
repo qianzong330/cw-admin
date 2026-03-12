@@ -45,5 +45,6 @@ public interface SalarySlipMapper {
                                 @Param("projectId") Long projectId);
 
     SalarySlip selectByEmployeeAndPeriod(@Param("employeeId") Long employeeId,
-                                         @Param("salaryPeriod") String salaryPeriod);
+                                         @Param("salaryPeriod") String salaryPeriod,
+                                         @Param("projectId") Long projectId);
 }

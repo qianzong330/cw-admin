@@ -35,6 +35,7 @@ public class Account {
     
     // 前端显示字段
     private Boolean canApprove; // 当前用户是否可以审批
+    private String pendingApproverNames; // 当前待审批人名字（前端展示用）
 
     public Long getId() {
         return id;
@@ -247,5 +248,13 @@ public class Account {
 
     public void setCanApprove(Boolean canApprove) {
         this.canApprove = canApprove;
+    }
+
+    public String getPendingApproverNames() {
+        return pendingApproverNames;
+    }
+
+    public void setPendingApproverNames(String pendingApproverNames) {
+        this.pendingApproverNames = pendingApproverNames;
     }
 }

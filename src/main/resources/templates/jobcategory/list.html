@@ -9,7 +9,7 @@
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">工种列表</h5>
                 <button type="button" class="btn btn-primary btn-sm"
-                        th:if="${session.currentUser != null and session.currentUser.hasPermission('jobcategory:add')}"
+                        th:if="${session.currentUser != null and !session.currentUser.roleCode.equals('employee')}"
                         onclick="openJobCategoryModal()">
                     <i class="bi bi-plus"></i> 新增工种
                 </button>
@@ -38,11 +38,11 @@
                                 <td th:text="${jc.salaryAmount}"></td>
                                 <td style="white-space: nowrap;">
                                     <button class="btn btn-outline-primary btn-sm"
-                                            th:if="${session.currentUser != null and session.currentUser.hasPermission('jobcategory:edit')}"
+                                            th:if="${session.currentUser != null and !session.currentUser.roleCode.equals('employee')}"
                                             th:onclick="'openEditJobCategoryModal(' + ${jc.id} + ')'"
                                             style="padding: 4px 10px; font-size: 12px;"><i class="bi bi-pencil"></i> 编辑</button>
                                     <button class="btn btn-outline-danger btn-sm ms-1"
-                                            th:if="${session.currentUser != null and session.currentUser.hasPermission('jobcategory:delete')}"
+                                            th:if="${session.currentUser != null and !session.currentUser.roleCode.equals('employee')}"
                                             th:onclick="'showDeleteConfirm(' + ${jc.id} + ')'"
                                             style="padding: 4px 10px; font-size: 12px;"><i class="bi bi-trash"></i> 删除</button>
                                 </td>

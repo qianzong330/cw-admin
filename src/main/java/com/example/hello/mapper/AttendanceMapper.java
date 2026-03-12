@@ -64,7 +64,8 @@ public interface AttendanceMapper {
                                             @Param("startDate") LocalDate startDate,
                                             @Param("endDate") LocalDate endDate,
                                             @Param("attendanceType") Integer attendanceType,
-                                            @Param("overtimeType") Integer overtimeType);
+                                            @Param("overtimeType") Integer overtimeType,
+                                            @Param("projectId") Long projectId);
     
     /**
      * 检查指定日期是否已有考勤记录
@@ -88,9 +89,10 @@ public interface AttendanceMapper {
                                                       @Param("endDate") LocalDate endDate);
     
     /**
-     * 根据员工和日期范围查询考勤记录
+     * 根据员工和日期范围查询考勤记录（可按项目过滤）
      */
     List<Attendance> selectByEmployeeAndDateRange(@Param("employeeId") Long employeeId,
                                                    @Param("startDate") LocalDate startDate,
-                                                   @Param("endDate") LocalDate endDate);
+                                                   @Param("endDate") LocalDate endDate,
+                                                   @Param("projectId") Long projectId);
 }

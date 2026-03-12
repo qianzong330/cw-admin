@@ -58,9 +58,10 @@ public class AttendanceService {
         Integer newType = attendance.getAttendanceType();
         BigDecimal newHours = attendance.getWorkHours();
         
-        // 查询当天所有考勤记录
+        // 查询当天同项目的考勤记录（按 project_id 过滤，避免跨项目记录互相冲突）
         List<Attendance> existingList = attendanceMapper.selectByEmployeeAndDateRange(
-                attendance.getEmployeeId(), attendance.getWorkDate(), attendance.getWorkDate());
+                attendance.getEmployeeId(), attendance.getWorkDate(), attendance.getWorkDate(),
+                attendance.getProjectId());
         
         // 获取工时配置（统一使用默认配置）
         WorkHourConfig config = workHourConfigService.getActiveConfig();
@@ -204,16 +205,23 @@ public class AttendanceService {
      *           + (节假日加班工时 * 节假日加班费率 / 每日工时)
      */
     public BigDecimal calcAttendanceDaysWithConfig(Long employeeId, YearMonth yearMonth) {
-        return calcAttendanceDaysWithConfig(employeeId, yearMonth, null);
+        return calcAttendanceDaysWithConfig(employeeId, yearMonth, null, null);
     }
-    
+        
     /**
      * 带中间计算明细的重载方法，将中间数据填充到 slip （如果不为 null）
      */
     public BigDecimal calcAttendanceDaysWithConfig(Long employeeId, YearMonth yearMonth, com.example.hello.entity.SalarySlip slip) {
+        return calcAttendanceDaysWithConfig(employeeId, yearMonth, slip, slip != null ? slip.getProjectId() : null);
+    }
+    
+    /**
+     * 核心方法：按项目ID过滤考勤记录，不同项目的考勤互不干扰
+     */
+    public BigDecimal calcAttendanceDaysWithConfig(Long employeeId, YearMonth yearMonth, com.example.hello.entity.SalarySlip slip, Long projectId) {
         LocalDate startDate = yearMonth.atDay(1);
         LocalDate endDate = yearMonth.atEndOfMonth();
-    
+        
         // 获取生效的工时配置（日薪计算方式 calcType=1）
         WorkHourConfig config = workHourConfigService.getActiveConfig();
         if (config == null || config.getDailyWorkHours() == null
@@ -227,32 +235,32 @@ public class AttendanceService {
             }
             return fallbackDays;
         }
-    
+        
         BigDecimal dailyHours = config.getDailyWorkHours();
-    
-        // 1. 出勤总工时（attendance_type=1）
-        BigDecimal attendanceHours = attendanceMapper.sumWorkHoursByType(employeeId, startDate, endDate, 1, null);
+        
+        // 1. 出勤总工时（attendance_type=1），按项目过滤
+        BigDecimal attendanceHours = attendanceMapper.sumWorkHoursByType(employeeId, startDate, endDate, 1, null, projectId);
         if (attendanceHours == null) attendanceHours = BigDecimal.ZERO;
-    
-        // 2. 加班工时（attendance_type=2，按 overtime_type 分类）
-        BigDecimal weekdayOT  = attendanceMapper.sumWorkHoursByType(employeeId, startDate, endDate, 2, 1);
-        BigDecimal restdayOT  = attendanceMapper.sumWorkHoursByType(employeeId, startDate, endDate, 2, 2);
-        BigDecimal holidayOT  = attendanceMapper.sumWorkHoursByType(employeeId, startDate, endDate, 2, 3);
+        
+        // 2. 加班工时（attendance_type=2，按 overtime_type 分类），按项目过滤
+        BigDecimal weekdayOT  = attendanceMapper.sumWorkHoursByType(employeeId, startDate, endDate, 2, 1, projectId);
+        BigDecimal restdayOT  = attendanceMapper.sumWorkHoursByType(employeeId, startDate, endDate, 2, 2, projectId);
+        BigDecimal holidayOT  = attendanceMapper.sumWorkHoursByType(employeeId, startDate, endDate, 2, 3, projectId);
         if (weekdayOT == null) weekdayOT = BigDecimal.ZERO;
         if (restdayOT == null) restdayOT = BigDecimal.ZERO;
         if (holidayOT == null) holidayOT = BigDecimal.ZERO;
-    
+        
         // 加班费率（未配置则默认 1.0）
         BigDecimal weekdayRate  = config.getWeekdayOvertimeRate()  != null ? config.getWeekdayOvertimeRate()  : BigDecimal.ONE;
         BigDecimal restdayRate  = config.getRestdayOvertimeRate()  != null ? config.getRestdayOvertimeRate()  : BigDecimal.ONE;
         BigDecimal holidayRate  = config.getHolidayOvertimeRate()  != null ? config.getHolidayOvertimeRate()  : BigDecimal.ONE;
-    
-        // 计算出勤天数（保畵2位小数，四舍五入）
+        
+        // 计算出勤天数（保睵2位小数，四舍五入）
         BigDecimal days = attendanceHours.divide(dailyHours, 4, java.math.RoundingMode.HALF_UP)
             .add(weekdayOT.multiply(weekdayRate).divide(dailyHours, 4, java.math.RoundingMode.HALF_UP))
             .add(restdayOT.multiply(restdayRate).divide(dailyHours, 4, java.math.RoundingMode.HALF_UP))
             .add(holidayOT.multiply(holidayRate).divide(dailyHours, 4, java.math.RoundingMode.HALF_UP));
-    
+        
         // 如果提供了 slip，将中间计算明细填充到 slip
         if (slip != null) {
             slip.setAttendanceHours(attendanceHours);
@@ -264,7 +272,7 @@ public class AttendanceService {
             slip.setRestdayOTRate(restdayRate);
             slip.setHolidayOTRate(holidayRate);
         }
-    
+        
         return days.setScale(2, java.math.RoundingMode.HALF_UP);
     }
     

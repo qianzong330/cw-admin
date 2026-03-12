@@ -272,13 +272,17 @@ public class AccountService {
         return accountMapper.deleteById(id) > 0;
     }
 
-    public List<Account> findByConditionWithPage(Long userId, boolean isBoss, boolean isProjectAdmin, boolean isAdmin, Long projectId, Integer status, Integer type, String creatorName, int page, int pageSize) {
+    public List<Account> findByConditionWithPage(Long userId, boolean isBoss, boolean isProjectAdmin, boolean isAdmin, 
+                                                 Long projectId, Integer status, Integer type, String creatorName,
+                                                 String startDate, String endDate, int page, int pageSize) {
         int offset = (page - 1) * pageSize;
-        return accountMapper.findByConditionWithPage(userId, isBoss, isProjectAdmin, isAdmin, projectId, status, type, creatorName, offset, pageSize);
+        return accountMapper.findByConditionWithPage(userId, isBoss, isProjectAdmin, isAdmin, projectId, status, type, creatorName, startDate, endDate, offset, pageSize);
     }
 
-    public int countByCondition(Long userId, boolean isBoss, boolean isProjectAdmin, boolean isAdmin, Long projectId, Integer status, Integer type, String creatorName) {
-        return accountMapper.countByCondition(userId, isBoss, isProjectAdmin, isAdmin, projectId, status, type, creatorName);
+    public int countByCondition(Long userId, boolean isBoss, boolean isProjectAdmin, boolean isAdmin, 
+                                Long projectId, Integer status, Integer type, String creatorName,
+                                String startDate, String endDate) {
+        return accountMapper.countByCondition(userId, isBoss, isProjectAdmin, isAdmin, projectId, status, type, creatorName, startDate, endDate);
     }
 
     // 获取待财务审批数量（用于菜单徽章）

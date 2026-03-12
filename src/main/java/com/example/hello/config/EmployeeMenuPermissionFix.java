@@ -9,16 +9,15 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 员工管理菜单权限修复初始化器
- * 修复员工管理菜单权限问题
+ * 员工管理菜单权限修复初始化器（已禁用）
+ * 权限分配由用户在角色管理页面手动维护，不再自动初始化
  */
-@Component
-public class EmployeeMenuPermissionFix implements CommandLineRunner {
+// @Component  // 已禁用，不在启动时自动执行
+public class EmployeeMenuPermissionFix {
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
-    @Override
     public void run(String... args) {
         try {
             System.out.println("=== 开始修复员工管理菜单权限 ===");

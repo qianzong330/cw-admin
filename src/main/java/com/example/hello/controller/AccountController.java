@@ -19,8 +19,12 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.io.IOException;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.WeekFields;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 
@@ -51,6 +55,7 @@ public class AccountController {
                        @RequestParam(required = false) Integer status,
                        @RequestParam(required = false) Integer type,
                        @RequestParam(required = false) String creatorName,
+                       @RequestParam(required = false) String timeRange,
                        @RequestParam(defaultValue = "1") int page,
                        @RequestParam(defaultValue = "10") int pageSize,
                        Model model,
@@ -62,6 +67,11 @@ public class AccountController {
         // 检查是否是管理员角色
         boolean isAdmin = "admin".equalsIgnoreCase(currentUser.getRoleCode());
         
+        // 计算时间范围
+        DateRange dateRange = calculateDateRange(timeRange);
+        String startDate = dateRange.startDate;
+        String endDate = dateRange.endDate;
+        
         // 分页查询 - BOSS看所有，管理员看管理的项目(不含BOSS记账)，项目管理员看管理的项目，普通员工看自己的
         List<Account> accounts = accountService.findByConditionWithPage(
             currentUser.getId(), 
@@ -72,6 +82,8 @@ public class AccountController {
             status,
             type,
             creatorName,
+            startDate,
+            endDate,
             page,
             pageSize
         );
@@ -83,31 +95,52 @@ public class AccountController {
             projectId, 
             status,
             type,
-            creatorName
+            creatorName,
+            startDate,
+            endDate
         );
         int totalPages = (int) Math.ceil((double) totalCount / pageSize);
         
         // 为每个帐条设置canApprove字段
         boolean isBoss = currentUser.isBoss();
+        // 提前获取BOSS列表，用于待审批人展示
+        List<Employee> bossList = employeeService.findByRoleCode("boss");
         for (Account acc : accounts) {
             boolean canApprove = false;
+            String pendingApproverNames = "";
             if (acc.getStatus() != null && acc.getStatus() == 1) {
                 Integer stage = acc.getApprovalStage();
                 if (stage == null) stage = 1;
-                
+                        
                 if (stage == 1) {
-                    // 阶段1：项目管理员或BOSS可以审批
+                    // 阶掵1：项目管理员或BOSS可以审批
                     if (isBoss) {
                         canApprove = true;
                     } else if (acc.getProjectId() != null) {
                         canApprove = projectAdminMapper.isProjectAdmin(acc.getProjectId(), currentUser.getId());
                     }
+                    // 设置待审批人：项目管理员
+                    if (acc.getProjectId() != null) {
+                        List<com.example.hello.entity.ProjectAdmin> admins = projectAdminMapper.findByProjectId(acc.getProjectId());
+                        if (!admins.isEmpty()) {
+                            pendingApproverNames = admins.stream()
+                                .map(a -> a.getEmployeeName())
+                                .filter(n -> n != null)
+                                .collect(java.util.stream.Collectors.joining("、"));
+                        }
+                    }
                 } else if (stage == 2) {
-                    // 阶段2：只有BOSS可以审批
+                    // 阶掵2：只有BOSS可以审批
                     canApprove = isBoss;
+                    // 设置待审批人：BOSS
+                    pendingApproverNames = bossList.stream()
+                        .map(com.example.hello.entity.Employee::getName)
+                        .filter(n -> n != null)
+                        .collect(java.util.stream.Collectors.joining("、"));
                 }
             }
             acc.setCanApprove(canApprove);
+            acc.setPendingApproverNames(pendingApproverNames);
         }
         
         // 根据权限获取项目列表：BOSS/财务看所有，普通员工只看关联的
@@ -116,7 +149,7 @@ public class AccountController {
         
         // 获取审批人信息（用于前端展示）
         List<Employee> financeList = employeeService.findByRoleCode("finance");
-        List<Employee> bossList = employeeService.findByRoleCode("boss");
+        // bossList已在前面设置
         
         model.addAttribute("accounts", accounts);
         model.addAttribute("projects", projects);
@@ -127,6 +160,7 @@ public class AccountController {
         model.addAttribute("status", status);
         model.addAttribute("type", type);
         model.addAttribute("creatorName", creatorName);
+        model.addAttribute("timeRange", timeRange);
         model.addAttribute("currentUser", currentUser);
         model.addAttribute("isPendingPage", false);
         model.addAttribute("currentPage", page);
@@ -157,6 +191,8 @@ public class AccountController {
             1,    // status = 1 审批中
             null, // type
             null, // creatorName
+            null, // startDate
+            null, // endDate
             page,
             pageSize
         );
@@ -168,7 +204,9 @@ public class AccountController {
             null, // projectId
             1,    // status = 1 审批中
             null, // type
-            null  // creatorName
+            null, // creatorName
+            null, // startDate
+            null  // endDate
         );
         int totalPages = (int) Math.ceil((double) totalCount / pageSize);
         
@@ -227,20 +265,26 @@ public class AccountController {
     }
 
     @PostMapping("/save")
-    public String save(Account account, 
+    @ResponseBody
+    public Map<String, Object> save(Account account, 
                        @RequestParam(required = false) List<MultipartFile> invoiceFiles,
                        @RequestParam(required = false) String existingImages,
                        HttpSession session) {
+        Map<String, Object> result = new HashMap<>();
         Employee currentUser = (Employee) session.getAttribute("currentUser");
         
         // 编辑权限检查：只能编辑自己的帐条
         if (account.getId() != null) {
             Account existing = accountService.findById(account.getId());
             if (existing == null || !existing.getCreatorId().equals(currentUser.getId())) {
-                return "redirect:/account/list?error=只能编辑自己的帐条";
+                result.put("success", false);
+                result.put("message", "只能编辑自己的帐条");
+                return result;
             }
             if (existing.getStatus() != 12) {
-                return "redirect:/account/list?error=只能编辑审核未通过的帐条";
+                result.put("success", false);
+                result.put("message", "只能编辑审核未通过的帐条");
+                return result;
             }
         }
         
@@ -251,7 +295,9 @@ public class AccountController {
             List<Long> assignedProjectIds = projectService.findByUserId(currentUser.getId(), false, isProjectAdmin)
                     .stream().map(Project::getId).toList();
             if (!assignedProjectIds.contains(account.getProjectId())) {
-                return "redirect:/account/list?error=无权在该项目记账";
+                result.put("success", false);
+                result.put("message", "无权在该项目记账");
+                return result;
             }
         }
         
@@ -270,14 +316,23 @@ public class AccountController {
                 imageUrls.addAll(newUrls);
             } catch (IOException e) {
                 e.printStackTrace();
+                result.put("success", false);
+                result.put("message", "发票图片上传失败：" + e.getMessage());
+                return result;
             }
         }
         
         // 设置图片URL（逗号分隔）
         account.setInvoiceImages(String.join(",", imageUrls));
         
-        accountService.save(account, currentUser);
-        return "redirect:/account/list";
+        try {
+            accountService.save(account, currentUser);
+            result.put("success", true);
+        } catch (Exception e) {
+            result.put("success", false);
+            result.put("message", "保存失败：" + e.getMessage());
+        }
+        return result;
     }
 
     @GetMapping("/view/{id}")
@@ -366,5 +421,65 @@ public class AccountController {
         
         boolean success = accountService.revoke(id, currentUser);
         return success ? "success" : "error";
+    }
+    
+    // 时间范围计算类
+    private static class DateRange {
+        String startDate;
+        String endDate;
+        DateRange(String start, String end) {
+            this.startDate = start;
+            this.endDate = end;
+        }
+    }
+    
+    // 根据时间范围参数计算开始和结束日期
+    private DateRange calculateDateRange(String timeRange) {
+        LocalDate today = LocalDate.now();
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+        String endDate = today.format(formatter);
+        String startDate = null;
+        
+        if (timeRange == null || timeRange.isEmpty()) {
+            // 默认全部时间，不限制
+            return new DateRange(null, null);
+        }
+        
+        switch (timeRange) {
+            case "week":
+                // 本周（从周一开始）
+                startDate = today.with(WeekFields.of(Locale.CHINA).dayOfWeek(), 1L).format(formatter);
+                break;
+            case "month":
+                // 本月
+                startDate = today.withDayOfMonth(1).format(formatter);
+                break;
+            case "quarter":
+                // 本季度
+                int quarter = (today.getMonthValue() - 1) / 3 + 1;
+                startDate = LocalDate.of(today.getYear(), (quarter - 1) * 3 + 1, 1).format(formatter);
+                break;
+            case "halfYear":
+                // 近半年
+                startDate = today.minusMonths(6).withDayOfMonth(1).format(formatter);
+                break;
+            case "year":
+                // 近一年
+                startDate = today.minusYears(1).withDayOfMonth(1).format(formatter);
+                break;
+            case "twoYears":
+                // 近两年
+                startDate = today.minusYears(2).withDayOfMonth(1).format(formatter);
+                break;
+            case "threeYears":
+                // 近三年
+                startDate = today.minusYears(3).withDayOfMonth(1).format(formatter);
+                break;
+            default:
+                // 全部时间
+                return new DateRange(null, null);
+        }
+        
+        return new DateRange(startDate, endDate);
     }
 }

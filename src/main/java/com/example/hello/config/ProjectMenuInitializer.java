@@ -57,46 +57,7 @@ public class ProjectMenuInitializer implements CommandLineRunner {
             
             System.out.println("[ProjectMenuInitializer] 项目管理菜单创建成功，ID: " + projectId);
             
-            // 5. 给各角色分配权限
-            // BOSS角色
-            Long bossId = jdbcTemplate.queryForObject(
-                "SELECT id FROM tb_role WHERE role_code = 'boss'",
-                Long.class
-            );
-            if (bossId != null) {
-                jdbcTemplate.update(
-                    "INSERT IGNORE INTO tb_role_menu (role_id, menu_id) VALUES (?, ?)",
-                    bossId, projectId
-                );
-                System.out.println("[ProjectMenuInitializer] 已给BOSS角色分配权限");
-            }
-            
-            // 财务角色
-            Long financeId = jdbcTemplate.queryForObject(
-                "SELECT id FROM tb_role WHERE role_code = 'finance'",
-                Long.class
-            );
-            if (financeId != null) {
-                jdbcTemplate.update(
-                    "INSERT IGNORE INTO tb_role_menu (role_id, menu_id) VALUES (?, ?)",
-                    financeId, projectId
-                );
-                System.out.println("[ProjectMenuInitializer] 已给财务角色分配权限");
-            }
-            
-            // 员工角色
-            Long employeeId = jdbcTemplate.queryForObject(
-                "SELECT id FROM tb_role WHERE role_code = 'employee'",
-                Long.class
-            );
-            if (employeeId != null) {
-                jdbcTemplate.update(
-                    "INSERT IGNORE INTO tb_role_menu (role_id, menu_id) VALUES (?, ?)",
-                    employeeId, projectId
-                );
-                System.out.println("[ProjectMenuInitializer] 已给员工角色分配权限");
-            }
-            
+            // 注意：不自动给任何角色分配权限，由管理员在角色管理页面手动配置
             System.out.println("[ProjectMenuInitializer] 项目管理菜单初始化完成!");
             
         } catch (Exception e) {

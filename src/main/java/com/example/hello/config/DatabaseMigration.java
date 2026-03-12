@@ -45,6 +45,47 @@ public class DatabaseMigration implements CommandLineRunner {
     
     private void migrateSalarySlipTable() {
         // 工资条表已改为月份状态控制，无需单个工资条审批字段
+
+        // 1. 添加 project_id 字段（如不存在）
+        addColumnIfNotExists("tb_salary", "project_id", "BIGINT DEFAULT NULL COMMENT '项目ID'", "项目ID", "created_by");
+
+        // 2. 为现有工资条补充 project_id（通过员工-项目关联表）
+        try {
+            jdbcTemplate.execute(
+                "UPDATE tb_salary s SET project_id = (" +
+                "  SELECT ep.project_id FROM tb_employee_project ep" +
+                "  WHERE ep.employee_id = s.employee_id LIMIT 1" +
+                ") WHERE s.project_id IS NULL"
+            );
+        } catch (Exception e) {
+            System.err.println("补充 tb_salary.project_id 失败: " + e.getMessage());
+        }
+
+        // 3. 将唯一约束从 (employee_id, salary_period) 改为 (employee_id, salary_period, project_id)
+        try {
+            Integer oldIndexExists = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM information_schema.STATISTICS" +
+                " WHERE TABLE_SCHEMA='accounting' AND TABLE_NAME='tb_salary' AND INDEX_NAME='uk_employee_period'",
+                Integer.class
+            );
+            Integer newIndexExists = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM information_schema.STATISTICS" +
+                " WHERE TABLE_SCHEMA='accounting' AND TABLE_NAME='tb_salary' AND INDEX_NAME='uk_employee_period_project'",
+                Integer.class
+            );
+            if (oldIndexExists != null && oldIndexExists > 0) {
+                jdbcTemplate.execute("ALTER TABLE tb_salary DROP INDEX uk_employee_period");
+                System.out.println("已删除旧唯一约束 uk_employee_period");
+            }
+            if (newIndexExists == null || newIndexExists == 0) {
+                jdbcTemplate.execute(
+                    "ALTER TABLE tb_salary ADD UNIQUE KEY uk_employee_period_project (employee_id, salary_period, project_id)"
+                );
+                System.out.println("已创建新唯一约束 uk_employee_period_project");
+            }
+        } catch (Exception e) {
+            System.err.println("修改 tb_salary 唯一约束失败: " + e.getMessage());
+        }
     }
     
     private void addColumnIfNotExists(String tableName, String columnName, String columnDef, String comment, String afterColumn) {

@@ -36,6 +36,8 @@ public interface AccountMapper {
                                            @Param("status") Integer status,
                                            @Param("type") Integer type,
                                            @Param("creatorName") String creatorName,
+                                           @Param("startDate") String startDate,
+                                           @Param("endDate") String endDate,
                                            @Param("offset") int offset,
                                            @Param("pageSize") int pageSize);
 
@@ -46,7 +48,9 @@ public interface AccountMapper {
                          @Param("projectId") Long projectId,
                          @Param("status") Integer status,
                          @Param("type") Integer type,
-                         @Param("creatorName") String creatorName);
+                         @Param("creatorName") String creatorName,
+                         @Param("startDate") String startDate,
+                         @Param("endDate") String endDate);
     
     // 统计待财务审批的数量（所有待财务审批的帐条）
     int countPendingFinanceApproval();

@@ -4,6 +4,8 @@ import com.example.hello.entity.Employee;
 import com.example.hello.entity.SalaryItem;
 import com.example.hello.entity.SalaryMonthStatus;
 import com.example.hello.entity.SalarySlip;
+import com.example.hello.entity.AttendanceMonthStatus;
+import com.example.hello.mapper.AttendanceMonthStatusMapper;
 import com.example.hello.mapper.SalaryMonthStatusMapper;
 import com.example.hello.service.AttendanceService;
 import com.example.hello.service.EmployeeService;
@@ -38,6 +40,7 @@ public class SalarySlipController {
     @Autowired private ProjectService    projectService;
     @Autowired private AttendanceService attendanceService;
     @Autowired private SalaryMonthStatusMapper monthStatusMapper;
+    @Autowired private AttendanceMonthStatusMapper attendanceMonthStatusMapper;
     @Autowired private JdbcTemplate jdbcTemplate;
 
     /**
@@ -135,20 +138,28 @@ public class SalarySlipController {
             projectId = projects.get(0).getId();
         }
 
-        // 检查考勤是否已审批通过，自动补建工资条（同时初始化工资条月份状态为草稿）
+        // 只有当该项目该月考勤已审批通过（STATUS_APPROVED=5）时，才自动补建工资条
+        // 其他状态（未提交/待审批/驳回）直接展示空列表，不触发工资条生成
         if (projectId != null) {
-            SalaryMonthStatus monthStatus = monthStatusMapper.findByYearMonthAndProject(salaryPeriod, projectId);
-            log.info("[Salary] projectId={}, period={}, monthStatus={}", projectId, salaryPeriod, monthStatus != null ? monthStatus.getStatus() : "null");
-            if (monthStatus == null || monthStatus.getStatus() == SalaryMonthStatus.STATUS_DRAFT) {
-                log.info("[Salary] Calling batchCreateForProject...");
-                salarySlipService.batchCreateForProject(projectId, salaryPeriod);
-                // 初始化月份状态为草稿
-                if (monthStatus == null) {
-                    SalaryMonthStatus newStatus = new SalaryMonthStatus();
-                    newStatus.setYearMonth(salaryPeriod);
-                    newStatus.setProjectId(projectId);
-                    newStatus.setStatus(SalaryMonthStatus.STATUS_DRAFT);
-                    monthStatusMapper.insertOrUpdate(newStatus);
+            AttendanceMonthStatus attendanceStatus = attendanceMonthStatusMapper.findByYearMonthAndProject(salaryPeriod, projectId);
+            boolean attendanceApproved = attendanceStatus != null
+                    && attendanceStatus.getStatus() == AttendanceMonthStatus.STATUS_APPROVED;
+            log.info("[Salary] projectId={}, period={}, attendanceStatus={}, approved={}",
+                    projectId, salaryPeriod,
+                    attendanceStatus != null ? attendanceStatus.getStatus() : "null",
+                    attendanceApproved);
+            if (attendanceApproved) {
+                SalaryMonthStatus monthStatus = monthStatusMapper.findByYearMonthAndProject(salaryPeriod, projectId);
+                if (monthStatus == null || monthStatus.getStatus() == SalaryMonthStatus.STATUS_DRAFT) {
+                    log.info("[Salary] 考勤已审批通过，自动补建工资条...");
+                    salarySlipService.batchCreateForProject(projectId, salaryPeriod);
+                    if (monthStatus == null) {
+                        SalaryMonthStatus newStatus = new SalaryMonthStatus();
+                        newStatus.setYearMonth(salaryPeriod);
+                        newStatus.setProjectId(projectId);
+                        newStatus.setStatus(SalaryMonthStatus.STATUS_DRAFT);
+                        monthStatusMapper.insertOrUpdate(newStatus);
+                    }
                 }
             }
         }

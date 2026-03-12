@@ -17,7 +17,7 @@ import java.net.URI;
 @Configuration
 public class SealosS3Config {
 
-    @Value("${sealos.s3.endpoint:http://z4bn2xr7-hsc-images.objectstorage.sealoshzh.site}")
+    @Value("${sealos.s3.endpoint:http://minio.objectstorage-system.svc.cluster.local}")
     private String endpoint;
 
     @Value("${sealos.s3.access-key:z4bn2xr7}")
@@ -41,7 +41,7 @@ public class SealosS3Config {
                 .region(Region.of(region))
                 .credentialsProvider(StaticCredentialsProvider.create(credentials))
                 .serviceConfiguration(S3Configuration.builder()
-                        .pathStyleAccessEnabled(false)  // 使用虚拟主机格式
+                        .pathStyleAccessEnabled(true)  // 使用路径风格，兼容 Sealos
                         .build())
                 .build();
     }

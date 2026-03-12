@@ -101,24 +101,13 @@ public class BasicConfigMenuInitializer implements CommandLineRunner {
                 System.out.println("=== 角色管理菜单已归入系统设置");
             }
 
-            // ====== 5. 给 root 和 boss 角色分配系统设置、菜单管理、角色管理权限 ======
+            // ====== 5. 仅给 root 角色分配系统设置、菜单管理、角色管理权限（不自动分配给其他角色）======
             jdbcTemplate.update("INSERT IGNORE INTO tb_role_menu (role_id, menu_id) VALUES (1, ?)", sysSettingsId);
             Long menuListId = jdbcTemplate.queryForObject("SELECT id FROM tb_menu WHERE menu_code = 'menu:list'", Long.class);
             jdbcTemplate.update("INSERT IGNORE INTO tb_role_menu (role_id, menu_id) VALUES (1, ?)", menuListId);
             try {
                 Long roleMenuId = jdbcTemplate.queryForObject("SELECT id FROM tb_menu WHERE menu_code = 'role'", Long.class);
                 jdbcTemplate.update("INSERT IGNORE INTO tb_role_menu (role_id, menu_id) VALUES (1, ?)", roleMenuId);
-                // 同时给 boss 角色分配系统设置相关权限（与原硬编码行为保持一致）
-                List<Map<String, Object>> bossRole = jdbcTemplate.queryForList(
-                    "SELECT id FROM tb_role WHERE role_code = 'boss'"
-                );
-                if (!bossRole.isEmpty()) {
-                    Long bossRoleId = ((Number) bossRole.get(0).get("id")).longValue();
-                    jdbcTemplate.update("INSERT IGNORE INTO tb_role_menu (role_id, menu_id) VALUES (?, ?)", bossRoleId, sysSettingsId);
-                    jdbcTemplate.update("INSERT IGNORE INTO tb_role_menu (role_id, menu_id) VALUES (?, ?)", bossRoleId, menuListId);
-                    jdbcTemplate.update("INSERT IGNORE INTO tb_role_menu (role_id, menu_id) VALUES (?, ?)", bossRoleId, roleMenuId);
-                    System.out.println("=== boss 角色已分配系统设置权限");
-                }
             } catch (Exception ignore) {}
             // ====== 6. 将基础配置子菜单归入 basic_config 目录 ======
             // 注意：role 已在上面归入系统设置，workhour:config 归入工程管理(project)，这里不包含
@@ -158,9 +147,6 @@ public class BasicConfigMenuInitializer implements CommandLineRunner {
                     "VALUES ('feeitem:list', '费用项管理', ?, 2, '/feeitem/list', 'bi-tags', 6, 1)",
                     basicConfigId
                 );
-                Long feeItemMenuId = jdbcTemplate.queryForObject(
-                    "SELECT id FROM tb_menu WHERE menu_code = 'feeitem:list'", Long.class);
-                jdbcTemplate.update("INSERT IGNORE INTO tb_role_menu (role_id, menu_id) SELECT id, ? FROM tb_role", feeItemMenuId);
                 System.out.println("=== 费用项管理菜单创建完成 ===");
             } else {
                 // 如果 menu_url 为空，修复链接
@@ -169,9 +155,7 @@ public class BasicConfigMenuInitializer implements CommandLineRunner {
                     "WHERE menu_code = 'feeitem:list' AND (menu_url IS NULL OR menu_url = '')",
                     basicConfigId
                 );
-                Long feeItemMenuId2 = ((Number) feeItemMenus.get(0).get("id")).longValue();
-                jdbcTemplate.update("INSERT IGNORE INTO tb_role_menu (role_id, menu_id) SELECT id, ? FROM tb_role", feeItemMenuId2);
-                System.out.println("=== 费用项管理菜单已存在，已确保权限和链接 ===");
+                System.out.println("=== 费用项管理菜单已存在 ===");
             }
 
             System.out.println("=== 菜单初始化完成（基础配置 + 系统设置）===");
