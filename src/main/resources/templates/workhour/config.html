@@ -21,8 +21,10 @@
                         <table class="table table-hover">
                             <thead>
                                 <tr>
+                                    <th>项目</th>
                                     <th>计算方式</th>
                                     <th>当月工作天数</th>
+                                    <th>标准工时</th>
                                     <th>工作时间（上午/下午）</th>
                                     <th>工作日加班费率</th>
                                     <th>休息日加班费率</th>
@@ -36,6 +38,7 @@
                             </thead>
                             <tbody>
                                 <tr th:each="config : ${configs}">
+                                    <td th:text="${config.projectName != null ? config.projectName : '通用'}">通用</td>
                                     <td>
                                         <span th:if="${config.calcType == 1}">日薪计算</span>
                                         <span th:if="${config.calcType == 2}">月薪计算</span>
@@ -44,6 +47,7 @@
                                         <span th:if="${config.calcType == 2}" th:text="${config.monthlyWorkDays} + '天'">22天</span>
                                         <span th:if="${config.calcType == 1}">-</span>
                                     </td>
+                                    <td th:text="${config.dailyWorkHours} + '小时'">8小时</td>
                                     <td>
                                         <span th:text="'上午:' + ${config.morningStartTime} + '-' + ${config.morningEndTime}">上午:08:00-12:00</span><br>
                                         <span th:text="'下午:' + ${config.afternoonStartTime} + '-' + ${config.afternoonEndTime}">下午:13:00-17:00</span>
@@ -72,16 +76,35 @@
                                             <i class="bi bi-eye"></i> 预览
                                         </button>
                                         
-                                        <!-- 未生效状态 (12)：boss 和非员工角色可编辑、可删除 -->
+                                        <!-- BOSS角色：所有状态（除审批中）可直接编辑删除，免审批 -->
                                         <button type="button" class="btn btn-sm btn-outline-primary ms-1" 
-                                                th:if="${config.status == 12 and session.currentUser != null and !session.currentUser.roleCode.equals('employee')}" 
+                                                th:if="${session.currentUser != null and session.currentUser.boss and config.status != 1}" 
                                                 th:onclick="'editConfig(' + ${config.id} + ')'"  
                                                 style="padding: 4px 10px; font-size: 12px;">编辑</button>
                                         <button type="button" class="btn btn-sm btn-outline-danger ms-1" 
-                                                th:if="${config.status == 12 and session.currentUser != null and !session.currentUser.roleCode.equals('employee')}" 
+                                                th:if="${session.currentUser != null and session.currentUser.boss and config.status != 1}" 
                                                 th:onclick="'deleteConfig(' + ${config.id} + ')'"
                                                 style="padding: 4px 10px; font-size: 12px;">
                                             <i class="bi bi-trash"></i> 删除
+                                        </button>
+                                        
+                                        <!-- 管理员角色：未生效状态可直接编辑删除；生效中状态需要发起变更审批 -->
+                                        <button type="button" class="btn btn-sm btn-outline-primary ms-1" 
+                                                th:if="${session.currentUser != null and session.currentUser.roleCode == 'admin' and config.status == 12}" 
+                                                th:onclick="'editConfig(' + ${config.id} + ')'"  
+                                                style="padding: 4px 10px; font-size: 12px;">编辑</button>
+                                        <button type="button" class="btn btn-sm btn-outline-danger ms-1" 
+                                                th:if="${session.currentUser != null and session.currentUser.roleCode == 'admin' and config.status == 12}" 
+                                                th:onclick="'deleteConfig(' + ${config.id} + ')'"
+                                                style="padding: 4px 10px; font-size: 12px;">
+                                            <i class="bi bi-trash"></i> 删除
+                                        </button>
+                                        <!-- 管理员对生效中配置发起变更 -->
+                                        <button type="button" class="btn btn-sm btn-outline-warning ms-1" 
+                                                th:if="${session.currentUser != null and session.currentUser.roleCode == 'admin' and config.status == 5}" 
+                                                th:onclick="'requestChangeConfig(' + ${config.id} + ')'"
+                                                style="padding: 4px 10px; font-size: 12px;">
+                                            <i class="bi bi-pencil-square"></i> 变更
                                         </button>
                                                                             
                                         <!-- 审批中状态：发起人可撤销 -->
@@ -150,6 +173,13 @@
                             <div class="mb-4">
                                 <h6 class="text-primary border-bottom pb-2 mb-3"><i class="bi bi-sliders me-2"></i>基础配置</h6>
                                 <div class="d-flex align-items-center flex-wrap gap-3">
+                                    <div class="d-flex align-items-center">
+                                        <label class="form-label mb-0 me-2"><span class="text-danger">*</span> 项目：</label>
+                                        <select class="form-select" id="projectId" required style="width: 160px; border: 1px solid #ced4da;">
+                                            <option value="">请选择项目</option>
+                                            <option th:each="proj : ${projects}" th:value="${proj.id}" th:text="${proj.name}"></option>
+                                        </select>
+                                    </div>
                                     <div class="d-flex align-items-center">
                                         <label class="form-label mb-0 me-2"><span class="text-danger">*</span> 计算方式：</label>
                                         <select class="form-select" id="calcType" onchange="toggleMonthlyWorkDays()" required style="width: 130px; border: 1px solid #ced4da;">
@@ -554,8 +584,10 @@
                 
                 // 手动重置所有字段（确保彻底清除旧值）
                 if (configId) configId.value = '';
+                document.getElementById('projectId').value = '';
+                // 新增时启用项目和计算方式下拉框
+                document.getElementById('projectId').disabled = false;
                 document.getElementById('calcType').value = '2';
-                // 新增时启用计算方式下拉框
                 document.getElementById('calcType').disabled = false;
                 document.getElementById('monthlyWorkDays').value = '22';
                 document.getElementById('morningStartTime').value = '08:00';
@@ -753,8 +785,10 @@
                     .then(res => res.json())
                     .then(data => {
                         document.getElementById('configId').value = data.id;
+                        document.getElementById('projectId').value = data.projectId || '';
+                        // 编辑时禁用项目和计算方式下拉框
+                        document.getElementById('projectId').disabled = true;
                         document.getElementById('calcType').value = data.calcType || 2;
-                        // 编辑时禁用计算方式下拉框
                         document.getElementById('calcType').disabled = true;
                         document.getElementById('monthlyWorkDays').value = data.monthlyWorkDays || 22;
                         toggleMonthlyWorkDays();
@@ -805,6 +839,7 @@
                 
                 var config = {
                     id: document.getElementById('configId').value || null,
+                    projectId: parseInt(document.getElementById('projectId').value) || null,
                     calcType: parseInt(document.getElementById('calcType').value) || 2,
                     monthlyWorkDays: parseInt(document.getElementById('monthlyWorkDays').value) || 22,
                     morningStartTime: document.getElementById('morningStartTime').value + ':00',
@@ -866,6 +901,32 @@
                 });
             }
             
+            // 管理员发起变更审批（对生效中配置）
+            function requestChangeConfig(id) {
+                showConfirmModal('warning', '确定要发起变更审批吗？审批通过后配置将更新。', function() {
+                    // 先加载配置数据，然后提交更新（状态会变为审批中）
+                    fetch('/workhour/get/' + id)
+                        .then(res => res.json())
+                        .then(config => {
+                            // 重新提交，会进入审批流程
+                            config.status = 1; // 设置为审批中
+                            return fetch('/workhour/save', {
+                                method: 'POST',
+                                headers: {'Content-Type': 'application/json'},
+                                body: JSON.stringify(config)
+                            });
+                        })
+                        .then(res => res.text())
+                        .then(result => {
+                            if (result === 'success') {
+                                showResultModal(true, '变更审批已发起');
+                            } else {
+                                showResultModal(false, result);
+                            }
+                        });
+                });
+            }
+            
             // 删除未生效配置
             function deleteConfig(id) {
                 showConfirmModal('danger', '确定要删除该配置吗？删除后无法恢复。', function() {
@@ -874,6 +935,19 @@
                         .then(result => {
                             if (result === 'success') {
                                 showResultModal(true, '已删除');
+                            } else if (result.includes('需要先发起作废审批')) {
+                                // 生效中配置需要发起作废审批
+                                showConfirmModal('warning', '该配置处于生效中，需要先发起作废审批。是否发起？', function() {
+                                    fetch('/workhour/request-delete/' + id, {method: 'POST'})
+                                        .then(res => res.text())
+                                        .then(r => {
+                                            if (r === 'success') {
+                                                showResultModal(true, '作废审批已发起，等待BOSS审批');
+                                            } else {
+                                                showResultModal(false, r);
+                                            }
+                                        });
+                                });
                             } else {
                                 showResultModal(false, result);
                             }

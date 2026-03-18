@@ -26,6 +26,9 @@ public class SalaryItem {
     /** 备注 */
     private String remark;
     
+    /** 修改人姓名 */
+    private String modifier;
+    
     /** 创建时间 */
     private LocalDateTime createdTime;
     
@@ -66,6 +69,8 @@ public class SalaryItem {
     public void setAmount(BigDecimal amount) { this.amount = amount; }
     public String getRemark() { return remark; }
     public void setRemark(String remark) { this.remark = remark; }
+    public String getModifier() { return modifier; }
+    public void setModifier(String modifier) { this.modifier = modifier; }
     public LocalDateTime getCreatedTime() { return createdTime; }
     public void setCreatedTime(LocalDateTime createdTime) { this.createdTime = createdTime; }
     public LocalDateTime getUpdatedTime() { return updatedTime; }

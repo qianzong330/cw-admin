@@ -118,8 +118,11 @@
                     </div>
                     <div class="modal-body py-3">
                         <input type="hidden" id="assignProjectId">
-                        <div class="mb-2">
-                            <label class="form-label fw-bold">选择要关联的员工（可多选）</label>
+                        <!-- 标题和搜索框在同一行 -->
+                        <div class="mb-2 d-flex align-items-center gap-2">
+                            <label class="form-label fw-bold mb-0 text-nowrap">选择要关联的员工（可多选）</label>
+                            <input type="text" class="form-control form-control-sm" id="employeeSearchInput" 
+                                   placeholder="输入员工姓名搜索..." oninput="filterEmployeesByName()" style="flex: 1;">
                         </div>
                         <div id="unassignedEmployeesList" style="max-height: 300px; overflow-y: auto; border: 1px solid #dee2e6; border-radius: 0.25rem; padding: 10px;">
                             <div class="text-muted">加载中...</div>
@@ -137,11 +140,115 @@
             </div>
         </div>
         
+        <!-- 员工流动情况弹窗 -->
+        <div class="modal fade" id="flowModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered" style="max-width: 800px;">
+                <div class="modal-content">
+                    <div class="modal-header py-2">
+                        <h6 class="modal-title fw-bold">员工流动情况</h6>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body py-3">
+                        <input type="hidden" id="flowProjectId">
+                        <!-- 搜索框 -->
+                        <div class="mb-3">
+                            <input type="text" class="form-control form-control-sm" id="flowSearchInput" 
+                                   placeholder="输入员工姓名筛选..." oninput="filterFlowEmployees()" style="max-width: 200px;">
+                        </div>
+                        <div id="flowEmployeesList" style="max-height: 500px; overflow-y: auto;">
+                            <div class="text-muted">加载中...</div>
+                        </div>
+                    </div>
+                    <div class="modal-footer py-2">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">关闭</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 调薪弹窗 -->
+        <div class="modal fade" id="salaryModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered" style="max-width: 600px;">
+                <div class="modal-content">
+                    <div class="modal-header py-2">
+                        <h6 class="modal-title fw-bold">员工调薪 - <span id="salaryEmployeeName"></span></h6>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body py-3">
+                        <input type="hidden" id="salaryProjectId">
+                        <input type="hidden" id="salaryEmployeeId">
+                        
+                        <!-- 当前生效薪资提示 -->
+                        <div class="alert alert-info py-2 mb-3" id="currentSalaryAlert">
+                            <i class="bi bi-info-circle me-1"></i>
+                            <span id="currentSalaryInfo">加载中...</span>
+                        </div>
+                        
+                        <!-- 新增薪资 -->
+                        <div class="card mb-3">
+                            <div class="card-header py-2 bg-light">
+                                <strong>新增调薪记录</strong>
+                            </div>
+                            <div class="card-body py-3">
+                                <div class="row">
+                                    <div class="col-md-4 mb-3">
+                                        <label class="form-label">薪资金额 <span class="text-danger">*</span></label>
+                                        <div class="input-group input-group-sm">
+                                            <input type="number" class="form-control" id="salaryAmount" step="0.01" min="0">
+                                            <span class="input-group-text">元</span>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                        <label class="form-label">薪资类型 <span class="text-danger">*</span></label>
+                                        <select class="form-select form-select-sm" id="salaryType">
+                                            <option value="1">日薪</option>
+                                            <option value="2">月薪</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                        <label class="form-label">生效日期 <span class="text-danger">*</span></label>
+                                        <select class="form-select form-select-sm" id="effectiveDate">
+                                            <option value="">请选择生效月份</option>
+                                        </select>
+                                        <small class="text-muted">只能选择每月1号</small>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">变更原因</label>
+                                    <input type="text" class="form-control form-control-sm" id="salaryRemark" placeholder="请输入调薪原因（可选）">
+                                </div>
+                                <div id="salaryResult"></div>
+                                <button type="button" class="btn btn-outline-primary btn-sm" onclick="saveSalaryRecord()">
+                                    <i class="bi bi-check"></i> 保存
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- 薪资历史 -->
+                        <div class="card">
+                            <div class="card-header py-2 bg-light">
+                                <strong>薪资历史</strong>
+                            </div>
+                            <div class="card-body py-3">
+                                <div id="salaryHistoryList" style="max-height: 250px; overflow-y: auto;">
+                                    <div class="text-muted">加载中...</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer py-2">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">关闭</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
         <script th:inline="javascript">
             var projectsData = /*[[${projects}]]*/ [];
             var employeesData = /*[[${employees}]]*/ [];
             var adminEmployeesData = /*[[${adminEmployees}]]*/ [];
             var projectEmployeesMap = {}; // 缓存项目已关联员工数据
+            var currentUnassignedEmployees = []; // 当前未关联员工列表（用于搜索）
             
             // 初始化项目列表
             function renderProjectList() {
@@ -155,11 +262,14 @@
                                 '  <td>' + adminNames + '</td>' +
                                 '  <td>' + formatDate(proj.createTime) + '</td>' +
                                 '  <td>' +
-                                '    <button class="btn btn-outline-info btn-sm me-1" onclick="toggleProjectEmployees(' + proj.id + ')">' +
+                                '    <button class="btn btn-outline-info btn-sm me-1" onclick="toggleProjectEmployees(' + proj.id + ')" style="color:#0369a1;border-color:#0ea5e9;">' +
                                 '      <i class="bi bi-people"></i> <span id="toggleBtn_' + proj.id + '">查看已关联员工</span>' +
                                 '    </button>' +
                                 '    <button class="btn btn-outline-success btn-sm me-1" onclick="openAssignSearchModal(' + proj.id + ')">' +
                                 '      <i class="bi bi-link"></i> 关联员工' +
+                                '    </button>' +
+                                '    <button class="btn btn-outline-warning btn-sm me-1" onclick="openFlowModal(' + proj.id + ')" style="color:#b45309;border-color:#f59e0b;">' +
+                                '      <i class="bi bi-arrow-left-right"></i> 员工流动' +
                                 '    </button>' +
                                 '    <button class="btn btn-outline-primary btn-sm me-1" onclick="openEditProjectModal(' + proj.id + ')">' +
                                 '      <i class="bi bi-pencil"></i> 编辑' +
@@ -172,7 +282,13 @@
                                 '<tr id="employeesRow_' + proj.id + '" style="display: none;">' +
                                 '  <td colspan="5" class="p-0">' +
                                 '    <div class="bg-light p-3">' +
-                                '      <h6 class="mb-2">已关联员工</h6>' +
+                                '      <div class="d-flex justify-content-between align-items-center mb-2">' +
+                                '        <h6 class="mb-0">已关联员工</h6>' +
+                                '        <div class="d-flex gap-2">' +
+                                '          <input type="text" class="form-control form-control-sm" id="assignedSearch_' + proj.id + '" ' +
+                                '                 placeholder="搜索员工姓名..." oninput="filterAssignedEmployees(' + proj.id + ')" style="width: 150px;">' +
+                                '        </div>' +
+                                '      </div>' +
                                 '      <div id="employeesList_' + proj.id + '">' +
                                 '        <div class="text-muted">加载中...</div>' +
                                 '      </div>' +
@@ -278,22 +394,178 @@
             // 渲染项目员工列表
             function renderProjectEmployees(projectId, employees) {
                 var container = document.getElementById('employeesList_' + projectId);
+                // 保存到全局变量用于搜索过滤
+                window['assignedEmployees_' + projectId] = employees;
+                
                 var html = '';
                 
                 if (employees && employees.length > 0) {
-                    html = '<table class="table table-sm table-hover mb-0 bg-white">' +
-                           '<thead><tr><th>员工姓名</th><th>工种</th><th style="width:100px; white-space:nowrap;">操作</th></tr></thead>' +
+                    html = '<table class="table table-sm table-hover mb-0 bg-white" id="assignedTable_' + projectId + '">' +
+                           '<thead><tr><th>员工姓名</th><th>工种</th><th>当前薪资</th><th>调薪后</th><th>加入时间</th><th style="width:140px; white-space:nowrap;">操作</th></tr></thead>' +
                            '<tbody>';
                     employees.forEach(function(emp) {
-                        html += '<tr>' +
+                        // 当前薪资显示
+                        var currentSalaryHtml = '-';
+                        if (emp.currentSalary != null) {
+                            currentSalaryHtml = emp.currentSalary + '元/' + (emp.currentSalaryTypeName || '日薪');
+                            if (emp.currentEffectiveDate) {
+                                currentSalaryHtml += '<br><small style="color:#6b7280;">' + emp.currentEffectiveDate + '生效</small>';
+                            }
+                        }
+                        
+                        // 调薪后显示
+                        var nextSalaryHtml = '-';
+                        if (emp.nextSalary != null) {
+                            nextSalaryHtml = '<span style="color:#16a34a;">' + emp.nextSalary + '元/' + 
+                                           (emp.nextSalaryTypeName || '日薪') + '</span><br>' +
+                                           '<small style="color:#6b7280;">' + emp.nextEffectiveDate + '生效</small>';
+                        }
+                        
+                        html += '<tr data-name="' + (emp.employeeName || '') + '">' +
                                 '<td>' + emp.employeeName + '</td>' +
                                 '<td>' + (emp.jobCategoryName || '-') + '</td>' +
-                                '<td style="white-space:nowrap;"><button class="btn btn-outline-danger btn-sm py-0 px-2" onclick="confirmRemoveEmployee(' + emp.employeeId + ', ' + projectId + ', \'' + emp.employeeName + '\')"><i class="bi bi-x-lg"></i> 移除</button></td>' +
+                                '<td>' + currentSalaryHtml + '</td>' +
+                                '<td>' + nextSalaryHtml + '</td>' +
+                                '<td>' + formatDate(emp.createTime) + '</td>' +
+                                '<td style="white-space:nowrap;">' +
+                                '<button class="btn btn-outline-info btn-sm py-0 px-2 me-1" onclick="openSalaryModal(' + emp.employeeId + ', ' + projectId + ', \'' + emp.employeeName + '\')"><i class="bi bi-cash"></i> 调薪</button>' +
+                                '<button class="btn btn-outline-danger btn-sm py-0 px-2" onclick="confirmRemoveEmployee(' + emp.employeeId + ', ' + projectId + ', \'' + emp.employeeName + '\')"><i class="bi bi-x-lg"></i> 移除</button></td>' +
                                 '</tr>';
                     });
                     html += '</tbody></table>';
                 } else {
                     html = '<div class="text-muted">暂无关联员工</div>';
+                }
+                
+                container.innerHTML = html;
+            }
+            
+            // 过滤已关联员工
+            function filterAssignedEmployees(projectId) {
+                var searchValue = document.getElementById('assignedSearch_' + projectId).value.trim().toLowerCase();
+                var employees = window['assignedEmployees_' + projectId] || [];
+                
+                if (!searchValue) {
+                    renderProjectEmployees(projectId, employees);
+                    return;
+                }
+                
+                var filtered = employees.filter(function(emp) {
+                    var name = emp.employeeName || emp.name || '';
+                    return name.toLowerCase().includes(searchValue);
+                });
+                
+                // 直接渲染过滤后的结果，不更新全局变量
+                var container = document.getElementById('employeesList_' + projectId);
+                var html = '';
+                
+                if (filtered && filtered.length > 0) {
+                    html = '<table class="table table-sm table-hover mb-0 bg-white" id="assignedTable_' + projectId + '">' +
+                           '<thead><tr><th>员工姓名</th><th>工种</th><th>当前薪资</th><th>调薪后</th><th>加入时间</th><th style="width:140px; white-space:nowrap;">操作</th></tr></thead>' +
+                           '<tbody>';
+                    filtered.forEach(function(emp) {
+                        // 当前薪资显示
+                        var currentSalaryHtml = '-';
+                        if (emp.currentSalary != null) {
+                            currentSalaryHtml = emp.currentSalary + '元/' + (emp.currentSalaryTypeName || '日薪');
+                            if (emp.currentEffectiveDate) {
+                                currentSalaryHtml += '<br><small style="color:#6b7280;">' + emp.currentEffectiveDate + '生效</small>';
+                            }
+                        }
+                        
+                        // 调薪后显示
+                        var nextSalaryHtml = '-';
+                        if (emp.nextSalary != null) {
+                            nextSalaryHtml = '<span style="color:#16a34a;">' + emp.nextSalary + '元/' + 
+                                           (emp.nextSalaryTypeName || '日薪') + '</span><br>' +
+                                           '<small style="color:#6b7280;">' + emp.nextEffectiveDate + '生效</small>';
+                        }
+                        
+                        html += '<tr data-name="' + (emp.employeeName || emp.name || '') + '">' +
+                                '<td>' + (emp.employeeName || emp.name || '-') + '</td>' +
+                                '<td>' + (emp.jobCategoryName || '-') + '</td>' +
+                                '<td>' + currentSalaryHtml + '</td>' +
+                                '<td>' + nextSalaryHtml + '</td>' +
+                                '<td>' + formatDate(emp.createTime) + '</td>' +
+                                '<td style="white-space:nowrap;">' +
+                                '<button class="btn btn-outline-info btn-sm py-0 px-2 me-1" onclick="openSalaryModal(' + emp.employeeId + ', ' + projectId + ', \'' + (emp.employeeName || emp.name || '') + '\')"><i class="bi bi-cash"></i> 调薪</button>' +
+                                '<button class="btn btn-outline-danger btn-sm py-0 px-2" onclick="confirmRemoveEmployee(' + emp.employeeId + ', ' + projectId + ', \'' + (emp.employeeName || emp.name || '') + '\')"><i class="bi bi-x-lg"></i> 移除</button></td>' +
+                                '</tr>';
+                    });
+                    html += '</tbody></table>';
+                } else {
+                    html = '<div class="text-muted">未找到匹配的员工</div>';
+                }
+                
+                container.innerHTML = html;
+            }
+            
+            // 打开员工流动情况弹窗
+            function openFlowModal(projectId) {
+                document.getElementById('flowProjectId').value = projectId;
+                loadFlowEmployees(projectId);
+                new bootstrap.Modal(document.getElementById('flowModal')).show();
+            }
+            
+            // 加载员工流动记录
+            function loadFlowEmployees(projectId) {
+                var container = document.getElementById('flowEmployeesList');
+                container.innerHTML = '<div class="text-muted">加载中...</div>';
+                // 清空搜索框
+                document.getElementById('flowSearchInput').value = '';
+                
+                fetch('/project/flow/' + projectId)
+                    .then(res => res.json())
+                    .then(data => {
+                        // 保存到全局变量用于筛选
+                        window.currentFlowData = data || [];
+                        renderFlowEmployees(data);
+                    })
+                    .catch(() => {
+                        container.innerHTML = '<div class="text-danger">加载失败</div>';
+                    });
+            }
+            
+            // 筛选员工流动记录
+            function filterFlowEmployees() {
+                var searchValue = document.getElementById('flowSearchInput').value.trim().toLowerCase();
+                var flows = window.currentFlowData || [];
+                
+                if (!searchValue) {
+                    renderFlowEmployees(flows);
+                    return;
+                }
+                
+                var filtered = flows.filter(function(flow) {
+                    var name = flow.employeeName || '';
+                    return name.toLowerCase().includes(searchValue);
+                });
+                
+                renderFlowEmployees(filtered);
+            }
+            
+            // 渲染员工流动记录
+            function renderFlowEmployees(flows) {
+                var container = document.getElementById('flowEmployeesList');
+                var html = '';
+                
+                if (flows && flows.length > 0) {
+                    html = '<table class="table table-sm table-hover mb-0">' +
+                           '<thead><tr><th>员工姓名</th><th>工种</th><th>操作类型</th><th>操作时间</th><th>操作人</th></tr></thead>' +
+                           '<tbody>';
+                    flows.forEach(function(flow) {
+                        var typeText = flow.operationType === 1 ? '<span class="badge bg-success">加入</span>' : '<span class="badge bg-danger">移除</span>';
+                        html += '<tr>' +
+                                '<td>' + (flow.employeeName || '-') + '</td>' +
+                                '<td>' + (flow.jobCategoryName || '-') + '</td>' +
+                                '<td>' + typeText + '</td>' +
+                                '<td>' + formatDate(flow.operationTime) + '</td>' +
+                                '<td>' + (flow.operatorName || '-') + '</td>' +
+                                '</tr>';
+                    });
+                    html += '</tbody></table>';
+                } else {
+                    html = '<div class="text-muted text-center py-3">暂无员工流动记录</div>';
                 }
                 
                 container.innerHTML = html;
@@ -353,6 +625,9 @@
                 var container = document.getElementById('unassignedEmployeesList');
                 container.innerHTML = '<div class="text-muted">加载中...</div>';
                 
+                // 清空搜索框
+                document.getElementById('employeeSearchInput').value = '';
+                
                 // 获取该项目已关联的员工ID列表
                 fetch('/project/employees/' + projectId)
                     .then(res => res.json())
@@ -360,11 +635,11 @@
                         var assignedIds = assignedEmployees.map(e => e.employeeId);
                         
                         // 过滤出未关联的员工
-                        var unassignedEmployees = employeesData.filter(function(emp) {
+                        currentUnassignedEmployees = employeesData.filter(function(emp) {
                             return !assignedIds.includes(emp.id);
                         });
                         
-                        renderUnassignedEmployees(unassignedEmployees);
+                        renderUnassignedEmployees(currentUnassignedEmployees);
                     })
                     .catch(() => {
                         container.innerHTML = '<div class="text-danger">加载失败</div>';
@@ -392,6 +667,24 @@
                 });
                 html += '</div>';
                 container.innerHTML = html;
+            }
+            
+            // 根据姓名搜索过滤员工
+            function filterEmployeesByName() {
+                var searchValue = document.getElementById('employeeSearchInput').value.trim().toLowerCase();
+                
+                if (!searchValue) {
+                    // 搜索框为空，显示全部
+                    renderUnassignedEmployees(currentUnassignedEmployees);
+                    return;
+                }
+                
+                // 过滤匹配的员工
+                var filteredEmployees = currentUnassignedEmployees.filter(function(emp) {
+                    return emp.name && emp.name.toLowerCase().includes(searchValue);
+                });
+                
+                renderUnassignedEmployees(filteredEmployees);
             }
             
             // 全选/取消全选
@@ -702,6 +995,204 @@
                 } else {
                     console.error('找不到保存按钮!');
                 }
+            }
+            
+            // ==================== 调薪功能 ====================
+            
+            // 打开调薪弹窗
+            function openSalaryModal(employeeId, projectId, employeeName) {
+                document.getElementById('salaryEmployeeId').value = employeeId;
+                document.getElementById('salaryProjectId').value = projectId;
+                document.getElementById('salaryEmployeeName').textContent = employeeName;
+                document.getElementById('salaryAmount').value = '';
+                document.getElementById('salaryType').value = '1';
+                
+                // 初始化生效日期下拉框（只能选择每月1号，前后5年）
+                var effectiveDateSelect = document.getElementById('effectiveDate');
+                effectiveDateSelect.innerHTML = '<option value="">请选择生效月份</option>';
+                var currentYear = new Date().getFullYear();
+                for (var year = currentYear - 3; year <= currentYear + 2; year++) {
+                    for (var month = 1; month <= 12; month++) {
+                        var monthStr = month < 10 ? '0' + month : month;
+                        var dateValue = year + '-' + monthStr + '-01';
+                        var displayText = year + '年' + month + '月1日';
+                        effectiveDateSelect.innerHTML += '<option value="' + dateValue + '">' + displayText + '</option>';
+                    }
+                }
+                // 默认选中下个月1号
+                var nextMonth = new Date();
+                nextMonth.setMonth(nextMonth.getMonth() + 1);
+                var defaultYear = nextMonth.getFullYear();
+                var defaultMonth = nextMonth.getMonth() + 1;
+                var defaultMonthStr = defaultMonth < 10 ? '0' + defaultMonth : defaultMonth;
+                effectiveDateSelect.value = defaultYear + '-' + defaultMonthStr + '-01';
+                
+                document.getElementById('salaryRemark').value = '';
+                document.getElementById('salaryResult').innerHTML = '';
+                document.getElementById('currentSalaryInfo').textContent = '加载中...';
+                
+                // 加载当前生效薪资和薪资历史
+                loadCurrentSalary(projectId, employeeId);
+                loadSalaryHistory(projectId, employeeId);
+                
+                new bootstrap.Modal(document.getElementById('salaryModal')).show();
+            }
+            
+            // 加载当前生效薪资
+            function loadCurrentSalary(projectId, employeeId) {
+                var today = new Date().toISOString().split('T')[0];
+                fetch('/project/salary/history?projectId=' + projectId + '&employeeId=' + employeeId)
+                    .then(res => res.json())
+                    .then(result => {
+                        if (result.success && result.data && result.data.length > 0) {
+                            // 找到生效日期 <= 今天的最新记录
+                            var currentSalary = null;
+                            for (var i = 0; i < result.data.length; i++) {
+                                if (result.data[i].effectiveDate <= today) {
+                                    currentSalary = result.data[i];
+                                    break;
+                                }
+                            }
+                            
+                            if (currentSalary) {
+                                var typeName = currentSalary.salaryType == 2 ? '月薪' : '日薪';
+                                document.getElementById('currentSalaryInfo').innerHTML = 
+                                    '当前生效薪资：<strong>' + currentSalary.salaryAmount + '元/' + typeName + 
+                                    '</strong>（自 ' + currentSalary.effectiveDate + ' 起生效）';
+                            } else {
+                                document.getElementById('currentSalaryInfo').textContent = 
+                                    '当前没有生效的薪资记录，请添加薪资记录';
+                            }
+                        } else {
+                            document.getElementById('currentSalaryInfo').textContent = 
+                                '暂无薪资记录，请添加薪资记录';
+                        }
+                    })
+                    .catch(() => {
+                        document.getElementById('currentSalaryInfo').textContent = '加载当前薪资失败';
+                    });
+            }
+            
+            // 加载薪资历史
+            function loadSalaryHistory(projectId, employeeId) {
+                var container = document.getElementById('salaryHistoryList');
+                container.innerHTML = '<div class="text-muted">加载中...</div>';
+                
+                fetch('/project/salary/history?projectId=' + projectId + '&employeeId=' + employeeId)
+                    .then(res => res.json())
+                    .then(result => {
+                        if (result.success && result.data && result.data.length > 0) {
+                            var html = '<table class="table table-sm table-hover mb-0">' +
+                                       '<thead><tr><th>生效日期</th><th>薪资</th><th>类型</th><th>备注</th><th>操作</th></tr></thead><tbody>';
+                            result.data.forEach(function(item) {
+                                var typeName = item.salaryType == 2 ? '月薪' : '日薪';
+                                html += '<tr>' +
+                                        '<td>' + item.effectiveDate + '</td>' +
+                                        '<td>' + item.salaryAmount + '元</td>' +
+                                        '<td>' + typeName + '</td>' +
+                                        '<td>' + (item.remark || '-') + '</td>' +
+                                        '<td><button class="btn btn-outline-danger btn-sm py-0 px-2" onclick="deleteSalaryRecord(' + item.id + ')"><i class="bi bi-trash"></i></button></td>' +
+                                        '</tr>';
+                            });
+                            html += '</tbody></table>';
+                            container.innerHTML = html;
+                        } else {
+                            container.innerHTML = '<div class="text-muted">暂无薪资记录</div>';
+                        }
+                    })
+                    .catch(() => {
+                        container.innerHTML = '<div class="text-danger">加载失败</div>';
+                    });
+            }
+            
+            // 保存薪资记录
+            function saveSalaryRecord() {
+                var projectId = document.getElementById('salaryProjectId').value;
+                var employeeId = document.getElementById('salaryEmployeeId').value;
+                var salaryAmount = document.getElementById('salaryAmount').value;
+                var salaryType = document.getElementById('salaryType').value;
+                var effectiveDate = document.getElementById('effectiveDate').value;
+                var remark = document.getElementById('salaryRemark').value;
+                var resultDiv = document.getElementById('salaryResult');
+                
+                if (!salaryAmount || salaryAmount <= 0) {
+                    resultDiv.innerHTML = '<div class="text-danger">请输入有效的薪资金额</div>';
+                    return;
+                }
+                if (!effectiveDate) {
+                    resultDiv.innerHTML = '<div class="text-danger">请选择生效日期</div>';
+                    return;
+                }
+                
+                var formData = new FormData();
+                formData.append('projectId', projectId);
+                formData.append('employeeId', employeeId);
+                formData.append('salaryAmount', salaryAmount);
+                formData.append('salaryType', salaryType);
+                formData.append('effectiveDate', effectiveDate);
+                formData.append('remark', remark);
+                
+                resultDiv.innerHTML = '<div class="text-info">保存中...</div>';
+                
+                fetch('/project/salary/add', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(res => res.json())
+                .then(result => {
+                    if (result.success) {
+                        resultDiv.innerHTML = '<div class="text-success">' + result.message + '</div>';
+                        // 刷新弹窗顶部当前生效薪资
+                        loadCurrentSalary(projectId, employeeId);
+                        // 刷新历史列表
+                        loadSalaryHistory(projectId, employeeId);
+                        // 清除员工列表缓存并刷新（更新薪资显示）
+                        delete projectEmployeesMap[projectId];
+                        loadProjectEmployees(projectId);
+                        // 清空表单
+                        document.getElementById('salaryAmount').value = '';
+                        document.getElementById('salaryRemark').value = '';
+                    } else {
+                        resultDiv.innerHTML = '<div class="text-danger">' + result.message + '</div>';
+                    }
+                })
+                .catch(() => {
+                    resultDiv.innerHTML = '<div class="text-danger">保存失败</div>';
+                });
+            }
+            
+            // 删除薪资记录
+            function deleteSalaryRecord(id) {
+                if (!confirm('确定要删除这条薪资记录吗？')) {
+                    return;
+                }
+                
+                var formData = new FormData();
+                formData.append('id', id);
+                
+                fetch('/project/salary/delete', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(res => res.json())
+                .then(result => {
+                    if (result.success) {
+                        // 刷新历史列表
+                        var projectId = document.getElementById('salaryProjectId').value;
+                        var employeeId = document.getElementById('salaryEmployeeId').value;
+                        loadSalaryHistory(projectId, employeeId);
+                        // 刷新弹窗顶部当前生效薪资
+                        loadCurrentSalary(projectId, employeeId);
+                        // 清除员工列表缓存并刷新（更新薪资显示）
+                        delete projectEmployeesMap[projectId];
+                        loadProjectEmployees(projectId);
+                    } else {
+                        alert(result.message);
+                    }
+                })
+                .catch(() => {
+                    alert('删除失败');
+                });
             }
         </script>
     </div>

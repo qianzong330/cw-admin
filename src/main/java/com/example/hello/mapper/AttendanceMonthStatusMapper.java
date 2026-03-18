@@ -22,13 +22,20 @@ public interface AttendanceMonthStatusMapper {
             "ORDER BY s.submit_time DESC")
     List<AttendanceMonthStatus> findPendingList();
     
-    @Insert("INSERT INTO tb_attendance_month_status (`year_month`, project_id, status, submit_by, submit_time, submit_remark) " +
-            "VALUES (#{yearMonth}, #{projectId}, #{status}, #{submitBy}, #{submitTime}, #{submitRemark}) " +
-            "ON DUPLICATE KEY UPDATE status = #{status}, submit_by = #{submitBy}, submit_time = #{submitTime}, submit_remark = #{submitRemark}")
+    @Insert("INSERT INTO tb_attendance_month_status (`year_month`, project_id, status, submit_by, submit_time, submit_remark, approve_by, approve_time, approve_remark) " +
+            "VALUES (#{yearMonth}, #{projectId}, #{status}, #{submitBy}, #{submitTime}, #{submitRemark}, #{approveBy}, #{approveTime}, #{approveRemark}) " +
+            "ON DUPLICATE KEY UPDATE status = #{status}, submit_by = #{submitBy}, submit_time = #{submitTime}, " +
+            "submit_remark = #{submitRemark}, approve_by = #{approveBy}, approve_time = #{approveTime}, approve_remark = #{approveRemark}")
     int saveOrUpdate(AttendanceMonthStatus status);
     
     @Update("UPDATE tb_attendance_month_status SET status = #{status}, approve_by = #{approveBy}, approve_time = #{approveTime}, approve_remark = #{approveRemark} " +
             "WHERE `year_month` = #{yearMonth} AND (project_id = #{projectId} OR (project_id IS NULL AND #{projectId} IS NULL))")
     int approve(AttendanceMonthStatus status);
+    
+    @Update("UPDATE tb_attendance_month_status SET sign_image_urls = #{signImageUrls} " +
+            "WHERE `year_month` = #{yearMonth} AND (project_id = #{projectId} OR (project_id IS NULL AND #{projectId} IS NULL))")
+    int updateSignImageUrls(@Param("yearMonth") String yearMonth,
+                            @Param("projectId") Long projectId,
+                            @Param("signImageUrls") String signImageUrls);
     
 }

@@ -43,6 +43,11 @@ public interface SalaryItemMapper {
     List<SalaryItem> selectBySalarySlipId(Long salarySlipId);
     
     /**
+     * 更新费用项金额
+     */
+    int updateAmount(@Param("id") Long id, @Param("amount") java.math.BigDecimal amount);
+    
+    /**
      * 计算工资条的费用+合计
      */
     java.math.BigDecimal sumAdditionBySalarySlipId(Long salarySlipId);

@@ -4,9 +4,12 @@ import com.example.hello.entity.Employee;
 import com.example.hello.entity.SalaryItem;
 import com.example.hello.entity.SalaryMonthStatus;
 import com.example.hello.entity.SalarySlip;
+import com.example.hello.entity.SalarySlipChangeLog;
 import com.example.hello.entity.AttendanceMonthStatus;
 import com.example.hello.mapper.AttendanceMonthStatusMapper;
 import com.example.hello.mapper.SalaryMonthStatusMapper;
+import com.example.hello.mapper.SalarySlipChangeLogMapper;
+import com.example.hello.mapper.SalarySlipMapper;
 import com.example.hello.service.AttendanceService;
 import com.example.hello.service.EmployeeService;
 import com.example.hello.service.ProjectService;
@@ -41,6 +44,8 @@ public class SalarySlipController {
     @Autowired private AttendanceService attendanceService;
     @Autowired private SalaryMonthStatusMapper monthStatusMapper;
     @Autowired private AttendanceMonthStatusMapper attendanceMonthStatusMapper;
+    @Autowired private SalarySlipChangeLogMapper changeLogMapper;
+    @Autowired private SalarySlipMapper salarySlipMapper;
     @Autowired private JdbcTemplate jdbcTemplate;
 
     /**
@@ -64,6 +69,18 @@ public class SalarySlipController {
             result.put("approveRemark", monthStatus.getApproveRemark());
             result.put("submitBy", monthStatus.getSubmitBy());
             result.put("submitTime", monthStatus.getSubmitTime());
+            
+            // 状态5（已锁定）时，判断变更效果
+            if (monthStatusValue == SalaryMonthStatus.STATUS_APPROVED) {
+                String remark = monthStatus.getApproveRemark();
+                if (remark != null) {
+                    if (remark.contains("变更已生效")) {
+                        result.put("changeEffect", "applied");
+                    } else if (remark.contains("变更未生效")) {
+                        result.put("changeEffect", "rejected");
+                    }
+                }
+            }
         }
         
         // 查询所有BOSS角色用户（用于显示等待谁审批）
@@ -106,11 +123,22 @@ public class SalarySlipController {
             Employee currentUser = (Employee) session.getAttribute("currentUser");
             if (currentUser == null) return "请先登录";
             
-            // 更新工资条月份状态为待审批
+            // BOSS 角色提交时直接审批通过
+            boolean isBoss = currentUser.isBoss() || "root".equalsIgnoreCase(currentUser.getRoleCode());
+            
+            // 更新工资条月份状态
             SalaryMonthStatus record = new SalaryMonthStatus();
             record.setYearMonth(salaryPeriod);
             record.setProjectId(projectId);
-            record.setStatus(SalaryMonthStatus.STATUS_PENDING);
+            if (isBoss) {
+                // BOSS 直接审批通过
+                record.setStatus(SalaryMonthStatus.STATUS_APPROVED);
+                record.setApproveBy(currentUser.getId());
+                record.setApproveTime(java.time.LocalDateTime.now());
+            } else {
+                // 其他人提交待审批
+                record.setStatus(SalaryMonthStatus.STATUS_PENDING);
+            }
             record.setSubmitBy(currentUser.getId());
             record.setSubmitTime(java.time.LocalDateTime.now());
             monthStatusMapper.insertOrUpdate(record);
@@ -149,18 +177,10 @@ public class SalarySlipController {
                     attendanceStatus != null ? attendanceStatus.getStatus() : "null",
                     attendanceApproved);
             if (attendanceApproved) {
-                SalaryMonthStatus monthStatus = monthStatusMapper.findByYearMonthAndProject(salaryPeriod, projectId);
-                if (monthStatus == null || monthStatus.getStatus() == SalaryMonthStatus.STATUS_DRAFT) {
-                    log.info("[Salary] 考勤已审批通过，自动补建工资条...");
-                    salarySlipService.batchCreateForProject(projectId, salaryPeriod);
-                    if (monthStatus == null) {
-                        SalaryMonthStatus newStatus = new SalaryMonthStatus();
-                        newStatus.setYearMonth(salaryPeriod);
-                        newStatus.setProjectId(projectId);
-                        newStatus.setStatus(SalaryMonthStatus.STATUS_DRAFT);
-                        monthStatusMapper.insertOrUpdate(newStatus);
-                    }
-                }
+                // 【修改】只要考勤已审批，就为没有工资条的员工生成工资条
+                // 不再判断工资条月份状态，只检查员工是否已有工资条
+                log.info("[Salary] 考勤已审批通过，自动补建工资条...");
+                salarySlipService.batchCreateForProject(projectId, salaryPeriod);
             }
         }
 
@@ -269,9 +289,12 @@ public class SalarySlipController {
      */
     @PostMapping("/item/update/{id}")
     @ResponseBody
-    public String updateFeeItem(@PathVariable Long id, @RequestParam BigDecimal amount) {
+    public String updateFeeItem(@PathVariable Long id, @RequestParam BigDecimal amount, HttpSession session) {
         try {
-            salarySlipService.updateSalaryItemAmount(id, amount);
+            // 获取当前登录用户姓名
+            Employee user = (Employee) session.getAttribute("user");
+            String modifier = user != null ? user.getName() : null;
+            salarySlipService.updateSalaryItemAmount(id, amount, modifier);
             return "success";
         } catch (Exception e) {
             return e.getMessage();
@@ -283,8 +306,13 @@ public class SalarySlipController {
      */
     @PostMapping("/item/add")
     @ResponseBody
-    public String addItem(@RequestBody SalaryItem item) {
+    public String addItem(@RequestBody SalaryItem item, HttpSession session) {
         try {
+            // 获取当前登录用户姓名
+            Employee user = (Employee) session.getAttribute("user");
+            if (user != null) {
+                item.setModifier(user.getName());
+            }
             salarySlipService.addSalaryItem(item);
             return "success";
         } catch (Exception e) {
@@ -325,19 +353,672 @@ public class SalarySlipController {
                 return "只有 BOSS 或超级管理员可以审批工资条";
             }
             
+            // 查询当前状态，区分首次审批和二次审批
+            SalaryMonthStatus currentStatus = monthStatusMapper.findByYearMonthAndProject(salaryPeriod, projectId);
+            int currentStatusValue = currentStatus != null ? currentStatus.getStatus() : SalaryMonthStatus.STATUS_DRAFT;
+            
+            // 通过是否存在变更日志判断是否二次审批
+            boolean hasChangeLogs = changeLogMapper.countByProjectAndPeriod(projectId, salaryPeriod) > 0;
+            boolean isSecondApproval = hasChangeLogs || currentStatusValue == SalaryMonthStatus.STATUS_CHANGE_PENDING;
+            
             // 更新工资条月份状态
             SalaryMonthStatus record = new SalaryMonthStatus();
             record.setYearMonth(salaryPeriod);
             record.setProjectId(projectId);
-            record.setStatus(approved ? SalaryMonthStatus.STATUS_APPROVED : SalaryMonthStatus.STATUS_REJECTED);
+            
+            if (approved) {
+                // 审批通过：状态变为已锁定（5）
+                record.setStatus(SalaryMonthStatus.STATUS_APPROVED);
+            } else {
+                // 审批驳回：区分首次审批和二次审批
+                if (isSecondApproval) {
+                    // 二次审批驳回：保持已锁定状态（5），变更未生效
+                    record.setStatus(SalaryMonthStatus.STATUS_APPROVED);
+                } else {
+                    // 首次审批驳回：状态变为已驳回（12）
+                    record.setStatus(SalaryMonthStatus.STATUS_REJECTED);
+                }
+            }
+            
             record.setApproveBy(currentUser.getId());
             record.setApproveTime(java.time.LocalDateTime.now());
-            record.setApproveRemark(remark);
+            
+            // 在审批备注中添加变更效果标记
+            String effectRemark;
+            if (approved) {
+                effectRemark = isSecondApproval ? "[二次审批通过，变更已生效] " : "[审批通过] ";
+            } else {
+                effectRemark = isSecondApproval ? "[二次审批驳回，变更未生效] " : "[审批驳回] ";
+            }
+            record.setApproveRemark(effectRemark + (remark != null ? remark : ""));
             monthStatusMapper.updateStatus(record);
+            
+            // 审批通过时，先应用所有费用项变更
+            if (approved && hasChangeLogs) {
+                applyAllPendingFeeChanges(projectId, salaryPeriod);
+            }
+            
+            // 审批通过或驳回时，都删除待审批的变更记录
+            changeLogMapper.deleteByProjectAndPeriod(projectId, salaryPeriod);
+            log.info("[Salary] 审批{}，删除项目{}月份{}的待审批费用项变更记录", 
+                    approved ? "通过" : "驳回", projectId, salaryPeriod);
             
             return "success";
         } catch (Exception e) {
             return e.getMessage();
         }
+    }
+    
+    /**
+     * 应用所有待审批的费用项变更
+     */
+    private void applyAllPendingFeeChanges(Long projectId, String salaryPeriod) {
+        // 查询所有变更记录
+        List<SalarySlipChangeLog> pendingLogs = changeLogMapper.selectByProjectAndPeriod(projectId, salaryPeriod);
+        
+        for (SalarySlipChangeLog changeLog : pendingLogs) {
+            // 应用费用项变更到数据库
+            salarySlipService.applyFeeItemsChange(changeLog);
+            
+            // 更新工资条费用汇总
+            SalarySlip slip = salarySlipMapper.selectById(changeLog.getSalarySlipId());
+            if (slip != null) {
+                slip.setAdditionAmount(changeLog.getNewAdditionAmount());
+                slip.setDeductionAmount(changeLog.getNewDeductionAmount());
+                slip.setPayableAmount(changeLog.getNewPayableAmount());
+                salarySlipMapper.update(slip);
+            }
+        }
+        
+        log.info("[Salary] 应用所有待审批费用项变更: projectId={}, period={}, 变更数量={}", 
+                projectId, salaryPeriod, pendingLogs.size());
+    }
+
+    /**
+     * 取消待审批的变更（用户主动取消编辑）
+     */
+    @PostMapping("/month/cancel")
+    @ResponseBody
+    public String cancelPendingChanges(@RequestParam Long projectId,
+                                        @RequestParam String salaryPeriod,
+                                        HttpSession session) {
+        try {
+            Employee currentUser = (Employee) session.getAttribute("currentUser");
+            if (currentUser == null) return "请先登录";
+            
+            // 删除变更记录
+            int deleted = changeLogMapper.deleteByProjectAndPeriod(projectId, salaryPeriod);
+            log.info("[Salary] 用户{}取消变更，删除项目{}月份{}的{}条待审批变更记录", 
+                    currentUser.getName(), projectId, salaryPeriod, deleted);
+            
+            return "success";
+        } catch (Exception e) {
+            return e.getMessage();
+        }
+    }
+
+    /**
+     * 获取年度汇总数据（整体合计）
+     */
+    @GetMapping("/api/year-total")
+    @ResponseBody
+    public Map<String, Object> getYearTotal(@RequestParam Long projectId,
+                                            @RequestParam String year) {
+        Map<String, Object> result = new HashMap<>();
+        try {
+            Map<String, Object> data = salarySlipService.getYearTotal(projectId, year);
+            result.put("success", true);
+            result.put("data", data);
+        } catch (Exception e) {
+            log.error("[YearTotal] error projectId={}, year={}", projectId, year, e);
+            result.put("success", false);
+            result.put("message", e.getMessage());
+        }
+        return result;
+    }
+
+    /**
+     * 获取年度按员工聚合的工资条汇总列表（仅已审批通过月份）
+     */
+    @GetMapping("/api/year-by-employee")
+    @ResponseBody
+    public Map<String, Object> getYearByEmployee(@RequestParam Long projectId,
+                                                 @RequestParam String year) {
+        Map<String, Object> result = new HashMap<>();
+        try {
+            var list = salarySlipService.getYearByEmployee(projectId, year);
+            result.put("success", true);
+            result.put("list", list);
+        } catch (Exception e) {
+            result.put("success", false);
+            result.put("message", e.getMessage());
+        }
+        return result;
+    }
+
+    /**
+     * 获取某员工在某项目某年度已审批通过的工资条列表（含费用项）
+     */
+    @GetMapping("/api/year-slips-by-employee")
+    @ResponseBody
+    public Map<String, Object> getYearSlipsByEmployee(@RequestParam Long projectId,
+                                                      @RequestParam Long employeeId,
+                                                      @RequestParam String year) {
+        Map<String, Object> result = new HashMap<>();
+        try {
+            var slips = salarySlipService.getYearSlipsByEmployee(projectId, employeeId, year);
+            result.put("success", true);
+            result.put("slips", slips);
+        } catch (Exception e) {
+            log.error("[YearSlipsByEmployee] error", e);
+            result.put("success", false);
+            result.put("message", e.getMessage());
+        }
+        return result;
+    }
+    
+    // 【已移除】二次修改与重新计算 API
+    // 工资条重新计算功能已去除，考勤数据变化不再触发重新计算流程
+    
+    /**
+     * 查询工资条的待审批修改记录
+     */
+    @GetMapping("/api/pending-changes")
+    @ResponseBody
+    public Map<String, Object> getPendingChanges(@RequestParam Long salarySlipId) {
+        Map<String, Object> result = new HashMap<>();
+        try {
+            var log = salarySlipService.getPendingChangeLog(salarySlipId);
+            result.put("success", true);
+            result.put("hasPending", log != null);
+            result.put("changeLog", log);
+        } catch (Exception e) {
+            log.error("[PendingChanges] error", e);
+            result.put("success", false);
+            result.put("message", e.getMessage());
+        }
+        return result;
+    }
+    
+    /**
+     * 查询项目和月份的所有修改记录
+     */
+    @GetMapping("/api/change-logs")
+    @ResponseBody
+    public Map<String, Object> getChangeLogs(@RequestParam Long projectId,
+                                              @RequestParam String salaryPeriod) {
+        Map<String, Object> result = new HashMap<>();
+        try {
+            var logs = salarySlipService.getChangeLogsByProjectAndPeriod(projectId, salaryPeriod);
+            result.put("success", true);
+            result.put("logs", logs);
+        } catch (Exception e) {
+            log.error("[ChangeLogs] error", e);
+            result.put("success", false);
+            result.put("message", e.getMessage());
+        }
+        return result;
+    }
+    
+    /**
+     * 审批通过工资条修改
+     */
+    @PostMapping("/api/approve-change")
+    @ResponseBody
+    public Map<String, Object> approveChange(@RequestParam Long changeLogId,
+                                              @RequestParam(required = false) String remark,
+                                              HttpSession session) {
+        Map<String, Object> result = new HashMap<>();
+        try {
+            Employee currentUser = (Employee) session.getAttribute("currentUser");
+            if (currentUser == null) {
+                result.put("success", false);
+                result.put("message", "请先登录");
+                return result;
+            }
+            
+            // 检查权限（BOSS或项目管理员）
+            boolean canApprove = currentUser.isBoss() || "root".equalsIgnoreCase(currentUser.getRoleCode());
+            if (!canApprove) {
+                result.put("success", false);
+                result.put("message", "无权审批");
+                return result;
+            }
+            
+            salarySlipService.approveFeeChangeLog(changeLogId, currentUser.getId(), 
+                    currentUser.getName(), remark);
+            
+            result.put("success", true);
+            result.put("message", "审批通过");
+        } catch (Exception e) {
+            log.error("[ApproveChange] error", e);
+            result.put("success", false);
+            result.put("message", e.getMessage());
+        }
+        return result;
+    }
+    
+    /**
+     * 驳回工资条修改
+     */
+    @PostMapping("/api/reject-change")
+    @ResponseBody
+    public Map<String, Object> rejectChange(@RequestParam Long changeLogId,
+                                             @RequestParam(required = false) String remark,
+                                             HttpSession session) {
+        Map<String, Object> result = new HashMap<>();
+        try {
+            Employee currentUser = (Employee) session.getAttribute("currentUser");
+            if (currentUser == null) {
+                result.put("success", false);
+                result.put("message", "请先登录");
+                return result;
+            }
+            
+            // 检查权限（BOSS或项目管理员）
+            boolean canApprove = currentUser.isBoss() || "root".equalsIgnoreCase(currentUser.getRoleCode());
+            if (!canApprove) {
+                result.put("success", false);
+                result.put("message", "无权审批");
+                return result;
+            }
+            
+            salarySlipService.rejectFeeChangeLog(changeLogId, currentUser.getId(), 
+                    currentUser.getName(), remark);
+            
+            result.put("success", true);
+            result.put("message", "已驳回");
+        } catch (Exception e) {
+            log.error("[RejectChange] error", e);
+            result.put("success", false);
+            result.put("message", e.getMessage());
+        }
+        return result;
+    }
+    
+    /**
+     * 批量审批工资条修改（按项目和月份）
+     */
+    @PostMapping("/api/batch-approve-changes")
+    @ResponseBody
+    public Map<String, Object> batchApproveChanges(@RequestParam Long projectId,
+                                                    @RequestParam String salaryPeriod,
+                                                    @RequestParam(required = false) String remark,
+                                                    HttpSession session) {
+        Map<String, Object> result = new HashMap<>();
+        try {
+            Employee currentUser = (Employee) session.getAttribute("currentUser");
+            if (currentUser == null) {
+                result.put("success", false);
+                result.put("message", "请先登录");
+                return result;
+            }
+            
+            // 检查权限（BOSS或项目管理员）
+            boolean canApprove = currentUser.isBoss() || "root".equalsIgnoreCase(currentUser.getRoleCode());
+            if (!canApprove) {
+                result.put("success", false);
+                result.put("message", "无权审批");
+                return result;
+            }
+            
+            salarySlipService.batchApproveFeeChanges(projectId, salaryPeriod, 
+                    currentUser.getId(), currentUser.getName(), remark);
+            
+            result.put("success", true);
+            result.put("message", "批量审批通过");
+        } catch (Exception e) {
+            log.error("[BatchApproveChanges] error", e);
+            result.put("success", false);
+            result.put("message", e.getMessage());
+        }
+        return result;
+    }
+    
+    /**
+     * 批量驳回工资条修改（按项目和月份）
+     */
+    @PostMapping("/api/batch-reject-changes")
+    @ResponseBody
+    public Map<String, Object> batchRejectChanges(@RequestParam Long projectId,
+                                                   @RequestParam String salaryPeriod,
+                                                   @RequestParam(required = false) String remark,
+                                                   HttpSession session) {
+        Map<String, Object> result = new HashMap<>();
+        try {
+            Employee currentUser = (Employee) session.getAttribute("currentUser");
+            if (currentUser == null) {
+                result.put("success", false);
+                result.put("message", "请先登录");
+                return result;
+            }
+            
+            // 检查权限（BOSS或项目管理员）
+            boolean canApprove = currentUser.isBoss() || "root".equalsIgnoreCase(currentUser.getRoleCode());
+            if (!canApprove) {
+                result.put("success", false);
+                result.put("message", "无权审批");
+                return result;
+            }
+            
+            salarySlipService.batchRejectFeeChanges(projectId, salaryPeriod, 
+                    currentUser.getId(), currentUser.getName(), remark);
+            
+            result.put("success", true);
+            result.put("message", "批量驳回成功");
+        } catch (Exception e) {
+            log.error("[BatchRejectChanges] error", e);
+            result.put("success", false);
+            result.put("message", e.getMessage());
+        }
+        return result;
+    }
+    
+    // ===== 费用项变更相关 API =====
+    
+    /**
+     * 记录费用项变更（实时抵消计算）
+     */
+    @PostMapping("/api/record-fee-item-change")
+    @ResponseBody
+    public Map<String, Object> recordFeeItemChange(@RequestParam Long salarySlipId,
+                                                    @RequestParam Long itemId,
+                                                    @RequestParam String itemName,
+                                                    @RequestParam Integer itemType,
+                                                    @RequestParam String operation,
+                                                    @RequestParam BigDecimal oldAmount,
+                                                    @RequestParam BigDecimal newAmount,
+                                                    @RequestParam String changeReason,
+                                                    HttpSession session) {
+        Map<String, Object> result = new HashMap<>();
+        try {
+            Employee currentUser = (Employee) session.getAttribute("currentUser");
+            if (currentUser == null) {
+                result.put("success", false);
+                result.put("message", "请先登录");
+                return result;
+            }
+            
+            boolean recorded = salarySlipService.recordFeeItemChange(
+                    salarySlipId, itemId, itemName, itemType, operation, 
+                    oldAmount, newAmount, changeReason, 
+                    currentUser.getId(), currentUser.getName());
+            
+            result.put("success", true);
+            if (recorded) {
+                result.put("message", "已记录变更");
+            } else {
+                result.put("message", "变更已抵消");
+            }
+        } catch (Exception e) {
+            log.error("[RecordFeeItemChange] error", e);
+            result.put("success", false);
+            result.put("message", e.getMessage());
+        }
+        return result;
+    }
+    
+    /**
+     * 提交费用项变更审批
+     */
+    @PostMapping("/api/submit-fee-changes")
+    @ResponseBody
+    public Map<String, Object> submitFeeChanges(@RequestParam Long projectId,
+                                                 @RequestParam String salaryPeriod,
+                                                 @RequestParam String changeReason,
+                                                 HttpSession session) {
+        Map<String, Object> result = new HashMap<>();
+        try {
+            Employee currentUser = (Employee) session.getAttribute("currentUser");
+            if (currentUser == null) {
+                result.put("success", false);
+                result.put("message", "请先登录");
+                return result;
+            }
+            
+            salarySlipService.submitFeeChangesForApproval(
+                    projectId, salaryPeriod, currentUser.getId(), changeReason);
+            
+            result.put("success", true);
+            result.put("message", "变更已提交审批");
+        } catch (Exception e) {
+            log.error("[SubmitFeeChanges] error", e);
+            result.put("success", false);
+            result.put("message", e.getMessage());
+        }
+        return result;
+    }
+    
+    /**
+     * 审批通过费用项变更
+     */
+    @PostMapping("/api/approve-fee-change")
+    @ResponseBody
+    public Map<String, Object> approveFeeChange(@RequestParam Long changeLogId,
+                                                 @RequestParam(required = false) String remark,
+                                                 HttpSession session) {
+        Map<String, Object> result = new HashMap<>();
+        try {
+            Employee currentUser = (Employee) session.getAttribute("currentUser");
+            if (currentUser == null) {
+                result.put("success", false);
+                result.put("message", "请先登录");
+                return result;
+            }
+            
+            // 检查权限（BOSS或项目管理员）
+            boolean canApprove = currentUser.isBoss() || "root".equalsIgnoreCase(currentUser.getRoleCode());
+            if (!canApprove) {
+                result.put("success", false);
+                result.put("message", "无权审批");
+                return result;
+            }
+            
+            salarySlipService.approveFeeChangeLog(changeLogId, currentUser.getId(), 
+                    currentUser.getName(), remark);
+            
+            result.put("success", true);
+            result.put("message", "费用项变更审批通过");
+        } catch (Exception e) {
+            log.error("[ApproveFeeChange] error", e);
+            result.put("success", false);
+            result.put("message", e.getMessage());
+        }
+        return result;
+    }
+    
+    /**
+     * 驳回费用项变更
+     */
+    @PostMapping("/api/reject-fee-change")
+    @ResponseBody
+    public Map<String, Object> rejectFeeChange(@RequestParam Long changeLogId,
+                                                @RequestParam(required = false) String remark,
+                                                HttpSession session) {
+        Map<String, Object> result = new HashMap<>();
+        try {
+            Employee currentUser = (Employee) session.getAttribute("currentUser");
+            if (currentUser == null) {
+                result.put("success", false);
+                result.put("message", "请先登录");
+                return result;
+            }
+            
+            // 检查权限（BOSS或项目管理员）
+            boolean canApprove = currentUser.isBoss() || "root".equalsIgnoreCase(currentUser.getRoleCode());
+            if (!canApprove) {
+                result.put("success", false);
+                result.put("message", "无权审批");
+                return result;
+            }
+            
+            salarySlipService.rejectFeeChangeLog(changeLogId, currentUser.getId(), 
+                    currentUser.getName(), remark);
+            
+            result.put("success", true);
+            result.put("message", "费用项变更已驳回");
+        } catch (Exception e) {
+            log.error("[RejectFeeChange] error", e);
+            result.put("success", false);
+            result.put("message", e.getMessage());
+        }
+        return result;
+    }
+    
+    /**
+     * 取消费用项变更
+     */
+    @PostMapping("/api/cancel-fee-change")
+    @ResponseBody
+    public Map<String, Object> cancelFeeChange(@RequestParam Long projectId,
+                                                @RequestParam String salaryPeriod,
+                                                HttpSession session) {
+        Map<String, Object> result = new HashMap<>();
+        try {
+            Employee currentUser = (Employee) session.getAttribute("currentUser");
+            if (currentUser == null) {
+                result.put("success", false);
+                result.put("message", "请先登录");
+                return result;
+            }
+            
+            salarySlipService.cancelFeeChange(projectId, salaryPeriod, currentUser.getId());
+            
+            result.put("success", true);
+            result.put("message", "变更已取消");
+        } catch (Exception e) {
+            log.error("[CancelFeeChange] error", e);
+            result.put("success", false);
+            result.put("message", e.getMessage());
+        }
+        return result;
+    }
+    
+    /**
+     * 进入编辑模式（将状态改为变更待审 status=2）
+     */
+    @PostMapping("/api/enter-edit-mode")
+    @ResponseBody
+    public Map<String, Object> enterEditMode(@RequestParam Long projectId,
+                                              @RequestParam String salaryPeriod,
+                                              @RequestParam(required = false) String changeReason,
+                                              HttpSession session) {
+        Map<String, Object> result = new HashMap<>();
+        try {
+            Employee currentUser = (Employee) session.getAttribute("currentUser");
+            if (currentUser == null) {
+                result.put("success", false);
+                result.put("message", "请先登录");
+                return result;
+            }
+            
+            salarySlipService.enterEditMode(projectId, salaryPeriod, 
+                    currentUser.getId(), changeReason);
+            
+            result.put("success", true);
+            result.put("message", "已进入编辑模式");
+        } catch (Exception e) {
+            log.error("[EnterEditMode] error", e);
+            result.put("success", false);
+            result.put("message", e.getMessage());
+        }
+        return result;
+    }
+    
+    /**
+     * 批量审批费用项变更（按项目和月份）
+     */
+    @PostMapping("/api/batch-approve-fee-changes")
+    @ResponseBody
+    public Map<String, Object> batchApproveFeeChanges(@RequestParam Long projectId,
+                                                       @RequestParam String salaryPeriod,
+                                                       @RequestParam(required = false) String remark,
+                                                       HttpSession session) {
+        Map<String, Object> result = new HashMap<>();
+        try {
+            Employee currentUser = (Employee) session.getAttribute("currentUser");
+            if (currentUser == null) {
+                result.put("success", false);
+                result.put("message", "请先登录");
+                return result;
+            }
+            
+            // 检查权限（BOSS或项目管理员）
+            boolean canApprove = currentUser.isBoss() || "root".equalsIgnoreCase(currentUser.getRoleCode());
+            if (!canApprove) {
+                result.put("success", false);
+                result.put("message", "无权审批");
+                return result;
+            }
+            
+            salarySlipService.batchApproveFeeChanges(projectId, salaryPeriod, 
+                    currentUser.getId(), currentUser.getName(), remark);
+            
+            result.put("success", true);
+            result.put("message", "费用项变更批量审批通过");
+        } catch (Exception e) {
+            log.error("[BatchApproveFeeChanges] error", e);
+            result.put("success", false);
+            result.put("message", e.getMessage());
+        }
+        return result;
+    }
+    
+    /**
+     * 查询工资条的费用项变更记录
+     */
+    @GetMapping("/api/fee-change-logs")
+    @ResponseBody
+    public Map<String, Object> getFeeChangeLogs(@RequestParam Long salarySlipId) {
+        Map<String, Object> result = new HashMap<>();
+        try {
+            var logs = salarySlipService.getFeeChangeLogsBySalarySlipId(salarySlipId);
+            result.put("success", true);
+            result.put("logs", logs);
+        } catch (Exception e) {
+            log.error("[FeeChangeLogs] error", e);
+            result.put("success", false);
+            result.put("message", e.getMessage());
+        }
+        return result;
+    }
+    
+    /**
+     * 查询项目和月份的所有费用项变更记录
+     */
+    @GetMapping("/api/fee-change-logs-by-period")
+    @ResponseBody
+    public Map<String, Object> getFeeChangeLogsByPeriod(@RequestParam Long projectId,
+                                                         @RequestParam String salaryPeriod) {
+        Map<String, Object> result = new HashMap<>();
+        try {
+            var logs = salarySlipService.getFeeChangeLogsByProjectAndPeriod(projectId, salaryPeriod);
+            result.put("success", true);
+            result.put("logs", logs);
+        } catch (Exception e) {
+            log.error("[FeeChangeLogsByPeriod] error", e);
+            result.put("success", false);
+            result.put("message", e.getMessage());
+        }
+        return result;
+    }
+    
+    /**
+     * 检查工资条是否有待审批的费用项变更
+     */
+    @GetMapping("/api/has-pending-fee-change")
+    @ResponseBody
+    public Map<String, Object> hasPendingFeeChange(@RequestParam Long salarySlipId) {
+        Map<String, Object> result = new HashMap<>();
+        try {
+            boolean hasPending = salarySlipService.hasPendingFeeChange(salarySlipId);
+            result.put("success", true);
+            result.put("hasPending", hasPending);
+        } catch (Exception e) {
+            log.error("[HasPendingFeeChange] error", e);
+            result.put("success", false);
+            result.put("message", e.getMessage());
+        }
+        return result;
     }
 }

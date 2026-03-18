@@ -30,6 +30,7 @@ public class AttendanceMonthStatus {
     // 状态常量
     public static final int STATUS_DRAFT = 0;        // 草稿
     public static final int STATUS_PENDING = 1;      // 待审批
+    public static final int STATUS_CHANGE_PENDING = 2; // 变更待审（已审批后申请修改）
     public static final int STATUS_APPROVED = 5;     // 已审批锁定
     public static final int STATUS_REJECTED = 12;    // 已驳回
     
@@ -37,6 +38,7 @@ public class AttendanceMonthStatus {
         return switch (status) {
             case STATUS_DRAFT -> "草稿";
             case STATUS_PENDING -> "待审批";
+            case STATUS_CHANGE_PENDING -> "变更待审";
             case STATUS_APPROVED -> "已审批锁定";
             case STATUS_REJECTED -> "已驳回";
             default -> "未知";
@@ -47,6 +49,7 @@ public class AttendanceMonthStatus {
         return switch (status) {
             case STATUS_DRAFT -> "bg-secondary";
             case STATUS_PENDING -> "bg-warning text-dark";
+            case STATUS_CHANGE_PENDING -> "bg-info";
             case STATUS_APPROVED -> "bg-success";
             case STATUS_REJECTED -> "bg-danger";
             default -> "bg-secondary";
@@ -104,4 +107,10 @@ public class AttendanceMonthStatus {
     
     public String getSubmitByName() { return submitByName; }
     public void setSubmitByName(String submitByName) { this.submitByName = submitByName; }
+    
+    // 考勤签字表图片URL列表（多个URL用逗号分隔）
+    private String signImageUrls;
+    
+    public String getSignImageUrls() { return signImageUrls; }
+    public void setSignImageUrls(String signImageUrls) { this.signImageUrls = signImageUrls; }
 }

@@ -20,6 +20,14 @@ public interface SalaryMonthStatusMapper {
     @Update("UPDATE tb_salary_month_status SET status = #{status}, approve_by = #{approveBy}, approve_time = #{approveTime}, approve_remark = #{approveRemark} " +
             "WHERE `year_month` = #{yearMonth} AND project_id = #{projectId}")
     int updateStatus(SalaryMonthStatus record);
+    
+    @Update("UPDATE tb_salary_month_status SET status = #{status}, submit_by = #{submitBy}, submit_time = #{submitTime}, submit_remark = #{submitRemark} " +
+            "WHERE `year_month` = #{yearMonth} AND project_id = #{projectId}")
+    int update(SalaryMonthStatus record);
+    
+    @Insert("INSERT INTO tb_salary_month_status (`year_month`, project_id, status, submit_by, submit_time, submit_remark, created_time, updated_time) " +
+            "VALUES (#{yearMonth}, #{projectId}, #{status}, #{submitBy}, #{submitTime}, #{submitRemark}, NOW(), NOW())")
+    int insert(SalaryMonthStatus record);
 
     @Select("SELECT COUNT(*) FROM tb_salary_month_status WHERE status = #{status}")
     int countByStatus(@Param("status") int status);

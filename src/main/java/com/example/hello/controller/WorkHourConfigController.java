@@ -3,6 +3,8 @@ package com.example.hello.controller;
 import com.example.hello.entity.Employee;
 import com.example.hello.entity.WorkHourConfig;
 import com.example.hello.service.WorkHourConfigService;
+import com.example.hello.service.ProjectService;
+import com.example.hello.entity.Project;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -23,6 +25,9 @@ public class WorkHourConfigController {
     @Autowired
     private WorkHourConfigService workHourConfigService;
     
+    @Autowired
+    private ProjectService projectService;
+    
     @GetMapping("/config")
     public String configList(Model model, HttpSession session) {
         Employee currentUser = (Employee) session.getAttribute("currentUser");
@@ -31,7 +36,9 @@ public class WorkHourConfigController {
         }
         
         List<WorkHourConfig> configs = workHourConfigService.getAllConfigs();
+        List<Project> projects = projectService.findAll();
         model.addAttribute("configs", configs);
+        model.addAttribute("projects", projects);
         return "workhour/config";
     }
     
@@ -65,9 +72,27 @@ public class WorkHourConfigController {
                 return "请先登录";
             }
             
+            // 校验：必须选择项目
+            if (config.getProjectId() == null) {
+                return "请选择项目";
+            }
+            
+            // 校验：同一项目下不能有两个相同类型的配置
             if (config.getId() == null) {
+                // 新增时检查
+                WorkHourConfig existing = workHourConfigService.findByProjectIdAndCalcType(config.getProjectId(), config.getCalcType());
+                if (existing != null) {
+                    String typeName = config.getCalcType() == 1 ? "日薪" : "月薪";
+                    return "该项目已存在" + typeName + "计算方式的配置，不能重复创建";
+                }
                 workHourConfigService.createConfig(config, currentUser);
             } else {
+                // 编辑时检查（排除自己）
+                WorkHourConfig existing = workHourConfigService.findByProjectIdAndCalcType(config.getProjectId(), config.getCalcType());
+                if (existing != null && !existing.getId().equals(config.getId())) {
+                    String typeName = config.getCalcType() == 1 ? "日薪" : "月薪";
+                    return "该项目已存在" + typeName + "计算方式的配置，不能重复创建";
+                }
                 workHourConfigService.updateConfig(config, currentUser);
             }
             return "success";
@@ -164,6 +189,8 @@ public class WorkHourConfigController {
     
     /**
      * 删除未生效配置
+     * BOSS：直接删除
+     * 管理员：未生效直接删除，生效中需先发起作废审批
      */
     @PostMapping("/delete/{id}")
     @ResponseBody
@@ -175,6 +202,30 @@ public class WorkHourConfigController {
             }
             
             workHourConfigService.deleteConfig(id, currentUser);
+            return "success";
+        } catch (Exception e) {
+            return e.getMessage();
+        }
+    }
+    
+    /**
+     * 管理员发起删除/作废审批（对生效中配置）
+     */
+    @PostMapping("/request-delete/{id}")
+    @ResponseBody
+    public String requestDeleteApproval(@PathVariable Long id, HttpSession session) {
+        try {
+            Employee currentUser = (Employee) session.getAttribute("currentUser");
+            if (currentUser == null) {
+                return "请先登录";
+            }
+            
+            // 只有管理员才能发起
+            if (!"admin".equalsIgnoreCase(currentUser.getRoleCode())) {
+                return "只有管理员才能发起删除审批";
+            }
+            
+            workHourConfigService.requestDeleteApproval(id, currentUser);
             return "success";
         } catch (Exception e) {
             return e.getMessage();

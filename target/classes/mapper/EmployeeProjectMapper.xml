@@ -13,8 +13,8 @@
     </resultMap>
 
     <insert id="insert" useGeneratedKeys="true" keyProperty="id">
-        INSERT INTO tb_employee_project (employee_id, project_id)
-        VALUES (#{employeeId}, #{projectId})
+        INSERT INTO tb_employee_project (employee_id, project_id, create_time)
+        VALUES (#{employeeId}, #{projectId}, #{createTime})
     </insert>
 
     <delete id="deleteById">
@@ -72,6 +72,16 @@
         SELECT COUNT(*) 
         FROM tb_employee_project 
         WHERE employee_id = #{employeeId} AND project_id = #{projectId}
+    </select>
+    
+    <select id="selectByEmployeeAndProject" resultMap="BaseResultMap">
+        SELECT ep.*, e.name as employee_name, p.name as project_name, jc.name as job_category_name
+        FROM tb_employee_project ep
+        LEFT JOIN tb_employee e ON ep.employee_id = e.id
+        LEFT JOIN tb_project p ON ep.project_id = p.id
+        LEFT JOIN tb_job_category jc ON e.job_category_id = jc.id
+        WHERE ep.employee_id = #{employeeId} AND ep.project_id = #{projectId}
+        LIMIT 1
     </select>
 
 </mapper>

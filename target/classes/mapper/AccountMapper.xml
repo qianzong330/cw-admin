@@ -156,6 +156,12 @@
         <if test="creatorName != null and creatorName != ''">
             AND e.name LIKE CONCAT('%', #{creatorName}, '%')
         </if>
+        <if test="startDate != null and startDate != ''">
+            AND DATE(a.create_time) &gt;= #{startDate}
+        </if>
+        <if test="endDate != null and endDate != ''">
+            AND DATE(a.create_time) &lt;= #{endDate}
+        </if>
         ORDER BY a.create_time DESC
         LIMIT #{pageSize} OFFSET #{offset}
     </select>
@@ -192,6 +198,12 @@
         </if>
         <if test="creatorName != null and creatorName != ''">
             AND e.name LIKE CONCAT('%', #{creatorName}, '%')
+        </if>
+        <if test="startDate != null and startDate != ''">
+            AND DATE(a.create_time) &gt;= #{startDate}
+        </if>
+        <if test="endDate != null and endDate != ''">
+            AND DATE(a.create_time) &lt;= #{endDate}
         </if>
     </select>
 

@@ -64,12 +64,14 @@
                                 <td th:text="${item.submitRemark} ?: '-'"></td>
                                 <td style="white-space:nowrap;">
                                     <button type="button" class="btn btn-success btn-sm"
+                                            th:if="${session.currentUser != null and session.currentUser.boss}"
                                             th:data-year-month="${item.yearMonth}"
                                             th:data-project-id="${item.projectId}"
                                             onclick="approveMonth(this.getAttribute('data-year-month'), this.getAttribute('data-project-id'))">
                                         <i class="bi bi-check-lg"></i> 通过
                                     </button>
                                     <button type="button" class="btn btn-danger btn-sm ms-1"
+                                            th:if="${session.currentUser != null and session.currentUser.boss}"
                                             th:data-year-month="${item.yearMonth}"
                                             th:data-project-id="${item.projectId}"
                                             onclick="rejectMonth(this.getAttribute('data-year-month'), this.getAttribute('data-project-id'))">

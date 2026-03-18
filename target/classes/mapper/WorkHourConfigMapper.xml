@@ -4,6 +4,7 @@
 
     <resultMap id="BaseResultMap" type="com.example.hello.entity.WorkHourConfig">
         <id column="id" property="id"/>
+        <result column="project_id" property="projectId"/>
         <result column="calc_type" property="calcType"/>
         <result column="monthly_work_days" property="monthlyWorkDays"/>
         <result column="morning_start_time" property="morningStartTime"/>
@@ -33,7 +34,7 @@
 
     <insert id="insert" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO tb_work_hour_config (
-            calc_type, monthly_work_days,
+            project_id, calc_type, monthly_work_days,
             morning_start_time, morning_end_time,
             afternoon_start_time, afternoon_end_time,
             daily_work_hours,
@@ -45,7 +46,7 @@
             created_by_id, created_by_name,
             remark
         ) VALUES (
-            #{calcType}, #{monthlyWorkDays},
+            #{projectId}, #{calcType}, #{monthlyWorkDays},
             #{morningStartTime}, #{morningEndTime},
             #{afternoonStartTime}, #{afternoonEndTime},
             #{dailyWorkHours},
@@ -61,7 +62,8 @@
 
     <update id="update">
         UPDATE tb_work_hour_config
-        SET calc_type = #{calcType},
+        SET project_id = #{projectId},
+            calc_type = #{calcType},
             monthly_work_days = #{monthlyWorkDays},
             morning_start_time = #{morningStartTime},
             morning_end_time = #{morningEndTime},
@@ -103,6 +105,16 @@
     
     <select id="selectByCalcType" resultMap="BaseResultMap">
         SELECT * FROM tb_work_hour_config WHERE calc_type = #{calcType} ORDER BY status DESC, id ASC
+    </select>
+    
+    <!-- 根据项目ID和计算类型查询 -->
+    <select id="selectByProjectIdAndCalcType" resultMap="BaseResultMap">
+        SELECT * FROM tb_work_hour_config WHERE project_id = #{projectId} AND calc_type = #{calcType} LIMIT 1
+    </select>
+    
+    <!-- 根据项目ID查询所有配置 -->
+    <select id="selectByProjectId" resultMap="BaseResultMap">
+        SELECT * FROM tb_work_hour_config WHERE project_id = #{projectId} ORDER BY calc_type ASC
     </select>
 
     <update id="updateStatus">

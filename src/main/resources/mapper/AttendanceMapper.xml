@@ -20,8 +20,8 @@
     </resultMap>
 
     <insert id="insert" useGeneratedKeys="true" keyProperty="id">
-        INSERT INTO tb_attendance (employee_id, project_id, work_date, attendance_type, overtime_type, work_hours, remark, created_by)
-        VALUES (#{employeeId}, #{projectId}, #{workDate}, #{attendanceType}, #{overtimeType}, #{workHours}, #{remark}, #{createdBy})
+        INSERT INTO tb_attendance (employee_id, project_id, work_date, attendance_type, overtime_type, work_hours, remark, created_by, created_time, updated_time)
+        VALUES (#{employeeId}, #{projectId}, #{workDate}, #{attendanceType}, #{overtimeType}, #{workHours}, #{remark}, #{createdBy}, NOW(), NOW())
     </insert>
 
     <update id="update">
@@ -32,7 +32,8 @@
             attendance_type = #{attendanceType},
             overtime_type = #{overtimeType},
             work_hours = #{workHours},
-            remark = #{remark}
+            remark = #{remark},
+            updated_time = NOW()
         WHERE id = #{id}
     </update>
 
@@ -150,5 +151,13 @@
         <if test="projectId != null">AND a.project_id = #{projectId}</if>
         ORDER BY a.work_date ASC
     </select>
+
+    <delete id="deleteByEmployeeProjectAndMonth">
+        DELETE FROM tb_attendance
+        WHERE employee_id = #{employeeId}
+        AND project_id = #{projectId}
+        AND work_date &gt;= #{startDate}
+        AND work_date &lt;= #{endDate}
+    </delete>
 
 </mapper>

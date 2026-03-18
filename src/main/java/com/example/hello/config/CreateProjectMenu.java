@@ -72,27 +72,26 @@ public class CreateProjectMenu implements CommandLineRunner {
             );
             System.out.println("  - 已确保首页为独立菜单（parent_id=NULL）");
             
-            // 6. 将其他菜单移到工程目录下
-            int sortOrder = 0;
+            // 6. 将其他菜单移到工程目录下（保持原有sort_order，不重置）
             for (Map<String, Object> menu : independentMenus) {
                 Long menuId = ((Number) menu.get("id")).longValue();
                 String menuCode = (String) menu.get("menu_code");
                 String menuName = (String) menu.get("menu_name");
                 
                 jdbcTemplate.update(
-                    "UPDATE tb_menu SET parent_id = ?, sort_order = ? WHERE id = ?",
-                    projectDirId, sortOrder++, menuId
+                    "UPDATE tb_menu SET parent_id = ? WHERE id = ?",
+                    projectDirId, menuId
                 );
                 System.out.println("  - 已将 " + menuName + " (" + menuCode + ") 移到工程目录下");
             }
 
-            // 7. 将工时配置也移到工程目录下
+            // 7. 将工时配置也移到工程目录下（保持原有sort_order，不重置）
             for (Map<String, Object> menu : workhourMenus) {
                 Long menuId = ((Number) menu.get("id")).longValue();
                 String menuName = (String) menu.get("menu_name");
                 jdbcTemplate.update(
-                    "UPDATE tb_menu SET parent_id = ?, sort_order = ? WHERE id = ?",
-                    projectDirId, sortOrder++, menuId
+                    "UPDATE tb_menu SET parent_id = ? WHERE id = ?",
+                    projectDirId, menuId
                 );
                 System.out.println("  - 已将 " + menuName + " (workhour:config) 移到工程目录下");
             }

@@ -127,24 +127,21 @@
                                     <!-- 模块内容：页面列表 -->
                                     <div class="module-content" th:if="${module != null and module.pages != null}">
                                         <div th:each="page : ${module.pages}" class="page-item" th:if="${page != null}">
-                                            <!-- 单页面模块（没有父目录的独立页面）只显示操作权限 -->
+                                            <!-- 单页面模块（没有父目录的独立页面）显示页面访问权限 -->
                                             <th:block th:if="${module['is_single_page'] != null and module['is_single_page']}">
-                                                <div class="page-operations" th:if="${page.operations != null and not #lists.isEmpty(page.operations)}">
-                                                    <div th:each="op : ${page.operations}" class="op-item" th:if="${op != null}">
-                                                        <input class="form-check-input op-checkbox" type="checkbox"
-                                                               th:value="${op.id != null ? op.id : ''}"
-                                                               th:id="'op-' + ${op.id != null ? op.id : ''}"
-                                                               th:data-page="${page.id != null ? page.id : ''}"
-                                                               th:data-module="${module.id != null ? module.id : ''}"
-                                                               th:checked="${menuIds != null and op.id != null and #lists.contains(menuIds, op.id)}">
-                                                        <label class="form-check-label" th:for="'op-' + ${op.id != null ? op.id : ''}"
-                                                               th:text="${op.menu_name != null ? op.menu_name : '未命名'}">
-                                                        </label>
-                                                    </div>
+                                                <div class="page-header">
+                                                    <input class="form-check-input page-checkbox" type="checkbox"
+                                                           th:value="${page.id != null ? page.id : ''}"
+                                                           th:id="'page-' + ${page.id != null ? page.id : ''}"
+                                                           th:data-module="${module.id != null ? module.id : ''}"
+                                                           th:checked="${menuIds != null and page.id != null and #lists.contains(menuIds, page.id)}">
+                                                    <label class="form-check-label" th:for="'page-' + ${page.id != null ? page.id : ''}"
+                                                           th:text="${page.menu_name != null ? page.menu_name : '未命名'} + '（页面访问）'">
+                                                    </label>
                                                 </div>
                                             </th:block>
-                                                                                
-                                            <!-- 普通模块下的页面，显示页面访问和操作权限 -->
+                                                                                                                    
+                                            <!-- 普通模块下的页面，显示页面访问权限 -->
                                             <th:block th:unless="${module['is_single_page'] != null and module['is_single_page']}">
                                                 <!-- 页面头部：页面访问权限 -->
                                                 <div class="page-header">
@@ -156,21 +153,6 @@
                                                     <label class="form-check-label" th:for="'page-' + ${page.id != null ? page.id : ''}"
                                                            th:text="${page.menu_name != null ? page.menu_name : '未命名'} + '（页面访问）'">
                                                     </label>
-                                                </div>
-                                                                                    
-                                                <!-- 页面操作权限 -->
-                                                <div class="page-operations" th:if="${page.operations != null and not #lists.isEmpty(page.operations)}">
-                                                    <div th:each="op : ${page.operations}" class="op-item" th:if="${op != null}">
-                                                        <input class="form-check-input op-checkbox" type="checkbox"
-                                                               th:value="${op.id != null ? op.id : ''}"
-                                                               th:id="'op-' + ${op.id != null ? op.id : ''}"
-                                                               th:data-page="${page.id != null ? page.id : ''}"
-                                                               th:data-module="${module.id != null ? module.id : ''}"
-                                                               th:checked="${menuIds != null and op.id != null and #lists.contains(menuIds, op.id)}">
-                                                        <label class="form-check-label" th:for="'op-' + ${op.id != null ? op.id : ''}"
-                                                               th:text="${op.menu_name != null ? op.menu_name : '未命名'}">
-                                                        </label>
-                                                    </div>
                                                 </div>
                                             </th:block>
                                         </div>
@@ -194,7 +176,7 @@
         <script th:src="@{/common/layout.js}"></script>
         
         <script>
-            // 模块勾选时，自动勾选其下所有页面和操作
+            // 模块勾选时，自动勾选其下所有页面
             document.querySelectorAll('.module-checkbox').forEach(function(checkbox) {
                 checkbox.addEventListener('change', function() {
                     var moduleId = this.value;
@@ -202,47 +184,18 @@
                     // 勾选/取消模块下所有页面
                     document.querySelectorAll('.page-checkbox[data-module="' + moduleId + '"]').forEach(function(page) {
                         page.checked = isChecked;
-                        var pageId = page.value;
-                        // 勾选/取消页面下所有操作
-                        document.querySelectorAll('.op-checkbox[data-page="' + pageId + '"]').forEach(function(op) {
-                            op.checked = isChecked;
-                        });
                     });
                 });
             });
 
-            // 页面勾选时，自动勾选其下所有操作，并响应父模块
+            // 页面勾选时，响应父模块
             document.querySelectorAll('.page-checkbox').forEach(function(checkbox) {
                 checkbox.addEventListener('change', function() {
-                    var pageId = this.value;
                     var moduleId = this.getAttribute('data-module');
                     var isChecked = this.checked;
                     
-                    // 勾选/取消页面下所有操作
-                    document.querySelectorAll('.op-checkbox[data-page="' + pageId + '"]').forEach(function(op) {
-                        op.checked = isChecked;
-                    });
-                    
                     // 勾选时自动勾选父模块
                     if (isChecked) {
-                        var moduleCheckbox = document.querySelector('.module-checkbox[value="' + moduleId + '"');
-                        if (moduleCheckbox) moduleCheckbox.checked = true;
-                    }
-                });
-            });
-
-            // 操作勾选时，自动勾选父页面和模块
-            document.querySelectorAll('.op-checkbox').forEach(function(checkbox) {
-                checkbox.addEventListener('change', function() {
-                    if (this.checked) {
-                        var pageId = this.getAttribute('data-page');
-                        var moduleId = this.getAttribute('data-module');
-                        
-                        // 勾选父页面
-                        var pageCheckbox = document.querySelector('.page-checkbox[value="' + pageId + '"');
-                        if (pageCheckbox) pageCheckbox.checked = true;
-                        
-                        // 勾选父模块
                         var moduleCheckbox = document.querySelector('.module-checkbox[value="' + moduleId + '"');
                         if (moduleCheckbox) moduleCheckbox.checked = true;
                     }
@@ -253,10 +206,13 @@
                 var roleId = document.getElementById('roleId').value;
                 var menuIds = [];
                 
-                // 收集所有被勾选的权限 ID
-                document.querySelectorAll('.module-checkbox:checked, .page-checkbox:checked, .op-checkbox:checked').forEach(function(cb) {
+                // 收集所有被勾选的权限 ID（只包含模块和页面）
+                document.querySelectorAll('.module-checkbox:checked, .page-checkbox:checked').forEach(function(cb) {
                     menuIds.push(cb.value);
                 });
+                
+                // 去重
+                menuIds = [...new Set(menuIds)];
                 
                 if (menuIds.length === 0) {
                     if (!confirm('确定不分配任何权限吗？')) {

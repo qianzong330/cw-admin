@@ -113,6 +113,18 @@
             <artifactId>s3</artifactId>
             <version>2.25.0</version>
         </dependency>
+        
+        <!-- Apache POI for Excel -->
+        <dependency>
+            <groupId>org.apache.poi</groupId>
+            <artifactId>poi</artifactId>
+            <version>5.2.5</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.poi</groupId>
+            <artifactId>poi-ooxml</artifactId>
+            <version>5.2.5</version>
+        </dependency>
     </dependencies>
 
     <build>
@@ -120,6 +132,10 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <!-- 开发环境运行时区设置为北京时间 -->
+                    <jvmArguments>-Duser.timezone=Asia/Shanghai</jvmArguments>
+                </configuration>
             </plugin>
         </plugins>
     </build>

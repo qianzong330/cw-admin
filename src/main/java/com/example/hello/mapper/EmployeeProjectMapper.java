@@ -61,4 +61,9 @@ public interface EmployeeProjectMapper {
      * 检查关联是否存在
      */
     int countByEmployeeAndProject(@Param("employeeId") Long employeeId, @Param("projectId") Long projectId);
+    
+    /**
+     * 根据员工ID和项目ID查询关联关系
+     */
+    EmployeeProject selectByEmployeeAndProject(@Param("employeeId") Long employeeId, @Param("projectId") Long projectId);
 }

@@ -8,10 +8,11 @@ import java.time.LocalDateTime;
 public class SalaryMonthStatus {
 
     // ===== 状态常量 =====
-    public static final int STATUS_DRAFT    = 0;   // 草稿（可编辑）
-    public static final int STATUS_PENDING  = 1;   // 待审批（锁定）
-    public static final int STATUS_APPROVED = 5;   // 已审批锁定
-    public static final int STATUS_REJECTED = 12;  // 已驳回（可重新编辑）
+    public static final int STATUS_DRAFT     = 0;   // 草稿（可编辑）
+    public static final int STATUS_PENDING   = 1;   // 待审批（首次提交）
+    public static final int STATUS_CHANGE_PENDING = 2;  // 变更待审（二次编辑）
+    public static final int STATUS_APPROVED  = 5;   // 已审批锁定
+    public static final int STATUS_REJECTED  = 12;  // 已驳回（可重新编辑）
 
     private Long id;
     private String yearMonth;

@@ -70,7 +70,7 @@ public interface AttendanceMapper {
     /**
      * 检查指定日期是否已有考勤记录
      */
-    Attendance selectByEmployeeAndDate(@Param("employeeId") Long employeeId,
+    List<Attendance> selectByEmployeeAndDate(@Param("employeeId") Long employeeId,
                                         @Param("workDate") LocalDate workDate);
     
     /**
@@ -95,4 +95,12 @@ public interface AttendanceMapper {
                                                    @Param("startDate") LocalDate startDate,
                                                    @Param("endDate") LocalDate endDate,
                                                    @Param("projectId") Long projectId);
+    
+    /**
+     * 根据员工、项目和月份删除考勤记录
+     */
+    int deleteByEmployeeProjectAndMonth(@Param("employeeId") Long employeeId,
+                                        @Param("projectId") Long projectId,
+                                        @Param("startDate") LocalDate startDate,
+                                        @Param("endDate") LocalDate endDate);
 }

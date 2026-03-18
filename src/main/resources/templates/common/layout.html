@@ -652,7 +652,7 @@
             <!-- 侧边栏 -->
             <nav class="sidebar p-0" id="sidebar">
                 <div class="system-title">
-                    <h5>河南昌涵建筑工程有限公司</h5>
+                    <h5>河南昌涵建筑工程<br>有限公司</h5>
                     <small>CHANGHAN CONSTRUCTION</small>
                 </div>
                 <ul class="nav flex-column mt-2">
@@ -693,6 +693,9 @@
                                                     <!-- 工资条管理子菜单待审批数量徽章 -->
                                                     <span th:if="${subMenu.menu_code == 'salary' && pendingSalaryCount != null && pendingSalaryCount > 0}"
                                                           class="badge bg-danger ms-auto salary-pending-badge" th:text="${pendingSalaryCount}">0</span>
+                                                    <!-- 考勤管理子菜单待审批数量徽章 -->
+                                                    <span th:if="${subMenu.menu_code == 'attendance' && pendingAttendanceCount != null && pendingAttendanceCount > 0}"
+                                                          class="badge bg-danger ms-auto attendance-pending-badge" th:text="${pendingAttendanceCount}">0</span>
                                                 </a>
                                             </li>
                                         </th:block>
@@ -707,6 +710,9 @@
                                         <!-- 工资条管理独立菜单待审批数量徽章 -->
                                         <span th:if="${menu.menu_code == 'salary' && pendingSalaryCount != null && pendingSalaryCount > 0}"
                                               class="badge bg-danger ms-auto salary-pending-badge" th:text="${pendingSalaryCount}">0</span>
+                                        <!-- 考勤管理独立菜单待审批数量徽章 -->
+                                        <span th:if="${menu.menu_code == 'attendance' && pendingAttendanceCount != null && pendingAttendanceCount > 0}"
+                                              class="badge bg-danger ms-auto attendance-pending-badge" th:text="${pendingAttendanceCount}">0</span>
                                         <!-- 记账管理独立菜单待审批数量徽章 - 项目管理员显示待管理员审批数，BOSS角色显示待BOSS审批数 -->
                                         <span th:if="${menu.menu_code == 'account' && session.currentUser != null && !session.currentUser.boss && pendingAccountAdminCount != null && pendingAccountAdminCount > 0}"
                                               class="badge bg-danger ms-auto" th:text="${pendingAccountAdminCount}">0</span>
@@ -775,6 +781,11 @@
                                     <span class="greeting-sub" id="greetingSub">祝您今天工作顺利</span>
                                 </div>
                             </div>
+                        </div>
+                        
+                        <!-- 中间：页面提示文案区域（由具体页面填充） -->
+                        <div class="navbar-center flex-grow-1 d-flex justify-content-center align-items-center gap-2 px-3" id="topPageHints" style="flex-wrap: wrap;">
+                            <!-- 工资条、考勤等页面动态插入提示 -->
                         </div>
                         
                         <!-- 右侧：用户信息和退出 -->

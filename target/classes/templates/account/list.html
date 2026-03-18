@@ -29,7 +29,7 @@
                             <label class="text-nowrap">状态：</label>
                             <div class="input-group input-group-sm" style="width: 140px;">
                                 <select name="status" id="filterStatus" class="form-select" style="border-radius: 0.25rem;" onchange="document.getElementById('filterForm').submit()">
-                                    <option value="">所有状态</option>
+                                    <option value="" th:selected="${status == null}">所有状态</option>
                                     <option value="1" th:selected="${status == 1}">审批中</option>
                                     <option value="5" th:selected="${status == 5}">生效</option>
                                     <option value="12" th:selected="${status == 12}">审核未通过</option>
@@ -62,12 +62,32 @@
                             <label class="text-nowrap">记账人：</label>
                             <div class="input-group input-group-sm" style="width: 140px;">
                                 <input type="text" name="creatorName" id="filterCreatorName" class="form-control" 
-                                       style="border-radius: 0.25rem;" placeholder="输入姓名" 
+                                       style="border-radius: 0.25rem 0 0 0.25rem;" placeholder="输入姓名" 
                                        th:value="${creatorName}">
                                 <button type="button" class="btn btn-outline-secondary" 
                                         style="border-top-left-radius: 0; border-bottom-left-radius: 0; padding: 0.25rem 0.5rem;"
-                                        onclick="event.stopPropagation(); clearInput('filterCreatorName')" 
-                                        th:if="${creatorName != null and !creatorName.isEmpty()}">
+                                        onclick="event.stopPropagation(); clearInput('filterCreatorName')">
+                                    <i class="bi bi-x-lg" style="font-size: 0.7rem;"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <label class="text-nowrap">时间范围：</label>
+                            <div class="input-group input-group-sm" style="width: 130px;">
+                                <select name="timeRange" id="filterTimeRange" class="form-select" style="border-radius: 0.25rem;" onchange="document.getElementById('filterForm').submit()">
+                                    <option value="" th:selected="${timeRange == null || timeRange == ''}">全部</option>
+                                    <option value="week" th:selected="${timeRange == 'week'}">最近一周</option>
+                                    <option value="month" th:selected="${timeRange == 'month'}">最近一月</option>
+                                    <option value="quarter" th:selected="${timeRange == 'quarter'}">最近三个月</option>
+                                    <option value="halfYear" th:selected="${timeRange == 'halfYear'}">最近半年</option>
+                                    <option value="year" th:selected="${timeRange == 'year'}">最近一年</option>
+                                    <option value="twoYears" th:selected="${timeRange == 'twoYears'}">最近2年</option>
+                                    <option value="threeYears" th:selected="${timeRange == 'threeYears'}">最近3年</option>
+                                </select>
+                                <button type="button" class="btn btn-outline-secondary" 
+                                        style="border-top-left-radius: 0; border-bottom-left-radius: 0; padding: 0.25rem 0.5rem;"
+                                        onclick="event.stopPropagation(); clearSelect('filterTimeRange')" 
+                                        th:if="${timeRange != null and timeRange != ''}">
                                     <i class="bi bi-x-lg" style="font-size: 0.7rem;"></i>
                                 </button>
                             </div>
@@ -75,10 +95,8 @@
                         <button type="button" class="btn btn-primary btn-sm" onclick="document.getElementById('filterForm').submit()">
                             <i class="bi bi-search"></i> 查询
                         </button>
-                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="clearAllFilters()">清空</button>
                     </form>
                     <button type="button" class="btn btn-primary btn-sm ms-auto"
-                            th:if="${session.currentUser != null and session.currentUser.hasPermission('account:add')}"
                             onclick="openAddAccountModal()">
                         <i class="bi bi-plus"></i> 新增帐条
                     </button>
@@ -124,9 +142,9 @@
                                     <div th:if="${acc.status == 1 and acc.approvalStage == 1}">
                                         <span class="badge bg-warning">待管理员审批</span>
                                         <!-- 显示项目管理员审批人 -->
-                                        <div class="mt-1">
+                                        <div class="mt-1" th:if="${acc.pendingApproverNames != null and !acc.pendingApproverNames.isEmpty()}">
                                             <small class="text-muted">
-                                                <i class="bi bi-people-fill me-1"></i>待审批
+                                                <i class="bi bi-people-fill me-1"></i>待 <span th:text="${acc.pendingApproverNames}"></span> 审批
                                             </small>
                                         </div>
                                     </div>
@@ -134,9 +152,9 @@
                                     <div th:if="${acc.status == 1 and acc.approvalStage == 2}">
                                         <span class="badge bg-info">待BOSS审批</span>
                                         <!-- 审批人信息 -->
-                                        <div class="mt-1">
+                                        <div class="mt-1" th:if="${acc.pendingApproverNames != null and !acc.pendingApproverNames.isEmpty()}">
                                             <small class="text-muted">
-                                                <i class="bi bi-people-fill me-1"></i>待审批
+                                                <i class="bi bi-people-fill me-1"></i>待 <span th:text="${acc.pendingApproverNames}"></span> 审批
                                             </small>
                                         </div>
                                     </div>
@@ -159,8 +177,8 @@
                                         <i class="bi bi-eye"></i> 预览
                                     </button>
                                     
-                                    <!-- 编辑按钮：状态为审核未通过(12) + 是自己的帐条 + 有编辑权限 -->
-                                    <button th:if="${acc.status == 12 and acc.creatorId == currentUser.id and session.currentUser != null and session.currentUser.hasPermission('account:edit')}" 
+                                    <!-- 编辑按钮：状态为审核未通过(12) + 是自己的帐条 -->
+                                    <button th:if="${acc.status == 12 and acc.creatorId == currentUser.id}" 
                                             class="btn btn-outline-warning btn-sm ms-1" th:onclick="'openEditModal(' + ${acc.id} + ')'">
                                         <i class="bi bi-pencil"></i> 编辑
                                     </button>
@@ -202,13 +220,13 @@
                             </div>
                             <ul class="pagination pagination-sm mb-0">
                                 <li class="page-item" th:classappend="${currentPage == 1} ? 'disabled'">
-                                    <a class="page-link" th:href="@{/account/list(projectId=${projectId},status=${status},page=${currentPage - 1})}">上一页</a>
+                                    <a class="page-link" th:href="@{/account/list(projectId=${projectId},status=${status},type=${type},creatorName=${creatorName},timeRange=${timeRange},page=${currentPage - 1})}">上一页</a>
                                 </li>
                                 <li class="page-item" th:each="i : ${#numbers.sequence(1, totalPages)}" th:classappend="${i == currentPage} ? 'active'">
-                                    <a class="page-link" th:href="@{/account/list(projectId=${projectId},status=${status},page=${i})}" th:text="${i}">1</a>
+                                    <a class="page-link" th:href="@{/account/list(projectId=${projectId},status=${status},type=${type},creatorName=${creatorName},timeRange=${timeRange},page=${i})}" th:text="${i}">1</a>
                                 </li>
                                 <li class="page-item" th:classappend="${currentPage == totalPages} ? 'disabled'">
-                                    <a class="page-link" th:href="@{/account/list(projectId=${projectId},status=${status},page=${currentPage + 1})}">下一页</a>
+                                    <a class="page-link" th:href="@{/account/list(projectId=${projectId},status=${status},type=${type},creatorName=${creatorName},timeRange=${timeRange},page=${currentPage + 1})}">下一页</a>
                                 </li>
                             </ul>
                         </div>
@@ -218,7 +236,7 @@
         </div>
         
         <!-- 通用提示弹窗 -->
-        <div class="modal fade" id="alertModal" tabindex="-1" aria-hidden="true" style="z-index: 99999;">
+        <div class="modal fade" id="alertModal" tabindex="-1" aria-hidden="true" style="z-index: 99999;" data-bs-backdrop="false">
             <div class="modal-dialog" style="max-width: 350px; margin-top: 80px;">
                 <div class="modal-content border-0 shadow-lg">
                     <div class="modal-header py-2 bg-primary text-white">
@@ -236,7 +254,7 @@
         </div>
         
         <!-- 确认弹窗 -->
-        <div class="modal fade" id="confirmModal" tabindex="-1" aria-hidden="true" style="z-index: 99999;">
+        <div class="modal fade" id="confirmModal" tabindex="-1" aria-hidden="true" style="z-index: 99999;" data-bs-backdrop="false">
             <div class="modal-dialog" style="max-width: 350px; margin-top: 80px;">
                 <div class="modal-content border-0 shadow-lg">
                     <div class="modal-header py-2 bg-warning text-dark">
@@ -370,7 +388,7 @@
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body py-3">
-                        <form id="addAccountForm" action="/account/save" method="post" enctype="multipart/form-data">
+                        <form id="addAccountForm" onsubmit="return false;" enctype="multipart/form-data" action="javascript:void(0)">
                             <div class="d-flex align-items-center gap-2 mb-2">
                                 <label class="fw-bold text-nowrap mb-0" style="min-width: 70px; font-size: 14px;">项目<span class="text-danger">*</span></label>
                                 <select class="form-select form-select-sm" name="projectId" id="projectId" required style="flex: 1;">
@@ -382,10 +400,9 @@
                             <div class="d-flex align-items-center gap-2 mb-2">
                                 <label class="fw-bold text-nowrap mb-0" style="min-width: 70px; font-size: 14px;">收支类型<span class="text-danger">*</span></label>
                                 <select class="form-select form-select-sm" name="type" id="type" required style="flex: 1;">
-                                    <!-- BOSS/管理员显示收入和支出选项，员工只显示支出且默认选中 -->
-                                    <option th:if="${session.currentUser != null and (session.currentUser.boss or session.currentUser.roleCode == 'admin')}" value="">请选择</option>
+                                    <option value="">请选择</option>
                                     <option th:if="${session.currentUser != null and (session.currentUser.boss or session.currentUser.roleCode == 'admin')}" value="1">收入</option>
-                                    <option value="2" selected>支出</option>
+                                    <option value="2">支出</option>
                                 </select>
                             </div>
                             
@@ -434,7 +451,7 @@
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body py-3">
-                        <form id="editAccountForm" action="/account/save" method="post" enctype="multipart/form-data">
+                        <form id="editAccountForm" onsubmit="return false;" enctype="multipart/form-data" action="javascript:void(0)">
                             <input type="hidden" name="id" id="editId">
                             <div class="d-flex align-items-center gap-2 mb-2">
                                 <label class="fw-bold text-nowrap mb-0" style="min-width: 70px; font-size: 14px;">项目<span class="text-danger">*</span></label>
@@ -521,7 +538,28 @@
             
             function submitAddForm() {
                 if (isSubmitting) return;
+                
+                // 前端校验必填项
+                var projectId = document.getElementById('projectId').value;
+                var type = document.getElementById('type').value;
+                var categoryId = document.getElementById('categoryId').value;
+                var amount = document.getElementById('amount').value;
+                
+                var missingFields = [];
+                if (!projectId) missingFields.push('项目');
+                if (!type) missingFields.push('收支类型');
+                if (!categoryId) missingFields.push('费用分类');
+                if (!amount) missingFields.push('金额');
+                
+                if (missingFields.length > 0) {
+                    showAlertModal('请完善信息', '以下必填项未填写：' + missingFields.join('、'), true);
+                    return;
+                }
+                
                 isSubmitting = true;
+                // 禁用保存按钮，防止重复提交
+                var saveBtn = document.querySelector('#addAccountModal .btn-primary');
+                if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = '保存中...'; }
                 
                 var form = document.getElementById('addAccountForm');
                 var formData = new FormData(form);
@@ -530,26 +568,44 @@
                     method: 'POST',
                     body: formData
                 })
-                .then(response => {
-                    if (response.ok || response.redirected) {
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
                         // 保存成功，关闭弹窗并刷新列表
                         bootstrap.Modal.getInstance(document.getElementById('addAccountModal')).hide();
                         window.location.reload();
                     } else {
-                        alert('保存失败，请重试');
+                        showAlertModal('保存失败', data.message || '保存失败，请重试');
                         isSubmitting = false;
+                        if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = '保存'; }
                     }
                 })
                 .catch(error => {
-                    alert('保存失败：' + error);
+                    showAlertModal('保存失败', '网络错误：' + error.message);
                     isSubmitting = false;
+                    if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = '保存'; }
                 });
             }
             
             // 弹窗关闭时重置表单
             document.getElementById('addAccountModal').addEventListener('hidden.bs.modal', function () {
                 document.getElementById('addAccountForm').reset();
+                document.getElementById('addImagePreview').innerHTML = '';
                 isSubmitting = false;
+                var saveBtn = document.querySelector('#addAccountModal .btn-primary');
+                if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = '保存'; }
+            });
+            
+            // 彻底阻止表单原生提交（防止回车键或浏览器触发跳转）
+            document.getElementById('addAccountForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                return false;
+            });
+            document.getElementById('editAccountForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                return false;
             });
             
             // 打开新增帐条弹窗
@@ -640,7 +696,12 @@
                                 images.forEach(function(url) {
                                     if (url.trim()) {
                                         var imgDiv = document.createElement('div');
-                                        imgDiv.innerHTML = '<img src="' + url.trim() + '" style="width: 80px; height: 80px; object-fit: cover; border-radius: 4px; border: 1px solid #ddd; cursor: pointer;" onclick="showLargeImage(\'' + url.trim() + '\')">';
+                                        // 修复 HTTP 为 HTTPS
+                                        var fixedUrl = url.trim();
+                                        if (fixedUrl.startsWith('http:')) {
+                                            fixedUrl = fixedUrl.replace('http:', 'https:');
+                                        }
+                                        imgDiv.innerHTML = '<img src="' + fixedUrl + '" style="width: 80px; height: 80px; object-fit: cover; border-radius: 4px; border: 1px solid #ddd; cursor: pointer;" onclick="showLargeImage(\'' + fixedUrl + '\')">';
                                         imagesContainer.appendChild(imgDiv);
                                     }
                                 });
@@ -662,6 +723,23 @@
             function submitEditForm() {
                 if (isSubmitting) return;
                 
+                // 前端校验必填项
+                var editProjectId = document.getElementById('editProjectId').value;
+                var editType = document.getElementById('editType').value;
+                var editCategoryId = document.getElementById('editCategoryId').value;
+                var editAmount = document.getElementById('editAmount').value;
+                
+                var missingFields = [];
+                if (!editProjectId) missingFields.push('项目');
+                if (!editType) missingFields.push('收支类型');
+                if (!editCategoryId) missingFields.push('费用分类');
+                if (!editAmount) missingFields.push('金额');
+                
+                if (missingFields.length > 0) {
+                    showAlertModal('请完善信息', '以下必填项未填写：' + missingFields.join('、'), true);
+                    return;
+                }
+                
                 // 显示确认弹窗
                 showConfirmModal('确认重新提交', '保存后将重新进入审批流程，确定要保存吗？', function() {
                     isSubmitting = true;
@@ -673,14 +751,15 @@
                         method: 'POST',
                         body: formData
                     })
-                    .then(response => {
-                        if (response.ok || response.redirected) {
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
                             // 保存成功，关闭弹窗并立即刷新列表
                             bootstrap.Modal.getInstance(document.getElementById('editAccountModal')).hide();
                             // 强制刷新页面，清除缓存
                             window.location.href = window.location.href.split('?')[0] + '?t=' + new Date().getTime();
                         } else {
-                            return response.text().then(text => { throw new Error(text); });
+                            showAlertModal('保存失败', data.message || '保存失败，请重试');
                         }
                     })
                     .catch(error => {
@@ -693,17 +772,20 @@
             }
             
             // 通用提示弹窗
-            function showAlertModal(title, content) {
+            // keepModals=true 时不关闭其他弹窗（用于表单校验提示）
+            function showAlertModal(title, content, keepModals) {
                 document.getElementById('alertModalTitle').textContent = title;
                 document.getElementById('alertModalContent').textContent = content;
-                // 先关闭其他弹窗
-                var openModals = document.querySelectorAll('.modal.show');
-                openModals.forEach(function(m) {
-                    if (m.id !== 'alertModal' && m.id !== 'confirmModal') {
-                        var instance = bootstrap.Modal.getInstance(m);
-                        if (instance) instance.hide();
-                    }
-                });
+                if (!keepModals) {
+                    // 关闭其他弹窗（不关闭弹窗自身）
+                    var openModals = document.querySelectorAll('.modal.show');
+                    openModals.forEach(function(m) {
+                        if (m.id !== 'alertModal' && m.id !== 'confirmModal') {
+                            var instance = bootstrap.Modal.getInstance(m);
+                            if (instance) instance.hide();
+                        }
+                    });
+                }
                 var alertModalEl = document.getElementById('alertModal');
                 var modal = new bootstrap.Modal(alertModalEl);
                 modal.show();
@@ -747,14 +829,6 @@
                 document.getElementById('confirmModalTitle').textContent = title;
                 document.getElementById('confirmModalContent').textContent = content;
                 confirmCallback = callback;
-                // 先关闭其他弹窗
-                var openModals = document.querySelectorAll('.modal.show');
-                openModals.forEach(function(m) {
-                    if (m.id !== 'alertModal' && m.id !== 'confirmModal') {
-                        var instance = bootstrap.Modal.getInstance(m);
-                        if (instance) instance.hide();
-                    }
-                });
                 var confirmModalEl = document.getElementById('confirmModal');
                 var modal = new bootstrap.Modal(confirmModalEl);
                 modal.show();
@@ -828,7 +902,16 @@
                 var prevBtn = document.getElementById('prevInvoiceImage');
                 var nextBtn = document.getElementById('nextInvoiceImage');
                 
-                viewer.src = currentInvoiceImages[currentInvoiceImageIndex].trim();
+                // 重置缩放状态
+                resetInvoiceImageTransform();
+                
+                // 修复 HTTP 为 HTTPS
+                var imageUrl = currentInvoiceImages[currentInvoiceImageIndex].trim();
+                if (imageUrl.startsWith('http:')) {
+                    imageUrl = imageUrl.replace('http:', 'https:');
+                }
+                
+                viewer.src = imageUrl;
                 counter.textContent = (currentInvoiceImageIndex + 1) + ' / ' + currentInvoiceImages.length;
                 
                 // 控制按钮显示
@@ -848,6 +931,81 @@
                     currentInvoiceImageIndex++;
                     updateInvoiceImageViewer();
                 }
+            }
+            
+            // ===== 票据图片缩放和拖拽功能 =====
+            var invoiceImageState = { scale: 1, x: 0, y: 0, isDragging: false, dragStartX: 0, dragStartY: 0 };
+            
+            function resetInvoiceImageTransform() {
+                invoiceImageState = { scale: 1, x: 0, y: 0, isDragging: false, dragStartX: 0, dragStartY: 0 };
+                updateInvoiceImageTransform();
+            }
+            
+            function updateInvoiceImageTransform() {
+                var img = document.getElementById('invoiceImageViewer');
+                img.style.transform = 'translate(' + invoiceImageState.x + 'px, ' + invoiceImageState.y + 'px) scale(' + invoiceImageState.scale + ')';
+            }
+            
+            function handleInvoiceWheel(event) {
+                event.preventDefault();
+                var img = document.getElementById('invoiceImageViewer');
+                var rect = img.parentElement.getBoundingClientRect();
+                var mouseX = event.clientX - rect.left;
+                var mouseY = event.clientY - rect.top;
+                
+                var delta = event.deltaY > 0 ? -0.1 : 0.1;
+                var newScale = invoiceImageState.scale + delta;
+                if (newScale < 0.3) newScale = 0.3;
+                if (newScale > 5) newScale = 5;
+                
+                var scaleRatio = newScale / invoiceImageState.scale;
+                invoiceImageState.x = mouseX - (mouseX - invoiceImageState.x) * scaleRatio;
+                invoiceImageState.y = mouseY - (mouseY - invoiceImageState.y) * scaleRatio;
+                invoiceImageState.scale = newScale;
+                
+                updateInvoiceImageTransform();
+            }
+            
+            function startInvoiceDrag(event) {
+                event.preventDefault();
+                var img = document.getElementById('invoiceImageViewer');
+                invoiceImageState.isDragging = true;
+                invoiceImageState.dragStartX = event.clientX - invoiceImageState.x;
+                invoiceImageState.dragStartY = event.clientY - invoiceImageState.y;
+                img.style.cursor = 'grabbing';
+                
+                function onMouseMove(e) {
+                    if (!invoiceImageState.isDragging) return;
+                    invoiceImageState.x = e.clientX - invoiceImageState.dragStartX;
+                    invoiceImageState.y = e.clientY - invoiceImageState.dragStartY;
+                    updateInvoiceImageTransform();
+                }
+                
+                function onMouseUp() {
+                    invoiceImageState.isDragging = false;
+                    img.style.cursor = 'grab';
+                    document.removeEventListener('mousemove', onMouseMove);
+                    document.removeEventListener('mouseup', onMouseUp);
+                }
+                
+                document.addEventListener('mousemove', onMouseMove);
+                document.addEventListener('mouseup', onMouseUp);
+            }
+            
+            function downloadInvoiceImage() {
+                if (currentInvoiceImages.length === 0) {
+                    showAlertModal('提示', '没有可下载的图片');
+                    return;
+                }
+                
+                var imageUrl = currentInvoiceImages[currentInvoiceImageIndex].trim();
+                var link = document.createElement('a');
+                link.href = imageUrl;
+                link.download = '票据图片_' + (currentInvoiceImageIndex + 1) + '.jpg';
+                link.target = '_blank';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
             }
             
             // 显示日志弹窗
@@ -1023,7 +1181,7 @@
             </div>
         </div>
         
-        <!-- 查看票据弹窗（支持多图切换） -->
+        <!-- 查看票据弹窗（支持多图切换、缩放、拖拽） -->
         <div class="modal fade" id="invoiceImagesModal" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered modal-lg">
                 <div class="modal-content">
@@ -1032,15 +1190,24 @@
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body text-center">
-                        <div class="position-relative">
-                            <img id="invoiceImageViewer" src="" style="max-width: 100%; max-height: 60vh; object-fit: contain;">
+                        <div style="display:flex;justify-content:center;gap:10px;margin-bottom:15px;">
+                            <button type="button" class="btn btn-outline-success btn-sm" onclick="downloadInvoiceImage()">
+                                <i class="bi bi-download"></i> 下载当前图片
+                            </button>
+                        </div>
+                        <div class="position-relative" id="invoiceImageViewport" 
+                             style="width:100%;height:60vh;overflow:hidden;background:#f5f5f5;border:1px solid #ddd;border-radius:4px;"
+                             onwheel="handleInvoiceWheel(event)" onmousedown="startInvoiceDrag(event)">
+                            <img id="invoiceImageViewer" src="" 
+                                 style="position:absolute;left:0;top:0;transform-origin:0 0;transition:none;cursor:grab;max-width:none;"
+                                 draggable="false">
                             <button id="prevInvoiceImage" class="btn btn-outline-secondary position-absolute" 
-                                    style="left: 10px; top: 50%; transform: translateY(-50%);" 
+                                    style="left: 10px; top: 50%; transform: translateY(-50%); z-index:10;" 
                                     onclick="prevInvoiceImage()">
                                 <i class="bi bi-chevron-left"></i>
                             </button>
                             <button id="nextInvoiceImage" class="btn btn-outline-secondary position-absolute" 
-                                    style="right: 10px; top: 50%; transform: translateY(-50%);" 
+                                    style="right: 10px; top: 50%; transform: translateY(-50%); z-index:10;" 
                                     onclick="nextInvoiceImage()">
                                 <i class="bi bi-chevron-right"></i>
                             </button>

@@ -77,10 +77,14 @@
                                     <button type="button" class="btn btn-outline-primary btn-sm" th:onclick="'viewDetail(' + ${config.id} + ')'">
                                         <i class="bi bi-eye"></i> 预览
                                     </button>
-                                    <button type="button" class="btn btn-success btn-sm ms-1" th:onclick="'showApproveModal(' + ${config.id} + ')'">
+                                    <button type="button" class="btn btn-success btn-sm ms-1" 
+                                            th:if="${session.currentUser != null and session.currentUser.boss}"
+                                            th:onclick="'showApproveModal(' + ${config.id} + ')'">
                                         <i class="bi bi-check-lg"></i> 通过
                                     </button>
-                                    <button type="button" class="btn btn-danger btn-sm ms-1" th:onclick="'showRejectModal(' + ${config.id} + ')'">
+                                    <button type="button" class="btn btn-danger btn-sm ms-1" 
+                                            th:if="${session.currentUser != null and session.currentUser.boss}"
+                                            th:onclick="'showRejectModal(' + ${config.id} + ')'">
                                         <i class="bi bi-x-lg"></i> 拒绝
                                     </button>
                                 </td>

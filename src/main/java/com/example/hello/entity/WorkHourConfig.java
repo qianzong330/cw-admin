@@ -9,6 +9,7 @@ import java.time.LocalDateTime;
 public class WorkHourConfig {
     
     private Long id;
+    private Long projectId;  // 项目ID，一个项目下可创建日薪和月薪各一个配置
     private Integer calcType;  // 计算方式：1-日薪计算，2-月薪计算
     private Integer monthlyWorkDays;  // 每月工作天数，仅月薪计算时使用，默认22天
     
@@ -50,6 +51,12 @@ public class WorkHourConfig {
     private LocalDateTime createdTime;
     private LocalDateTime updatedTime;
     
+    // 关联字段（非数据库字段）
+    private String projectName;
+    
+    // 操作类型（非数据库字段）：create-新增, update-更新, delete-删除
+    private String operationType;
+    
     // Getters and Setters
     public Long getId() {
         return id;
@@ -57,6 +64,30 @@ public class WorkHourConfig {
     
     public void setId(Long id) {
         this.id = id;
+    }
+    
+    public Long getProjectId() {
+        return projectId;
+    }
+    
+    public void setProjectId(Long projectId) {
+        this.projectId = projectId;
+    }
+    
+    public String getProjectName() {
+        return projectName;
+    }
+    
+    public void setProjectName(String projectName) {
+        this.projectName = projectName;
+    }
+    
+    public String getOperationType() {
+        return operationType;
+    }
+    
+    public void setOperationType(String operationType) {
+        this.operationType = operationType;
     }
     
     public Integer getCalcType() {

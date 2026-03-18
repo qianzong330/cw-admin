@@ -18,6 +18,10 @@
         SELECT * FROM tb_role ORDER BY id
     </select>
 
+    <select id="findExcludeRoot" resultMap="BaseResultMap">
+        SELECT * FROM tb_role WHERE role_code != 'root' ORDER BY id
+    </select>
+
     <select id="findByCode" resultMap="BaseResultMap">
         SELECT * FROM tb_role WHERE code = #{code}
     </select>

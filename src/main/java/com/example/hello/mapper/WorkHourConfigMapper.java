@@ -23,6 +23,12 @@ public interface WorkHourConfigMapper {
     
     List<WorkHourConfig> selectByCalcType(@Param("calcType") Integer calcType);
     
+    // 根据项目ID和计算类型查询
+    WorkHourConfig selectByProjectIdAndCalcType(@Param("projectId") Long projectId, @Param("calcType") Integer calcType);
+    
+    // 根据项目ID查询所有配置
+    List<WorkHourConfig> selectByProjectId(@Param("projectId") Long projectId);
+    
     int updateStatus(@Param("id") Long id, @Param("status") Integer status,
                      @Param("approvedById") Long approvedById, @Param("approvedByName") String approvedByName,
                      @Param("approvedTime") java.time.LocalDateTime approvedTime,

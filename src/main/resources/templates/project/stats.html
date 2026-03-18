@@ -235,7 +235,7 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body py-3">
-                    <form id="addAccountForm" action="/account/save" method="post" enctype="multipart/form-data">
+                    <form id="addAccountForm" enctype="multipart/form-data" onsubmit="return false;" action="javascript:void(0)">
                         <input type="hidden" name="source" value="project">
                         <div class="d-flex align-items-center gap-2 mb-2">
                             <label class="fw-bold text-nowrap mb-0" style="min-width: 70px; font-size: 14px;">项目<span class="text-danger">*</span></label>
@@ -307,8 +307,19 @@
                 }
             }
             
+            // 彻底阻止表单原生提交
+            document.getElementById('addAccountForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                return false;
+            });
+            
+            var isSubmitting = false;
+            
             // 提交表单
             function submitAddForm() {
+                if (isSubmitting) return;
+                
                 const form = document.getElementById('addAccountForm');
                 if (!form.projectId.value) {
                     alert('请选择项目');
@@ -326,8 +337,42 @@
                     alert('请输入有效金额');
                     return;
                 }
-                form.submit();
+                
+                isSubmitting = true;
+                var saveBtn = document.querySelector('#addAccountModal .btn-primary');
+                if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = '保存中...'; }
+                
+                var formData = new FormData(form);
+                fetch('/account/save', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        bootstrap.Modal.getInstance(document.getElementById('addAccountModal')).hide();
+                        window.location.reload();
+                    } else {
+                        alert(data.message || '保存失败，请重试');
+                        isSubmitting = false;
+                        if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = '保存'; }
+                    }
+                })
+                .catch(error => {
+                    alert('网络错误：' + error.message);
+                    isSubmitting = false;
+                    if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = '保存'; }
+                });
             }
+            
+            // 弹窗关闭时重置
+            document.getElementById('addAccountModal').addEventListener('hidden.bs.modal', function () {
+                document.getElementById('addAccountForm').reset();
+                document.getElementById('addImagePreview').innerHTML = '';
+                isSubmitting = false;
+                var saveBtn = document.querySelector('#addAccountModal .btn-primary');
+                if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = '保存'; }
+            });
         </script>
     </div>
 </body>

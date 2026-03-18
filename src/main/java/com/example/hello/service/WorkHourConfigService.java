@@ -2,8 +2,10 @@ package com.example.hello.service;
 
 import com.example.hello.entity.WorkHourConfig;
 import com.example.hello.entity.Employee;
+import com.example.hello.entity.Project;
 import com.example.hello.mapper.WorkHourConfigMapper;
 import com.example.hello.mapper.EmployeeMapper;
+import com.example.hello.mapper.ProjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -11,6 +13,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 public class WorkHourConfigService {
@@ -26,6 +30,9 @@ public class WorkHourConfigService {
     @Autowired
     private EmployeeMapper employeeMapper;
     
+    @Autowired
+    private ProjectMapper projectMapper;
+    
     /**
      * 创建工时配置
      * @param config 配置信息
@@ -36,10 +43,10 @@ public class WorkHourConfigService {
     public void createConfig(WorkHourConfig config, Employee currentUser) throws Exception {
         String calcTypeName = config.getCalcType() == 1 ? "日薪计算" : "月薪计算";
             
-        // 检查是否已存在相同计算方式的配置（不限制状态）
-        List<WorkHourConfig> existingConfigs = workHourConfigMapper.selectByCalcType(config.getCalcType());
-        if (existingConfigs != null && !existingConfigs.isEmpty()) {
-            throw new Exception(calcTypeName + "已存在配置，不允许重复添加");
+        // 检查同一项目下是否已存在相同计算方式的配置（不限制状态）
+        WorkHourConfig existingConfig = workHourConfigMapper.selectByProjectIdAndCalcType(config.getProjectId(), config.getCalcType());
+        if (existingConfig != null) {
+            throw new Exception("该项目已存在" + calcTypeName + "配置，不允许重复添加");
         }
             
         // 设置发起人信息
@@ -66,6 +73,8 @@ public class WorkHourConfigService {
     
     /**
      * 更新工时配置（仅允许更新未生效或生效中状态的配置）
+     * BOSS角色：直接生效
+     * 管理员角色：需要审批
      */
     @Transactional
     public void updateConfig(WorkHourConfig config, Employee currentUser) throws Exception {
@@ -79,36 +88,36 @@ public class WorkHourConfigService {
             throw new Exception("只有未生效或生效中的配置才能编辑");
         }
         
-        // 检查是否已存在其他相同计算方式的配置（排除当前配置）
-        List<WorkHourConfig> existingConfigs = workHourConfigMapper.selectByCalcType(config.getCalcType());
-        if (existingConfigs != null && !existingConfigs.isEmpty()) {
-            for (WorkHourConfig c : existingConfigs) {
-                if (!c.getId().equals(config.getId())) {
-                    String calcTypeName = config.getCalcType() == 1 ? "日薪计算" : "月薪计算";
-                    throw new Exception(calcTypeName + "已存在配置，不允许重复添加");
-                }
-            }
+        // 检查同一项目下是否已存在其他相同计算方式的配置（排除当前配置）
+        WorkHourConfig existingConfig = workHourConfigMapper.selectByProjectIdAndCalcType(config.getProjectId(), config.getCalcType());
+        if (existingConfig != null && !existingConfig.getId().equals(config.getId())) {
+            String calcTypeName = config.getCalcType() == 1 ? "日薪计算" : "月薪计算";
+            throw new Exception("该项目已存在" + calcTypeName + "配置，不允许重复添加");
         }
         
-        // 更新配置数据
-        workHourConfigMapper.update(config);
-        
-        // 根据当前操作人角色判断是否直接生效
+        // 判断是否为 root 或 BOSS
         String roleCode = currentUser.getRoleCode();
-        boolean isDirectActive = "root".equalsIgnoreCase(roleCode) || "boss".equalsIgnoreCase(roleCode);
+        boolean isBoss = "root".equalsIgnoreCase(roleCode) || "boss".equalsIgnoreCase(roleCode);
         
-        if (isDirectActive) {
-            // root/BOSS 编辑，直接生效
-            workHourConfigMapper.updateStatus(config.getId(), STATUS_ACTIVE, currentUser.getId(), currentUser.getName(), LocalDateTime.now(), null);
+        if (isBoss) {
+            // BOSS 编辑，直接生效，免审批
+            config.setStatus(STATUS_ACTIVE);
+            config.setApprovedById(currentUser.getId());
+            config.setApprovedByName(currentUser.getName());
+            config.setApprovedTime(LocalDateTime.now());
+            workHourConfigMapper.update(config);
         } else {
-            // 其他角色，重新进入审批流程，并更新发起时间
-            workHourConfigMapper.updateStatus(config.getId(), STATUS_PENDING, null, null, null, null);
+            // 管理员编辑，进入审批流程
+            config.setStatus(STATUS_PENDING);
+            workHourConfigMapper.update(config);
+            // 更新发起时间
             workHourConfigMapper.updateCreatedTime(config.getId(), LocalDateTime.now());
         }
     }
     
     /**
      * 审批通过
+     * 如果是删除审批，则执行删除；否则更新为生效中
      */
     @Transactional
     public void approveConfig(Long id, Employee approver, String remark) throws Exception {
@@ -119,6 +128,14 @@ public class WorkHourConfigService {
         
         if (config.getStatus() != STATUS_PENDING) {
             throw new Exception("只有审批中的配置才能审批");
+        }
+        
+        // 检查是否是删除审批
+        String approveRemark = config.getApproveRemark();
+        if (approveRemark != null && approveRemark.contains("[删除审批]")) {
+            // 删除审批通过，执行删除
+            workHourConfigMapper.deleteById(id);
+            return;
         }
         
         // 检查是否已存在相同计算方式的生效配置
@@ -202,7 +219,9 @@ public class WorkHourConfigService {
     }
     
     /**
-     * 删除未生效配置或其他状态配置（非员工角色可用：BOSS、财务、root）
+     * 删除配置
+     * BOSS角色：可直接删除（免审批）
+     * 管理员角色：需要发起删除审批
      */
     @Transactional
     public void deleteConfig(Long id, Employee currentUser) throws Exception {
@@ -211,31 +230,52 @@ public class WorkHourConfigService {
             throw new Exception("配置不存在");
         }
         
-        // root 角色可以删除除审批中和生效中以外的配置
-        boolean isRoot = "root".equalsIgnoreCase(currentUser.getRoleCode());
-        if (isRoot) {
-            // root 角色不能删除审批中和生效中的配置
-            if (config.getStatus() == STATUS_PENDING || config.getStatus() == STATUS_ACTIVE) {
-                throw new Exception("不能删除审批中或生效中的配置");
-            }
-            // root 角色可以直接删除
+        String roleCode = currentUser.getRoleCode();
+        boolean isBoss = "root".equalsIgnoreCase(roleCode) || "boss".equalsIgnoreCase(roleCode);
+        boolean isAdmin = "admin".equalsIgnoreCase(roleCode);
+        
+        if (isBoss) {
+            // BOSS 可直接删除（免审批）
             workHourConfigMapper.deleteById(id);
             return;
         }
         
-        // 只能删除未生效状态的配置
-        if (config.getStatus() != STATUS_INACTIVE) {
-            throw new Exception("只能删除未生效的配置");
+        if (isAdmin) {
+            // 管理员只能删除未生效状态的配置
+            // 生效中的配置需要先发起作废审批
+            if (config.getStatus() == STATUS_ACTIVE) {
+                throw new Exception("生效中的配置需要先发起作废审批，审批通过后才能删除");
+            }
+            if (config.getStatus() == STATUS_PENDING) {
+                throw new Exception("审批中的配置不能删除");
+            }
+            workHourConfigMapper.deleteById(id);
+            return;
         }
         
-        // 验证权限：只有非员工角色（BOSS、财务）才可以删除
-        String roleCode = currentUser.getRoleCode();
-        if (roleCode == null || ("employee".equalsIgnoreCase(roleCode))) {
-            throw new Exception("只有非员工角色才可以删除该配置");
+        // 其他角色无权限
+        throw new Exception("无权限删除该配置");
+    }
+    
+    /**
+     * 发起删除/作废审批（管理员对生效中配置）
+     * 将配置状态改为审批中，并在备注中标记为删除审批
+     */
+    @Transactional
+    public void requestDeleteApproval(Long id, Employee currentUser) throws Exception {
+        WorkHourConfig config = workHourConfigMapper.selectById(id);
+        if (config == null) {
+            throw new Exception("配置不存在");
         }
         
-        // 执行删除
-        workHourConfigMapper.deleteById(id);
+        // 只有生效中的配置才能发起作废审批
+        if (config.getStatus() != STATUS_ACTIVE) {
+            throw new Exception("只有生效中的配置才能发起作废审批");
+        }
+        
+        // 更新状态为审批中，备注标记为删除审批
+        workHourConfigMapper.updateStatus(id, STATUS_PENDING, null, null, null, "[删除审批]");
+        workHourConfigMapper.updateCreatedTime(id, LocalDateTime.now());
     }
     
     /**
@@ -268,7 +308,19 @@ public class WorkHourConfigService {
     }
     
     public List<WorkHourConfig> getAllConfigs() {
-        return workHourConfigMapper.selectAll();
+        List<WorkHourConfig> configs = workHourConfigMapper.selectAll();
+        // 填充项目名称
+        List<Project> projects = projectMapper.findAll();
+        Map<Long, String> projectMap = projects.stream()
+                .collect(Collectors.toMap(Project::getId, Project::getName, (k1, k2) -> k1));
+        for (WorkHourConfig config : configs) {
+            if (config.getProjectId() != null) {
+                config.setProjectName(projectMap.getOrDefault(config.getProjectId(), "未知项目"));
+            } else {
+                config.setProjectName("通用");
+            }
+        }
+        return configs;
     }
     
     /**
@@ -279,6 +331,13 @@ public class WorkHourConfigService {
         return allConfigs.stream()
                 .filter(c -> c.getStatus() != null && c.getStatus() == STATUS_PENDING)
                 .collect(java.util.stream.Collectors.toList());
+    }
+    
+    /**
+     * 根据项目ID和计算类型查询配置
+     */
+    public WorkHourConfig findByProjectIdAndCalcType(Long projectId, Integer calcType) {
+        return workHourConfigMapper.selectByProjectIdAndCalcType(projectId, calcType);
     }
     
     /**

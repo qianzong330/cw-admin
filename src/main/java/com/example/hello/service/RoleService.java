@@ -21,6 +21,10 @@ public class RoleService {
         return roleMapper.findAll();
     }
 
+    public List<Role> findExcludeRoot() {
+        return roleMapper.findExcludeRoot();
+    }
+
     public Role findByCode(String code) {
         return roleMapper.findByCode(code);
     }

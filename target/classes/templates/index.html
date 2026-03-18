@@ -11,9 +11,23 @@
                 <div class="card">
                     <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
                         <h5 class="mb-0 d-flex align-items-center gap-2"><i class="bi bi-graph-up text-primary"></i> <span class="d-none d-sm-inline">公司收支总览</span><span class="d-sm-none">收支统计</span></h5>
-                        <a href="/account/list" class="btn btn-outline-primary btn-sm">
-                            <i class="bi bi-plus-circle"></i> 去记账
-                        </a>
+                        <div class="d-flex align-items-center gap-2">
+                            <form method="get" action="/index" class="mb-0">
+                                <select name="timeRange" class="form-select form-select-sm" style="width: auto;" onchange="this.form.submit()">
+                                    <option value="" th:selected="${timeRange == null || timeRange == ''}">全部时间</option>
+                                    <option value="week" th:selected="${timeRange == 'week'}">最近一周</option>
+                                    <option value="month" th:selected="${timeRange == 'month'}">最近一月</option>
+                                    <option value="quarter" th:selected="${timeRange == 'quarter'}">最近三个月</option>
+                                    <option value="halfYear" th:selected="${timeRange == 'halfYear'}">最近半年</option>
+                                    <option value="year" th:selected="${timeRange == 'year'}">最近一年</option>
+                                    <option value="twoYears" th:selected="${timeRange == 'twoYears'}">最近2年</option>
+                                    <option value="threeYears" th:selected="${timeRange == 'threeYears'}">最近3年</option>
+                                </select>
+                            </form>
+                            <a href="/account/list" class="btn btn-outline-primary btn-sm">
+                                <i class="bi bi-plus-circle"></i> 去记账
+                            </a>
+                        </div>
                     </div>
                     <div class="card-body">
                         <!-- 统计卡片 -->
@@ -149,13 +163,13 @@
                         <nav th:if="${totalPages > 1}" class="mt-3">
                             <ul class="pagination pagination-sm justify-content-center">
                                 <li class="page-item" th:classappend="${currentPage == 1} ? 'disabled'">
-                                    <a class="page-link" th:href="@{/index(page=${currentPage - 1})}">上一页</a>
+                                    <a class="page-link" th:href="@{/index(page=${currentPage - 1}, timeRange=${timeRange})}">上一页</a>
                                 </li>
                                 <li class="page-item" th:each="i : ${#numbers.sequence(1, totalPages)}" th:classappend="${i == currentPage} ? 'active'">
-                                    <a class="page-link" th:href="@{/index(page=${i})}" th:text="${i}">1</a>
+                                    <a class="page-link" th:href="@{/index(page=${i}, timeRange=${timeRange})}" th:text="${i}">1</a>
                                 </li>
                                 <li class="page-item" th:classappend="${currentPage == totalPages} ? 'disabled'">
-                                    <a class="page-link" th:href="@{/index(page=${currentPage + 1})}">下一页</a>
+                                    <a class="page-link" th:href="@{/index(page=${currentPage + 1}, timeRange=${timeRange})}">下一页</a>
                                 </li>
                             </ul>
                             <div class="text-center text-muted small">

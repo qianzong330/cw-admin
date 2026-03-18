@@ -7,6 +7,7 @@
         <result column="employee_id"      property="employeeId"/>
         <result column="employee_name"    property="employeeName"/>
         <result column="id_card"          property="idCard"/>
+        <result column="phone"            property="phone"/>
         <result column="job_category_name" property="jobCategoryName"/>
         <result column="salary_period"    property="salaryPeriod"/>
         <result column="salary_type"      property="salaryType"/>
@@ -23,6 +24,7 @@
         <result column="approved_time"    property="approvedTime"/>
         <result column="created_time"     property="createdTime"/>
         <result column="updated_time"     property="updatedTime"/>
+        <result column="project_id"       property="projectId"/>
     </resultMap>
 
     <insert id="insert" useGeneratedKeys="true" keyProperty="id">
@@ -30,12 +32,12 @@
             (employee_id, id_card, job_category_name, salary_period, salary_type,
              base_salary, attendance_days, base_amount,
              addition_amount, deduction_amount, payable_amount,
-             remark, approve_remark, created_by)
+             remark, approve_remark, created_by, project_id, created_time, updated_time)
         VALUES
             (#{employeeId}, #{idCard}, #{jobCategoryName}, #{salaryPeriod}, #{salaryType},
              #{baseSalary}, #{attendanceDays}, #{baseAmount},
              #{additionAmount}, #{deductionAmount}, #{payableAmount},
-             #{remark}, #{approveRemark}, #{createdBy})
+             #{remark}, #{approveRemark}, #{createdBy}, #{projectId}, NOW(), NOW())
     </insert>
 
     <update id="update">
@@ -52,7 +54,8 @@
             deduction_amount = #{deductionAmount},
             payable_amount   = #{payableAmount},
             remark           = #{remark},
-            approve_remark   = #{approveRemark}
+            approve_remark   = #{approveRemark},
+            updated_time     = NOW()
         WHERE id = #{id}
     </update>
 
@@ -79,15 +82,19 @@
 
     <!-- 按项目和工资期删除工资条（用于考勤驳回时清理） -->
     <delete id="deleteByProjectAndPeriod">
-        DELETE s FROM tb_salary s
-        INNER JOIN tb_employee_project ep ON s.employee_id = ep.employee_id
-        WHERE ep.project_id = #{projectId}
-          AND s.salary_period = #{salaryPeriod}
+        DELETE FROM tb_salary
+        WHERE project_id = #{projectId}
+          AND salary_period = #{salaryPeriod}
     </delete>
 
     <select id="selectById" resultMap="BaseResultMap">
-        SELECT s.*,
+        SELECT s.id, s.employee_id, s.salary_period, s.salary_type,
+               s.base_salary, s.attendance_days, s.base_amount,
+               s.addition_amount, s.deduction_amount, s.payable_amount,
+               s.remark, s.approve_remark, s.project_id, s.created_time, s.updated_time,
                e.name           AS employee_name,
+               e.id_card        AS id_card,
+               e.phone          AS phone,
                jc.name          AS job_category_name
         FROM tb_salary s
         LEFT JOIN tb_employee e  ON s.employee_id = e.id
@@ -96,21 +103,26 @@
     </select>
 
     <select id="selectList" resultMap="BaseResultMap">
-        SELECT s.*,
+        SELECT s.id, s.employee_id, s.salary_period, s.salary_type,
+               s.base_salary, s.attendance_days, s.base_amount,
+               s.addition_amount, s.deduction_amount, s.payable_amount,
+               s.remark, s.approve_remark, s.project_id, s.created_time, s.updated_time,
                e.name           AS employee_name,
+               e.id_card        AS id_card,
+               e.phone          AS phone,
                jc.name          AS job_category_name
         FROM tb_salary s
         LEFT JOIN tb_employee e  ON s.employee_id = e.id
         LEFT JOIN tb_job_category jc ON e.job_category_id = jc.id
-        <if test="projectId != null">
-        INNER JOIN tb_employee_project ep ON ep.employee_id = e.id AND ep.project_id = #{projectId}
-        </if>
         WHERE 1=1
         <if test="employeeId != null">
             AND s.employee_id = #{employeeId}
         </if>
         <if test="salaryPeriod != null and salaryPeriod != ''">
             AND s.salary_period = #{salaryPeriod}
+        </if>
+        <if test="projectId != null">
+            AND s.project_id = #{projectId}
         </if>
         ORDER BY s.salary_period DESC, e.name ASC
     </select>
@@ -121,6 +133,65 @@
         LEFT JOIN tb_employee e ON s.employee_id = e.id
         WHERE s.employee_id = #{employeeId}
           AND s.salary_period = #{salaryPeriod}
+          <if test="projectId != null">AND s.project_id = #{projectId}</if>
+    </select>
+
+    <!-- 统计某项目某年度的汇总工资条数据（仅统计已审批通过的月份） -->
+    <select id="sumYearTotal" resultType="java.util.Map">
+        SELECT
+            COALESCE(SUM(s.base_amount), 0) AS totalBaseAmount,
+            COALESCE(SUM(s.addition_amount), 0) AS totalAdditionAmount,
+            COALESCE(SUM(s.deduction_amount), 0) AS totalDeductionAmount,
+            COALESCE(SUM(s.payable_amount), 0) AS totalPayableAmount,
+            COUNT(DISTINCT s.salary_period) AS approvedMonths
+        FROM tb_salary s
+        INNER JOIN tb_salary_month_status sms
+            ON s.project_id = sms.project_id
+            AND s.salary_period COLLATE utf8mb4_unicode_ci = sms.`year_month` COLLATE utf8mb4_unicode_ci
+        WHERE s.project_id = #{projectId}
+          AND s.salary_period LIKE CONCAT(#{year}, '%')
+          AND sms.status = 5
+    </select>
+
+    <!-- 按员工聚合统计年度工资条（仅统计已审批通过的月份） -->
+    <select id="sumYearByEmployee" resultType="java.util.Map">
+        SELECT
+            s.employee_id                              AS employeeId,
+            MAX(e.name)                                AS employeeName,
+            MAX(e.phone)                               AS phone,
+            MAX(s.id_card)                             AS idCard,
+            MAX(s.job_category_name)                   AS jobCategoryName,
+            COUNT(DISTINCT s.salary_period)            AS monthCount,
+            COALESCE(SUM(s.base_amount), 0)            AS baseAmount,
+            COALESCE(SUM(s.addition_amount), 0)        AS additionAmount,
+            COALESCE(SUM(s.deduction_amount), 0)       AS deductionAmount,
+            COALESCE(SUM(s.payable_amount), 0)         AS payableAmount
+        FROM tb_salary s
+        LEFT JOIN tb_employee e ON s.employee_id = e.id
+        INNER JOIN tb_salary_month_status sms
+            ON s.project_id = sms.project_id
+            AND s.salary_period COLLATE utf8mb4_unicode_ci = sms.`year_month` COLLATE utf8mb4_unicode_ci
+        WHERE s.project_id = #{projectId}
+          AND s.salary_period LIKE CONCAT(#{year}, '%')
+          AND sms.status = 5
+        GROUP BY s.employee_id
+        ORDER BY MAX(e.name) ASC
+    </select>
+
+    <!-- 查询某员工在某项目某年度已审批通过的工资条列表（含费用项） -->
+    <select id="selectYearSlipsByEmployee" resultMap="BaseResultMap">
+        SELECT s.*,
+               e.name AS employee_name
+        FROM tb_salary s
+        LEFT JOIN tb_employee e ON s.employee_id = e.id
+        INNER JOIN tb_salary_month_status sms
+            ON s.project_id = sms.project_id
+            AND s.salary_period COLLATE utf8mb4_unicode_ci = sms.`year_month` COLLATE utf8mb4_unicode_ci
+        WHERE s.project_id = #{projectId}
+          AND s.employee_id = #{employeeId}
+          AND s.salary_period LIKE CONCAT(#{year}, '%')
+          AND sms.status = 5
+        ORDER BY s.salary_period ASC
     </select>
 
 </mapper>

@@ -24,7 +24,7 @@ public class FileUploadService {
     private static final long MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
     private static final List<String> ALLOWED_TYPES = List.of("image/jpeg", "image/png", "image/gif", "image/webp");
     // 公开访问地址（静态托管域名）
-    private static final String PUBLIC_BASE_URL = "http://static-host-z4bn2xr7-hsc-images.sealoshzh.site/";
+    private static final String PUBLIC_BASE_URL = "https://static-host-z4bn2xr7-hsc-images.sealoshzh.site/";
 
     @Autowired
     private S3Client s3Client;

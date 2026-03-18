@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.hello.mapper.EmployeeProjectFlowMapper">
+    
+    <resultMap id="BaseResultMap" type="com.example.hello.entity.EmployeeProjectFlow">
+        <id column="id" property="id"/>
+        <result column="employee_id" property="employeeId"/>
+        <result column="project_id" property="projectId"/>
+        <result column="employee_name" property="employeeName"/>
+        <result column="job_category_name" property="jobCategoryName"/>
+        <result column="operation_type" property="operationType"/>
+        <result column="operation_time" property="operationTime"/>
+        <result column="operator_id" property="operatorId"/>
+        <result column="operator_name" property="operatorName"/>
+        <result column="remark" property="remark"/>
+        <result column="create_time" property="createTime"/>
+    </resultMap>
+    
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO tb_employee_project_flow 
+        (employee_id, project_id, employee_name, job_category_name, operation_type, operation_time, operator_id, operator_name, remark)
+        VALUES 
+        (#{employeeId}, #{projectId}, #{employeeName}, #{jobCategoryName}, #{operationType}, #{operationTime}, #{operatorId}, #{operatorName}, #{remark})
+    </insert>
+    
+    <select id="selectByProjectId" resultMap="BaseResultMap">
+        SELECT * FROM tb_employee_project_flow 
+        WHERE project_id = #{projectId}
+        ORDER BY operation_time DESC, id DESC
+    </select>
+    
+    <select id="selectByEmployeeId" resultMap="BaseResultMap">
+        SELECT * FROM tb_employee_project_flow 
+        WHERE employee_id = #{employeeId}
+        ORDER BY operation_time DESC, id DESC
+    </select>
+    
+    <select id="selectByProjectAndEmployee" resultMap="BaseResultMap">
+        SELECT * FROM tb_employee_project_flow 
+        WHERE project_id = #{projectId} AND employee_id = #{employeeId}
+        ORDER BY operation_time DESC, id DESC
+    </select>
+    
+</mapper>

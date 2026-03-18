@@ -51,7 +51,7 @@ public class EmployeeController {
             employees = employeeService.findAll();
         }
         
-        List<Role> roles = roleService.findAll();
+        List<Role> roles = currentUser.isRoot() ? roleService.findAll() : roleService.findExcludeRoot();
         List<JobCategory> jobCategories = jobCategoryService.findAll();
         List<Project> projects = projectService.findAll();
         List<com.example.hello.entity.WorkHourConfig> workHourConfigs = workHourConfigService.getAllConfigs();

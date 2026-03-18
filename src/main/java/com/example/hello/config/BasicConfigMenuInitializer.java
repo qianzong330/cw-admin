@@ -109,14 +109,13 @@ public class BasicConfigMenuInitializer implements CommandLineRunner {
                 Long roleMenuId = jdbcTemplate.queryForObject("SELECT id FROM tb_menu WHERE menu_code = 'role'", Long.class);
                 jdbcTemplate.update("INSERT IGNORE INTO tb_role_menu (role_id, menu_id) VALUES (1, ?)", roleMenuId);
             } catch (Exception ignore) {}
-            // ====== 6. 将基础配置子菜单归入 basic_config 目录 ======
+            // ====== 6. 将基础配置子菜单归入 basic_config 目录（保持原有sort_order，不重置）=====
             // 注意：role 已在上面归入系统设置，workhour:config 归入工程管理(project)，这里不包含
             String[] basicMenuCodes = {"jobcategory", "jobcategory:list", "category"};
-            int[] basicSortOrders = {1, 1, 2};
             for (int i = 0; i < basicMenuCodes.length; i++) {
                 int updated = jdbcTemplate.update(
-                    "UPDATE tb_menu SET parent_id = ?, menu_type = 2, sort_order = ? WHERE menu_code = ?",
-                    basicConfigId, basicSortOrders[i], basicMenuCodes[i]
+                    "UPDATE tb_menu SET parent_id = ?, menu_type = 2 WHERE menu_code = ?",
+                    basicConfigId, basicMenuCodes[i]
                 );
                 if (updated > 0) System.out.println("=== 更新菜单 " + basicMenuCodes[i] + " -> 基础配置");
             }

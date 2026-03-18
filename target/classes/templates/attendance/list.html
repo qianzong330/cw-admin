@@ -118,6 +118,91 @@
         .att-tag.t3 { background: #e0f2fe; color: #0369a1; }
         .att-tag.t4 { background: #fee2e2; color: #dc2626; }
 
+        /* ===== 二次编辑相关样式 ===== */
+        .btn-edit-pending {
+            background: #fef3c7;
+            border: 1px solid #f59e0b;
+            color: #92400e;
+        }
+        .btn-edit-pending:hover {
+            background: #fde68a;
+            border-color: #d97706;
+        }
+        .pending-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            background: #fef3c7;
+            color: #92400e;
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            border: 1px solid #f59e0b;
+            margin-left: 6px;
+        }
+        .change-log-item {
+            background: #fff;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            padding: 12px;
+            margin-bottom: 10px;
+        }
+        .change-log-item .change-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        .change-log-item .change-title {
+            font-weight: 600;
+            color: #374151;
+        }
+        .change-log-item .change-status {
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 10px;
+        }
+        .change-log-item .change-status.pending {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        .change-log-item .change-status.approved {
+            background: #dcfce7;
+            color: #166534;
+        }
+        .change-log-item .change-status.rejected {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        .change-log-item .change-detail {
+            font-size: 12px;
+            color: #6b7280;
+            margin-top: 8px;
+        }
+        .change-log-item .change-reason {
+            font-size: 12px;
+            color: #6b7280;
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px dashed #e5e7eb;
+        }
+        .diff-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 4px 0;
+        }
+        .diff-old {
+            color: #dc2626;
+            text-decoration: line-through;
+        }
+        .diff-new {
+            color: #16a34a;
+        }
+        .diff-arrow {
+            color: #9ca3af;
+        }
+
         /* ===== 右侧详情面板 ===== */
         .detail-panel {
             width: 240px; flex-shrink: 0; border-left: 1px solid #e5e7eb;
@@ -153,7 +238,6 @@
         <div class="d-flex align-items-center gap-2">
             <label class="text-muted mb-0" style="font-size:13px;">项目</label>
             <select class="form-select form-select-sm" id="projectId" style="width:170px;" onchange="changeProject()">
-                <option value="" th:selected="${projectId == null}">全部项目</option>
                 <option th:each="proj : ${projects}" th:value="${proj.id}" th:text="${proj.name}"
                         th:selected="${proj.id == projectId}"></option>
             </select>
@@ -161,13 +245,42 @@
             <input type="month" class="form-control form-control-sm" id="yearMonth" style="width:140px;"
                    th:value="${yearMonth}" onchange="changeMonth()">
         </div>
+        <!-- 页面提示容器（内容由JS填充到顶部导航栏） -->
+        <div id="attendancePageHints" style="display:none;" data-target="topPageHints">
+            <span id="pendingAttendanceHintData" style="font-size:12px;color:#d97706;background:#fef3c7;border:1px solid #fcd34d;border-radius:6px;padding:4px 10px;display:none;">
+                <i class="bi bi-bell-fill me-1"></i><span id="pendingAttendanceHintText"></span>
+            </span>
+            <span id="rejectedAttendanceHintData" style="font-size:12px;color:#dc2626;background:#fee2e2;border:1px solid #fca5a5;border-radius:6px;padding:4px 10px;display:none;">
+                <i class="bi bi-x-circle-fill me-1"></i><span id="rejectedAttendanceHintText"></span>
+            </span>
+        </div>
         <!-- 考勤表状态提示 -->
         <div class="ms-auto d-flex align-items-center gap-2 flex-wrap" id="monthStatusWrap">
             <span class="text-muted" style="font-size:13px;">本月考勤表状态：</span>
             <span class="badge bg-secondary" id="monthStatusBadge">草稿</span>
             <span class="text-muted" id="monthStatusTip" style="font-size:12px;display:none;"></span>
+            <!-- 下载模板按钮 -->
+            <button class="btn btn-sm btn-outline-info" id="btnDownloadTemplate" onclick="downloadTemplate()">
+                <i class="bi bi-download"></i> 下载模板
+            </button>
+            <!-- 导入考勤按钮 -->
+            <button class="btn btn-sm btn-outline-success" id="btnImportAttendance" onclick="document.getElementById('importFile').click()" style="display:none;">
+                <i class="bi bi-upload"></i> 导入考勤
+            </button>
+            <input type="file" id="importFile" accept=".xlsx,.xls" style="display:none;" onchange="importAttendance(this)">
             <button class="btn btn-sm btn-primary" id="btnSubmitAudit" onclick="submitMonthAudit()">
                 <i class="bi bi-send"></i> 提交审批
+            </button>
+            <!-- 已审批状态下显示申请修改按钮 -->
+            <button class="btn btn-sm btn-warning" id="btnApplyChange" onclick="applyGlobalChange()" style="display:none;">
+                <i class="bi bi-pencil-square"></i> 申请修改
+            </button>
+            <!-- 变更待审状态下显示提交变更按钮 -->
+            <button class="btn btn-sm btn-info" id="btnSubmitChanges" onclick="submitGlobalChanges()" style="display:none;">
+                <i class="bi bi-check2-all"></i> 提交变更
+            </button>
+            <button class="btn btn-sm btn-secondary" id="btnCancelChanges" onclick="cancelGlobalChanges()" style="display:none;">
+                <i class="bi bi-x-lg"></i> 取消
             </button>
             <!-- 审批人专用按钮：待审批状态时显示 -->
             <button class="btn btn-sm btn-success" id="btnApprovePass" onclick="approveMonth(true)" style="display:none;">
@@ -175,6 +288,9 @@
             </button>
             <button class="btn btn-sm btn-danger" id="btnApproveReject" onclick="approveMonth(false)" style="display:none;">
                 <i class="bi bi-x-circle"></i> 驳回
+            </button>
+            <button class="btn btn-sm btn-info" id="btnViewChanges" onclick="showChangeLogs()" style="display:none;">
+                <i class="bi bi-eye"></i> 查看变更
             </button>
         </div>
     </div>
@@ -184,9 +300,16 @@
 
         <!-- 左侧：员工列表 -->
         <div class="emp-panel">
-            <div class="emp-panel-header"><i class="bi bi-people me-1"></i>员工列表
-                <span class="badge bg-primary ms-1" id="empCount"
-                      th:text="${#lists.size(employees)}">0</span>
+            <div class="emp-panel-header">
+                <div class="d-flex align-items-center justify-content-between">
+                    <span><i class="bi bi-people me-1"></i>员工列表</span>
+                    <span class="badge bg-primary" id="empCount" th:text="${#lists.size(employees)}">0</span>
+                </div>
+                <!-- 员工搜索框 -->
+                <div class="mt-2">
+                    <input type="text" class="form-control form-control-sm" id="empSearchInput" 
+                           placeholder="搜索员工姓名..." style="font-size:12px;">
+                </div>
             </div>
             <div class="emp-list" id="empList">
                 <div th:if="${#lists.isEmpty(employees)}" class="text-center text-muted p-4" style="font-size:13px;">
@@ -210,7 +333,7 @@
         <!-- 右侧：主内容 -->
         <div class="main-panel">
             <!-- 权限标记（供JS使用） -->
-            <input type="hidden" id="canAddAttendance" th:value="${session.currentUser != null and session.currentUser.hasPermission('attendance:add')}"/>
+            <input type="hidden" id="canAddAttendance" th:value="${session.currentUser != null and !session.currentUser.roleCode.equals('employee')}"/>
             <input type="hidden" id="currentRoleCode" th:value="${currentRoleCode}"/>
 
             <!-- 工具栏 -->
@@ -219,6 +342,17 @@
                     <i class="bi bi-person-circle text-primary me-1"></i>
                     <span id="currentEmpName">请从左侧选择员工</span>
                 </span>
+                
+                <!-- 考勤签字表上传和查看 -->
+                <div id="signUploadSection" style="display:none;">
+                    <input type="file" id="signImageInput" accept="image/*" multiple style="display:none;" onchange="uploadSignImages()">
+                    <button type="button" class="btn btn-outline-primary btn-sm" onclick="document.getElementById('signImageInput').click()">
+                        <i class="bi bi-upload me-1"></i>上传签字表
+                    </button>
+                    <button type="button" class="btn btn-outline-info btn-sm" id="viewSignBtn" onclick="viewSignImages()" style="display:none;">
+                        <i class="bi bi-eye me-1"></i>查看签字表
+                    </button>
+                </div>
             </div>
 
             <!-- 汇总统计 -->
@@ -338,12 +472,7 @@
                             </select>
                         </div>
                         <div class="col-6">
-                            <label class="form-label mb-1" style="font-size:13px;">每日工时（h）</label>
-                            <input type="number" class="form-control form-control-sm bg-light" id="attDailyHours"
-                                   readonly style="color:#6c757d;cursor:not-allowed;">
-                        </div>
-                        <div class="col-6">
-                            <label class="form-label mb-1" style="font-size:13px;">出勤类型</label>
+                            <label class="form-label mb-1" style="font-size:13px;">出勤类型 <span class="text-danger">*</span></label>
                             <select class="form-select form-select-sm" id="attType" onchange="onTypeChange()">
                                 <option value="1">出勤</option>
                                 <option value="2">加班</option>
@@ -353,17 +482,23 @@
                             </select>
                         </div>
                         <div class="col-6" id="overtimeTypeWrap" style="display:none;">
-                            <label class="form-label mb-1" style="font-size:13px;">加班类型</label>
+                            <label class="form-label mb-1" style="font-size:13px;"><span class="text-danger">*</span> 加班类型</label>
                             <select class="form-select form-select-sm" id="attOvertimeType">
+                                <option value="">请选择</option>
                                 <option value="1">工作日加班</option>
                                 <option value="2">休息日加班</option>
                                 <option value="3">法定假期加班</option>
                             </select>
                         </div>
                         <div class="col-6">
-                            <label class="form-label mb-1" style="font-size:13px;">工时（小时）</label>
+                            <label class="form-label mb-1" style="font-size:13px;">工时（小时）<span class="text-danger">*</span></label>
                             <input type="number" class="form-control form-control-sm" id="attHours"
                                    value="8" step="0.5" min="0.5" max="24">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label mb-1" style="font-size:13px;">每日工时（h）</label>
+                            <input type="number" class="form-control form-control-sm bg-light" id="attDailyHours"
+                                   readonly style="color:#6c757d;cursor:not-allowed;">
                         </div>
                         <div class="col-12">
                             <label class="form-label mb-1" style="font-size:13px;">备注</label>
@@ -404,7 +539,7 @@
     var G = {
         empId: null, empName: '',
         yearMonth: document.getElementById('yearMonth').value,
-        projectId: document.getElementById('projectId').value || '',
+        projectId: parseInt(document.getElementById('projectId').value) || null,
         calDate: null,            // Date 对象，当前日历年月
         attendances: [],          // 当前员工当月所有考勤记录
         selectedDate: null,       // 当前选中的日期字符串 yyyy-MM-dd
@@ -424,7 +559,79 @@
         loadMonthStatus();
         // 加载所有员工左侧列表天数
         loadAllEmpDays();
+        // 加载待审批项目提示
+        loadAttendancePendingHint();
+        // 检查签字表图片
+        checkSignImages();
     });
+
+    function loadAttendancePendingHint() {
+        Promise.all([
+            fetch('/api/pending/attendance/projects').then(function(r) { return r.json(); }),
+            fetch('/api/pending/attendance/missing').then(function(r) { return r.json(); })
+        ]).then(function(results) {
+                var data = results[0];
+                var missingList = results[1] || [];
+                var pending = data.pending || [];
+                var rejected = data.rejected || [];
+
+                // 待审批提示（黄色）- 根据是否当前用户审批显示不同文案
+                var myApprovals = [];
+                var otherApprovals = [];
+                pending.forEach(function(item) {
+                    if (item.isMyApproval) {
+                        myApprovals.push(item.project);
+                    } else {
+                        otherApprovals.push(item.project);
+                    }
+                });
+
+                var pendingHtml = '';
+                if (myApprovals.length > 0) {
+                    pendingHtml += '<span style="font-size:12px;color:#d97706;background:#fef3c7;border:1px solid #fcd34d;border-radius:6px;padding:4px 10px;margin-right:4px;">' +
+                        '<i class="bi bi-bell-fill me-1"></i>待我审批：' + myApprovals.join('、') + '</span>';
+                }
+                if (otherApprovals.length > 0) {
+                    pendingHtml += '<span style="font-size:12px;color:#d97706;background:#fef3c7;border:1px solid #fcd34d;border-radius:6px;padding:4px 10px;">' +
+                        '<i class="bi bi-bell-fill me-1"></i>审批中：' + otherApprovals.join('、') + '</span>';
+                }
+
+                // 未生效提示（红色）：合并 rejected（已驳回）和 missing（有数据但未审批通过），去重
+                var inactiveSet = {};
+                rejected.forEach(function(item) { inactiveSet[item] = true; });
+                missingList.forEach(function(item) { inactiveSet[item] = true; });
+                var inactiveList = Object.keys(inactiveSet);
+                var inactiveHtml = '';
+                if (inactiveList.length > 0) {
+                    inactiveHtml = '<span style="font-size:12px;color:#dc2626;background:#fee2e2;border:1px solid #fca5a5;border-radius:6px;padding:4px 10px;">' +
+                        '<i class="bi bi-x-circle-fill me-1"></i>未生效：' + inactiveList.join('、') + '</span>';
+                }
+
+                // 填充到顶部导航栏的提示区域
+                var topHints = document.getElementById('topPageHints');
+                if (topHints) {
+                    topHints.innerHTML = pendingHtml + (pendingHtml && inactiveHtml ? ' ' : '') + inactiveHtml;
+                }
+            })
+            .catch(function() {});
+    }
+
+    function refreshAttendanceBadge() {
+        fetch('/api/pending/count')
+            .then(function(r) { return r.json(); })
+            .then(function(counts) {
+                var count = counts.attendance || 0;
+                document.querySelectorAll('.attendance-pending-badge').forEach(function(el) {
+                    if (count > 0) {
+                        el.textContent = count;
+                        el.style.display = '';
+                    } else {
+                        el.style.display = 'none';
+                    }
+                });
+            })
+            .catch(function() {});
+    }
 
     // ===== 员工选择 =====
     function selectEmployee(el) {
@@ -443,16 +650,46 @@
         document.getElementById('calendarWrap').style.display = 'block';
 
         loadMonthData();
+        
+        // 检查签字表图片
+        checkSignImages();
     }
 
     // ===== 加载当月数据（考勤记录 + 统计）=====
     function loadMonthData() {
         if (!G.empId) return;
+        
         var ym = G.yearMonth;
         var pid = G.projectId;
         var url = '/attendance/calendar/' + G.empId + '?yearMonth=' + ym + (pid ? '&projectId=' + pid : '');
         fetch(url).then(r => r.json()).then(function(data) {
             G.attendances = data;
+            
+            // 如果是已审批状态，检查每个考勤记录是否有待审批的修改
+            if (G.monthStatus === 5 && data.length > 0) {
+                checkPendingChangesForAttendances();
+            } else {
+                renderCalendar();
+                loadSummary();
+                renderDetail(G.selectedDate);
+            }
+        });
+    }
+    
+    // 检查考勤记录的待审批修改
+    function checkPendingChangesForAttendances() {
+        var promises = G.attendances.map(function(a) {
+            return fetch('/attendance/api/pending-change?attendanceId=' + a.id)
+                .then(r => r.json())
+                .then(function(data) {
+                    a.hasPendingChange = data.hasPending;
+                })
+                .catch(function() {
+                    a.hasPendingChange = false;
+                });
+        });
+        
+        Promise.all(promises).then(function() {
             renderCalendar();
             loadSummary();
             renderDetail(G.selectedDate);
@@ -478,6 +715,225 @@
                 badge.textContent = '-';
                 badge.className = 'emp-days-badge loading';
             });
+        });
+    }
+
+    // ===== 员工搜索功能 =====
+    document.getElementById('empSearchInput').addEventListener('input', function(e) {
+        var keyword = e.target.value.trim().toLowerCase();
+        var items = document.querySelectorAll('.emp-item');
+        items.forEach(function(item) {
+            var empName = item.querySelector('.emp-name').textContent.toLowerCase();
+            if (empName.indexOf(keyword) >= 0) {
+                item.style.display = 'flex';
+            } else {
+                item.style.display = 'none';
+            }
+        });
+    });
+
+    // ===== 考勤签字表上传 =====
+    function uploadSignImages() {
+        var input = document.getElementById('signImageInput');
+        var files = input.files;
+        if (!files || files.length === 0) return;
+        
+        if (!G.yearMonth) {
+            toast('请先选择月份', 'warning');
+            return;
+        }
+        
+        var formData = new FormData();
+        formData.append('yearMonth', G.yearMonth);
+        formData.append('projectId', G.projectId || '');
+        for (var i = 0; i < files.length; i++) {
+            formData.append('files', files[i]);
+        }
+        
+        fetch('/attendance/sign-image/upload', {
+            method: 'POST',
+            body: formData
+        }).then(function(r) { return r.json(); }).then(function(data) {
+            if (data.success) {
+                toast('上传成功', 'success');
+                checkSignImages();
+            } else {
+                toast(data.message || '上传失败', 'danger');
+            }
+        }).catch(function() {
+            toast('上传失败', 'danger');
+        });
+    }
+    
+    // ===== 查看签字表图片 =====
+    function viewSignImages() {
+        if (!G.yearMonth) {
+            toast('请先选择月份', 'warning');
+            return;
+        }
+        
+        var url = '/attendance/sign-image/list?yearMonth=' + G.yearMonth
+                + (G.projectId ? '&projectId=' + G.projectId : '');
+        fetch(url).then(function(r) { return r.json(); }).then(function(data) {
+            if (data.success && data.images && data.images.length > 0) {
+                showSignImagesModal(data.images);
+            } else {
+                toast('暂无签字表图片', 'warning');
+            }
+        }).catch(function() {
+            toast('获取图片失败', 'danger');
+        });
+    }
+    
+    // ===== 显示签字表图片弹窗 =====
+    function showSignImagesModal(images) {
+        // 保存图片数组供下载使用
+        window.currentSignImages = images;
+        
+        var html = '<div style="max-height:500px;overflow-y:auto;padding:10px;" id="signImagesContainer">';
+        html += '<div style="position:sticky;top:0;background:#fff;padding:10px 0;border-bottom:1px solid #ddd;margin-bottom:15px;z-index:10;display:flex;justify-content:center;gap:10px;">';
+        html += '<button type="button" class="btn btn-outline-success btn-sm" onclick="downloadSignImages()"><i class="bi bi-download"></i> 下载全部</button>';
+        html += '</div>';
+        images.forEach(function(img, idx) {
+            html += '<div style="margin-bottom:20px;text-align:center;" class="sign-image-wrapper">';
+            html += '<div class="sign-image-viewport" style="width:100%;height:400px;overflow:hidden;position:relative;border:1px solid #ddd;border-radius:4px;background:#f5f5f5;" onwheel="handleSignImageWheel(event, ' + idx + ')" onmousedown="startSignImageDrag(event, ' + idx + ')">';
+            html += '<img src="' + img + '" data-idx="' + idx + '" class="sign-image" style="position:absolute;left:0;top:0;transform-origin:0 0;transition:none;cursor:grab;max-width:none;" draggable="false">';
+            html += '</div>';
+            html += '<div style="margin-top:8px;color:#666;font-size:12px;">图片 ' + (idx + 1) + ' / ' + images.length + '</div>';
+            html += '</div>';
+        });
+        html += '</div>';
+        
+        showModal({
+            title: '考勤签字表',
+            content: html,
+            buttons: [{ text: '关闭', class: 'btn btn-secondary' }]
+        });
+        
+        // 初始化每张图片的状态
+        window.signImageStates = images.map(function() {
+            return { scale: 1, x: 0, y: 0, isDragging: false, dragStartX: 0, dragStartY: 0 };
+        });
+    }
+    
+    // ===== 鼠标滚轮缩放 =====
+    function handleSignImageWheel(event, idx) {
+        event.preventDefault();
+        var img = document.querySelector('#signImagesContainer img[data-idx="' + idx + '"]');
+        var state = window.signImageStates[idx];
+        
+        // 根据滚轮方向调整缩放比例
+        var delta = event.deltaY > 0 ? -0.1 : 0.1;
+        var newScale = state.scale + delta;
+        if (newScale < 0.3) newScale = 0.3;
+        if (newScale > 5) newScale = 5;
+        
+        // 计算鼠标相对于图片的位置
+        var rect = img.parentElement.getBoundingClientRect();
+        var mouseX = event.clientX - rect.left;
+        var mouseY = event.clientY - rect.top;
+        
+        // 调整位移使鼠标位置保持不变
+        var scaleRatio = newScale / state.scale;
+        state.x = mouseX - (mouseX - state.x) * scaleRatio;
+        state.y = mouseY - (mouseY - state.y) * scaleRatio;
+        state.scale = newScale;
+        
+        updateSignImageTransform(img, state);
+    }
+    
+    // ===== 拖拽移动 =====
+    function startSignImageDrag(event, idx) {
+        event.preventDefault();
+        var img = document.querySelector('#signImagesContainer img[data-idx="' + idx + '"]');
+        var state = window.signImageStates[idx];
+        
+        state.isDragging = true;
+        state.dragStartX = event.clientX - state.x;
+        state.dragStartY = event.clientY - state.y;
+        img.style.cursor = 'grabbing';
+        
+        function onMouseMove(e) {
+            if (!state.isDragging) return;
+            state.x = e.clientX - state.dragStartX;
+            state.y = e.clientY - state.dragStartY;
+            updateSignImageTransform(img, state);
+        }
+        
+        function onMouseUp() {
+            state.isDragging = false;
+            img.style.cursor = 'grab';
+            document.removeEventListener('mousemove', onMouseMove);
+            document.removeEventListener('mouseup', onMouseUp);
+        }
+        
+        document.addEventListener('mousemove', onMouseMove);
+        document.addEventListener('mouseup', onMouseUp);
+    }
+    
+    // ===== 更新图片变换 =====
+    function updateSignImageTransform(img, state) {
+        img.style.transform = 'translate(' + state.x + 'px, ' + state.y + 'px) scale(' + state.scale + ')';
+    }
+    
+    // ===== 重置缩放 =====
+    function resetSignImageZoom() {
+        if (!window.signImageStates) return;
+        window.signImageStates.forEach(function(state, idx) {
+            state.scale = 1;
+            state.x = 0;
+            state.y = 0;
+            var img = document.querySelector('#signImagesContainer img[data-idx="' + idx + '"]');
+            if (img) updateSignImageTransform(img, state);
+        });
+    }
+    
+    // ===== 下载签字表图片 =====
+    function downloadSignImages() {
+        if (!window.currentSignImages || window.currentSignImages.length === 0) {
+            toast('没有可下载的图片', 'warning');
+            return;
+        }
+        
+        var images = window.currentSignImages;
+        var yearMonth = G.yearMonth || 'unknown';
+        var projectName = G.projectName || 'project';
+        
+        // 下载所有图片
+        images.forEach(function(imgUrl, idx) {
+            var link = document.createElement('a');
+            link.href = imgUrl;
+            link.download = '考勤签字表_' + projectName + '_' + yearMonth + '_图片' + (idx + 1) + '.jpg';
+            link.target = '_blank';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        });
+        
+        toast('已开始下载 ' + images.length + ' 张图片', 'success');
+    }
+    
+    // ===== 检查是否有签字表图片 =====
+    function checkSignImages() {
+        if (!G.yearMonth) {
+            document.getElementById('signUploadSection').style.display = 'none';
+            return;
+        }
+        
+        // 显示上传区域
+        document.getElementById('signUploadSection').style.display = 'block';
+        
+        var url = '/attendance/sign-image/list?yearMonth=' + G.yearMonth
+                + (G.projectId ? '&projectId=' + G.projectId : '');
+        fetch(url).then(function(r) { return r.json(); }).then(function(data) {
+            var viewBtn = document.getElementById('viewSignBtn');
+            if (data.success && data.images && data.images.length > 0) {
+                viewBtn.style.display = 'inline-block';
+            } else {
+                viewBtn.style.display = 'none';
+            }
+        }).catch(function() {
+            document.getElementById('viewSignBtn').style.display = 'none';
         });
     }
 
@@ -595,22 +1051,31 @@
 
         var dayAtts = G.attendances.filter(function(a){ return a.workDate === dateStr; });
         var canEdit = document.getElementById('canAddAttendance').value === 'true'; // 有权限
+        var monthStatus = G.monthStatus || 0; // 月份状态
+        var isApproved = (monthStatus === 5); // 已审批状态
+        var isPending = (monthStatus === 1); // 待审批状态
 
         var dateDisplay = dateStr.replace(/-/g, '/');
         var html = '<div class="detail-date"><i class="bi bi-calendar-event me-1 text-primary"></i>' + dateDisplay + '</div>';
 
         if (dayAtts.length === 0) {
             html += '<div class="no-record-hint" style="padding:20px 0;"><i class="bi bi-inbox" style="font-size:24px;display:block;"></i>当日无考勤记录</div>';
-            if (canEdit) {
-                html += '<button class="btn btn-sm btn-outline-primary w-100" onclick="openAddModal(\'' + dateStr + '\')">' +
-                        '<i class="bi bi-plus-lg me-1"></i>新增考勤</button>';
-            }
+            // 【暂时屏蔽】草稿状态或变更待审状态可以新增
+            // if (canEdit && (!isApproved || G.isEditMode) && !isPending) {
+            //     html += '<button class="btn btn-sm btn-outline-primary w-100" onclick="openAddModal(\'' + dateStr + '\')">' +
+            //             '<i class="bi bi-plus-lg me-1"></i>新增考勤</button>';
+            // }
         } else {
             dayAtts.forEach(function(a) {
                 var typeColor  = ['','success','warning','info','danger','secondary','dark'][a.attendanceType];
                 var typeName   = ['','出勤','加班','请假','缺勤','迟到','旷工'][a.attendanceType];
-                html += '<div class="record-item">';
-                html += '<div class="rec-type text-' + typeColor + '">' + typeName + '</div>';
+                var hasPendingChange = a.hasPendingChange; // 有待审批的修改
+                html += '<div class="record-item" data-att-id="' + a.id + '">';
+                html += '<div class="rec-type text-' + typeColor + '">' + typeName;
+                if (hasPendingChange) {
+                    html += '<span class="pending-badge"><i class="bi bi-clock"></i>待审</span>';
+                }
+                html += '</div>';
                 html += '<div class="rec-hours">';
                 if (a.workHours) html += '<i class="bi bi-clock me-1"></i>' + a.workHours + ' 小时';
                 if (a.overtimeType) {
@@ -619,18 +1084,30 @@
                 }
                 html += '</div>';
                 if (a.remark) html += '<div style="font-size:11px;color:#6b7280;margin-top:3px;">' + a.remark + '</div>';
-                if (canEdit) {
-                    html += '<div class="rec-actions">';
-                    html += '<button class="btn btn-outline-secondary btn-rec" onclick="openEditModal(' + a.id + ')"><i class="bi bi-pencil"></i> 编辑</button>';
-                    html += '<button class="btn btn-outline-danger btn-rec" onclick="deleteRecord(' + a.id + ')"><i class="bi bi-trash"></i> 删除</button>';
-                    html += '</div>';
-                }
+                // 【暂时屏蔽】编辑和删除按钮
+                // if (canEdit) {
+                //     html += '<div class="rec-actions">';
+                //     if (isApproved && !G.isEditMode) {
+                //         // 已审批状态下，只有在全局编辑模式才能修改
+                //         html += '<span class="text-muted" style="font-size:12px;">请先点击"申请修改"</span>';
+                //     } else if (G.isEditMode) {
+                //         // 变更待审状态下可以编辑和删除
+                //         html += '<button class="btn btn-outline-secondary btn-rec" onclick="openBatchEditModal(' + a.id + ')"><i class="bi bi-pencil"></i> 编辑</button>';
+                //         html += '<button class="btn btn-outline-danger btn-rec" onclick="deleteAttendanceRecord(' + a.id + ')"><i class="bi bi-trash"></i> 删除</button>';
+                //     } else if (!isPending) {
+                //         // 草稿状态下直接编辑
+                //         html += '<button class="btn btn-outline-secondary btn-rec" onclick="openEditModal(' + a.id + ')"><i class="bi bi-pencil"></i> 编辑</button>';
+                //         html += '<button class="btn btn-outline-danger btn-rec" onclick="deleteRecord(' + a.id + ')"><i class="bi bi-trash"></i> 删除</button>';
+                //     }
+                //     html += '</div>';
+                // }
                 html += '</div>';
             });
-            if (canEdit) {
-                html += '<button class="btn btn-sm btn-outline-primary w-100 mt-1" onclick="openAddModal(\'' + dateStr + '\')">' +
-                        '<i class="bi bi-plus-lg me-1"></i>继续添加</button>';
-            }
+            // 【暂时屏蔽】继续添加按钮
+            // if (canEdit && (!isApproved || G.isEditMode) && !isPending) {
+            //     html += '<button class="btn btn-sm btn-outline-primary w-100 mt-1" onclick="openAddModal(\'' + dateStr + '\')">' +
+            //             '<i class="bi bi-plus-lg me-1"></i>继续添加</button>';
+            // }
         }
         panel.innerHTML = html;
     }
@@ -653,9 +1130,9 @@
 
     // ===== 切换项目/月份 =====
     function changeProject() {
-        G.projectId = document.getElementById('projectId').value;
+        G.projectId = parseInt(document.getElementById('projectId').value) || null;
         var ym = document.getElementById('yearMonth').value;
-        window.location.href = '/attendance/list?projectId=' + G.projectId + '&yearMonth=' + ym;
+        window.location.href = '/attendance/list?projectId=' + (G.projectId || '') + '&yearMonth=' + ym;
     }
     function changeMonth() {
         G.yearMonth = document.getElementById('yearMonth').value;
@@ -776,9 +1253,28 @@
             remark: document.getElementById('attRemark').value,
             status: 2
         };
-        if (type === 2) payload.overtimeType = parseInt(document.getElementById('attOvertimeType').value);
+        if (type === 2) {
+            var overtimeType = document.getElementById('attOvertimeType').value;
+            if (!overtimeType) {
+                toast('请选择加班类型', 'danger');
+                return;
+            }
+            payload.overtimeType = parseInt(overtimeType);
+        }
 
         if (!payload.workDate) { toast('请选择工作日期', 'danger'); return; }
+        
+        // 变更编辑模式下，只记录到日志表，不修改出勤表
+        if (G.isEditMode) {
+            if (payload.id) {
+                // 编辑模式：记录编辑日志
+                saveEditChangeLog(payload);
+            } else {
+                // 新增模式：记录新增日志
+                saveAttendanceInEditMode(payload);
+            }
+            return;
+        }
 
         fetch('/attendance/save', {
             method: 'POST',
@@ -790,9 +1286,119 @@
                 G.selectedDate = payload.workDate;
                 toast('保存成功', 'success');
                 loadMonthData();
+                loadAttendancePendingHint(); // 刷新未生效提示
             } else {
                 toast(res, 'danger');
             }
+        });
+    }
+    
+    // ===== 保存编辑变更到日志（编辑模式）=====
+    function saveEditChangeLog(payload) {
+        // 获取原始数据
+        var original = G.attendances.find(function(a) { return a.id == payload.id; });
+        if (!original) {
+            toast('未找到原始记录', 'danger');
+            return;
+        }
+        
+        // 检查是否有实际变化
+        var oldWorkHours = original.workHours ? parseFloat(original.workHours) : null;
+        var newWorkHours = payload.workHours ? parseFloat(payload.workHours) : null;
+        // 备注比较：将 null 和空字符串视为相同
+        var oldRemark = original.remark || '';
+        var newRemark = payload.remark || '';
+        var hasChange = original.attendanceType != payload.attendanceType
+            || original.overtimeType != payload.overtimeType
+            || oldWorkHours != newWorkHours
+            || oldRemark !== newRemark;
+        
+        if (!hasChange) {
+            toast('没有检测到变化，无需提交', 'warning');
+            return;
+        }
+        
+        var changeData = {
+            attendanceId: payload.id,
+            projectId: payload.projectId,
+            employeeId: payload.employeeId,
+            workDate: payload.workDate,
+            yearMonth: G.yearMonth,
+            changeType: 'EDIT',
+            oldAttendanceType: original.attendanceType,
+            oldOvertimeType: original.overtimeType,
+            oldWorkHours: original.workHours ? parseFloat(original.workHours) : null,
+            oldRemark: original.remark,
+            newAttendanceType: payload.attendanceType,
+            newOvertimeType: payload.overtimeType,
+            newWorkHours: payload.workHours ? parseFloat(payload.workHours) : null,
+            newRemark: payload.remark,
+            changeReason: '编辑考勤记录',
+            status: 0
+        };
+        
+        fetch('/attendance/save-change-log', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(changeData)
+        }).then(function(r) {
+            if (!r.ok) throw new Error('保存失败');
+            return r.json();
+        }).then(function(result) {
+            if (result.success) {
+                G.modal.hide();
+                G.selectedDate = payload.workDate;
+                toast('已记录编辑操作，审批通过后生效。变更内容可点击"查看变更"按钮查看。', 'info');
+                loadMonthData();
+            } else {
+                toast(result.message || '保存失败', 'danger');
+            }
+        }).catch(function(e) {
+            toast('保存编辑记录失败: ' + e.message, 'danger');
+        });
+    }
+    
+    // ===== 保存考勤（变更编辑模式）- 只记录到change log，不修改出勤表 =====
+    function saveAttendanceInEditMode(payload) {
+        // 构建新增记录数据（只记录到日志，不保存到出勤表）
+        var changeData = {
+            attendanceId: null, // 新增记录暂时没有ID，等审批通过后再创建
+            projectId: payload.projectId,
+            employeeId: payload.employeeId,
+            workDate: payload.workDate,
+            yearMonth: G.yearMonth,
+            changeType: 'ADD',
+            oldAttendanceType: null,
+            oldOvertimeType: null,
+            oldWorkHours: null,
+            oldRemark: null,
+            newAttendanceType: payload.attendanceType,
+            newOvertimeType: payload.overtimeType,
+            newWorkHours: payload.workHours ? parseFloat(payload.workHours) : null,
+            newRemark: payload.remark,
+            changeReason: '新增考勤记录',
+            status: 0
+        };
+        
+        // 保存到change log
+        fetch('/attendance/save-change-log', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(changeData)
+        }).then(function(r) {
+            if (!r.ok) throw new Error('保存失败');
+            return r.json();
+        }).then(function(result) {
+            if (result.success) {
+                G.modal.hide();
+                G.selectedDate = payload.workDate;
+                toast('已记录新增操作，审批通过后生效。变更内容可点击"查看变更"按钮查看。', 'info');
+                loadMonthData();
+            } else {
+                toast(result.message || '保存失败', 'danger');
+            }
+        }).catch(function(e) {
+            toast('保存新增记录失败: ' + e.message, 'danger');
         });
     }
 
@@ -804,10 +1410,63 @@
                 if (res === 'success') {
                     toast('已删除', 'success');
                     loadMonthData();
+                    loadAttendancePendingHint(); // 刷新未生效提示
                 } else {
                     toast(res, 'danger');
                 }
             });
+    }
+    
+    // ===== 删除记录（变更编辑模式）- 记录到change log =====
+    function deleteAttendanceRecord(id) {
+        if (!confirm('确定要删除这条考勤记录吗？删除后需要提交审批才能生效。')) return;
+        
+        var attendance = G.attendances.find(function(a) { return a.id === id; });
+        if (!attendance) {
+            toast('考勤记录不存在', 'danger');
+            return;
+        }
+        
+        // 构建删除记录数据
+        var changeData = {
+            attendanceId: id,
+            projectId: attendance.projectId,
+            employeeId: attendance.employeeId,
+            workDate: attendance.workDate,
+            yearMonth: G.yearMonth,
+            changeType: 'DELETE',
+            oldAttendanceType: attendance.attendanceType,
+            oldOvertimeType: attendance.overtimeType,
+            oldWorkHours: attendance.workHours ? parseFloat(attendance.workHours) : null,
+            oldRemark: attendance.remark,
+            newAttendanceType: null,
+            newOvertimeType: null,
+            newWorkHours: null,
+            newRemark: null,
+            changeReason: '删除考勤记录',
+            status: 0
+        };
+        
+        // 调用后端API保存删除记录
+        fetch('/attendance/save-change-log', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(changeData)
+        }).then(function(r) {
+            if (!r.ok) throw new Error('保存失败');
+            return r.json();
+        }).then(function(result) {
+            if (result.success) {
+                // 只记录到日志，不修改前端数据，页面保持原样显示
+                renderCalendar();
+                renderDetail(G.selectedDate);
+                toast('已记录删除操作，审批通过后生效。变更内容可点击"查看变更"按钮查看。', 'info');
+            } else {
+                toast(result.message || '保存失败', 'danger');
+            }
+        }).catch(function(e) {
+            toast('保存删除记录失败: ' + e.message, 'danger');
+        });
     }
 
     // ===== 工具函数 =====
@@ -862,6 +1521,15 @@
         var status = parseInt(data.status !== undefined ? data.status : 0);
         var statusText = data.statusText || '草稿';
         var statusBadgeClass = data.statusBadgeClass || 'bg-secondary';
+        
+        // 二次审批状态使用不同的背景颜色
+        if (status === 5 && data.approveRemark) {
+            if (data.approveRemark.includes('[二次审批通过')) {
+                statusBadgeClass = 'bg-success'; // 通过保持绿色
+            } else if (data.approveRemark.includes('[二次审批驳回')) {
+                statusBadgeClass = 'bg-warning text-dark'; // 驳回使用黄色
+            }
+        }
             
         badge.className = 'badge ' + statusBadgeClass;
         badge.textContent = statusText;
@@ -903,17 +1571,98 @@
      */
     function updateUIBasedOnStatus(status) {
         status = parseInt(status);
-        // 已审批锁定(5)或待审批(1)时，禁用编辑功能
-        var isLocked = (status === 5 || status === 1);
-        G.isMonthLocked = isLocked;
+        G.monthStatus = status;
         
-        // 更新权限标记（供详情面板使用）
-        var canAddAttendance = document.getElementById('canAddAttendance');
-        if (canAddAttendance && isLocked) {
-            canAddAttendance.value = 'false';
+        // 获取按钮元素
+        var btnSubmitAudit = document.getElementById('btnSubmitAudit');
+        var btnApplyChange = document.getElementById('btnApplyChange');
+        var btnSubmitChanges = document.getElementById('btnSubmitChanges');
+        var btnCancelChanges = document.getElementById('btnCancelChanges');
+        var btnApprovePass = document.getElementById('btnApprovePass');
+        var btnApproveReject = document.getElementById('btnApproveReject');
+        var btnViewChanges = document.getElementById('btnViewChanges');
+        var btnDownloadTemplate = document.getElementById('btnDownloadTemplate');
+        var btnImportAttendance = document.getElementById('btnImportAttendance');
+        var badge = document.getElementById('monthStatusBadge');
+        
+        // 隐藏所有按钮（默认）
+        if (btnSubmitAudit) btnSubmitAudit.style.display = 'none';
+        if (btnApplyChange) btnApplyChange.style.display = 'none';
+        if (btnSubmitChanges) btnSubmitChanges.style.display = 'none';
+        if (btnCancelChanges) btnCancelChanges.style.display = 'none';
+        if (btnApprovePass) btnApprovePass.style.display = 'none';
+        if (btnApproveReject) btnApproveReject.style.display = 'none';
+        if (btnViewChanges) btnViewChanges.style.display = 'none';
+        // 导出模板按钮任何状态下都显示
+        if (btnDownloadTemplate) btnDownloadTemplate.style.display = 'inline-block';
+        
+        // 根据状态显示对应按钮
+        switch (status) {
+            case 0: // 草稿
+                badge.className = 'badge bg-secondary';
+                badge.textContent = '草稿';
+                if (btnSubmitAudit) btnSubmitAudit.style.display = 'inline-block';
+                if (btnImportAttendance) btnImportAttendance.style.display = 'inline-block';
+                G.isEditMode = false;
+                break;
+                
+            case 1: // 待审批
+                badge.className = 'badge bg-warning text-dark';
+                badge.textContent = '待审批';
+                // BOSS/管理员显示审批按钮
+                var roleCode = document.getElementById('currentRoleCode');
+                var isBoss = roleCode && (roleCode.value.toLowerCase() === 'boss' || roleCode.value.toLowerCase() === 'root');
+                if (isBoss) {
+                    if (btnApprovePass) btnApprovePass.style.display = 'inline-block';
+                    if (btnApproveReject) btnApproveReject.style.display = 'inline-block';
+                    // 首次提交（没有变更日志）不显示查看变更按钮
+                    if (btnViewChanges && G.monthStatusData && G.monthStatusData.hasChangeLogs) {
+                        btnViewChanges.style.display = 'inline-block';
+                    }
+                }
+                G.isEditMode = false;
+                break;
+                
+            case 2: // 变更待审
+                badge.className = 'badge bg-info';
+                badge.textContent = '变更待审';
+                if (btnSubmitChanges) btnSubmitChanges.style.display = 'inline-block';
+                if (btnCancelChanges) btnCancelChanges.style.display = 'inline-block';
+                if (btnViewChanges) btnViewChanges.style.display = 'inline-block'; // 提交人也能查看变更
+                if (btnImportAttendance) btnImportAttendance.style.display = 'inline-block'; // 编辑模式下也显示导入
+                G.isEditMode = true;
+                break;
+                
+            case 5: // 已审批锁定
+                badge.className = 'badge bg-success';
+                // 状态文本已经在 renderMonthStatus 中设置，这里不再覆盖
+                // badge.textContent = '已锁定';
+                // 有权限的用户显示申请修改按钮
+                var canEdit = document.getElementById('canAddAttendance').value === 'true';
+                if (canEdit && btnApplyChange) {
+                    btnApplyChange.style.display = 'inline-block';
+                }
+                G.isEditMode = false;
+                break;
+                
+            case 12: // 已驳回
+                badge.className = 'badge bg-danger';
+                badge.textContent = '已驳回';
+                if (btnSubmitAudit) btnSubmitAudit.style.display = 'inline-block';
+                if (btnImportAttendance) btnImportAttendance.style.display = 'inline-block';
+                G.isEditMode = false;
+                break;
+                
+            default: // 未生成月度考勤表（状态为null或其他未知状态）
+                badge.className = 'badge bg-secondary';
+                badge.textContent = '草稿';
+                if (btnSubmitAudit) btnSubmitAudit.style.display = 'inline-block';
+                if (btnImportAttendance) btnImportAttendance.style.display = 'inline-block';
+                G.isEditMode = false;
+                break;
         }
         
-        // 如果当前有选中日期，刷新详情面板以更新按钮状态
+        // 刷新详情面板
         if (G.selectedDate) {
             renderDetail(G.selectedDate);
         }
@@ -923,13 +1672,152 @@
      * 审批人审批或驳回考勤
      */
     function approveMonth(approved) {
-        var remark = '';
-        if (!approved) {
-            remark = prompt('请输入驳回原因：');
-            if (remark === null) return;
+        if (approved) {
+            // 审批通过：使用 Bootstrap Modal 确认（统一交互，无论首次还是二次）
+            showModal({
+                title: '审批通过',
+                content: '<div class="alert alert-success"><i class="bi bi-check-circle-fill me-2"></i>确认审批通过本月考勤？</div>',
+                size: 'md',
+                buttons: [
+                    { text: '取消', class: 'btn btn-secondary' },
+                    { text: '确认通过', class: 'btn btn-success', callback: function() {
+                        // 直接执行审批，后端会处理是否有变更
+                        executeApproveMonth(true, '');
+                    }}
+                ]
+            });
         } else {
-            if (!confirm('确认审批通过本月考勤？')) return;
+            // 驳回：使用 Bootstrap Modal 输入原因（统一交互，无论首次还是二次）
+            showModal({
+                title: '驳回考勤',
+                content: '<div class="alert alert-warning"><i class="bi bi-exclamation-triangle-fill me-2"></i>请输入驳回原因：</div>' +
+                         '<textarea id="rejectRemark" class="form-control" rows="3" placeholder="请输入驳回原因..."></textarea>',
+                size: 'md',
+                buttons: [
+                    { text: '取消', class: 'btn btn-secondary' },
+                    { text: '确认驳回', class: 'btn btn-danger', callback: function() {
+                        var remark = document.getElementById('rejectRemark').value.trim();
+                        executeApproveMonth(false, remark);
+                    }}
+                ]
+            });
         }
+    }
+    
+    /**
+     * 显示批量审批考勤修改弹窗
+     */
+    function showBatchApproveAttendanceModal(pendingChanges, monthRemark) {
+        var changesHtml = pendingChanges.map(function(log) {
+            var typeName = ['','出勤','加班','请假','缺勤','迟到','旷工'];
+            var otName = ['','工作日','休息日','法定节假日'];
+            return '<div class="change-log-item">' +
+                '<div class="change-header">' +
+                '<span class="change-title">' + esc(log.employeeName) + ' - ' + log.workDate + '</span>' +
+                '<span class="change-status pending">待审批</span>' +
+                '</div>' +
+                '<div class="change-detail">' +
+                '<div class="diff-row">' +
+                '<span>类型：</span>' +
+                '<span class="diff-old">' + typeName[log.oldAttendanceType] + '</span>' +
+                '<span class="diff-arrow"><i class="bi bi-arrow-right"></i></span>' +
+                '<span class="diff-new">' + typeName[log.newAttendanceType] + '</span>' +
+                '</div>' +
+                '<div class="diff-row">' +
+                '<span>工时：</span>' +
+                '<span class="diff-old">' + (log.oldWorkHours || 0) + '小时</span>' +
+                '<span class="diff-arrow"><i class="bi bi-arrow-right"></i></span>' +
+                '<span class="diff-new">' + (log.newWorkHours || 0) + '小时</span>' +
+                '</div>' +
+                '</div>' +
+                '<div class="change-reason"><i class="bi bi-chat-text me-1"></i>变更原因：' + esc(log.changeReason || '-') + '</div>' +
+                '</div>';
+        }).join('');
+        
+        var content = '<div style="padding:16px;">' +
+            '<div style="background:#fef3c7;border:1px solid #f59e0b;border-radius:8px;padding:12px;margin-bottom:16px;">' +
+            '<i class="bi bi-info-circle-fill" style="color:#d97706;"></i> ' +
+            '<strong>检测到 ' + pendingChanges.length + ' 条考勤修改待审批</strong>' +
+            '</div>' +
+            '<div style="max-height:400px;overflow-y:auto;">' + changesHtml + '</div>' +
+            '</div>';
+        
+        showModal({
+            title: '批量审批考勤修改',
+            content: content,
+            size: 'lg',
+            buttons: [
+                { text: '取消', class: 'btn btn-secondary' },
+                { 
+                    text: '全部通过', 
+                    class: 'btn btn-success',
+                    onclick: function() {
+                        batchApproveAttendanceChanges(monthRemark);
+                        closeModal();
+                    }
+                },
+                { 
+                    text: '全部驳回', 
+                    class: 'btn btn-danger',
+                    onclick: function() {
+                        batchRejectAttendanceChanges(monthRemark);
+                        closeModal();
+                    }
+                }
+            ]
+        });
+    }
+    
+    /**
+     * 批量通过考勤修改
+     */
+    function batchApproveAttendanceChanges(monthRemark) {
+        fetch('/attendance/api/batch-approve-changes?projectId=' + G.projectId + '&yearMonth=' + G.yearMonth + '&remark=' + encodeURIComponent(monthRemark), {
+            method: 'POST'
+        })
+        .then(r => r.json())
+        .then(function(data) {
+            if (data.success) {
+                // 考勤修改审批通过后，继续审批月份
+                executeApproveMonth(true, monthRemark);
+            } else {
+                toast('审批考勤修改失败：' + data.message, 'danger');
+            }
+        })
+        .catch(function(e) {
+            toast('审批失败，请稍后重试', 'danger');
+        });
+    }
+    
+    /**
+     * 批量驳回考勤修改
+     */
+    function batchRejectAttendanceChanges(monthRemark) {
+        // 先驳回所有考勤修改，然后驳回月份审批
+        fetch('/attendance/api/change-logs?projectId=' + G.projectId + '&yearMonth=' + G.yearMonth)
+            .then(r => r.json())
+            .then(function(data) {
+                var pendingLogs = (data.logs || []).filter(function(l) { return l.status === 0; });
+                var rejectPromises = pendingLogs.map(function(log) {
+                    return fetch('/attendance/api/reject-change?changeLogId=' + log.id + '&remark=' + encodeURIComponent('月份审批被驳回'), {
+                        method: 'POST'
+                    });
+                });
+                return Promise.all(rejectPromises);
+            })
+            .then(function() {
+                // 驳回考勤修改后，继续驳回月份
+                executeApproveMonth(false, monthRemark);
+            })
+            .catch(function(e) {
+                toast('驳回失败，请稍后重试', 'danger');
+            });
+    }
+    
+    /**
+     * 执行月份审批
+     */
+    function executeApproveMonth(approved, remark) {
         var params = new URLSearchParams();
         params.append('yearMonth', G.yearMonth);
         params.append('projectId', G.projectId || '');
@@ -943,6 +1831,10 @@
             if (res === 'success') {
                 toast(approved ? '审批通过！' : '已驳回', 'success');
                 loadMonthStatus();
+                loadMonthData(); // 刷新日历数据
+                loadAllEmpDays(); // 刷新左侧员工列表徽章
+                loadAttendancePendingHint(); // 刷新待审批项目提示
+                refreshAttendanceBadge();   // 刷新左侧菜单徽章
             } else {
                 toast(res, 'danger');
             }
@@ -953,26 +1845,34 @@
      * 提交月度考勤审批
      */
     function submitMonthAudit() {
-        
-        var remark = prompt('请输入审批备注（可选）：');
-        if (remark === null) return; // 用户取消
-        
-        var params = new URLSearchParams();
-        params.append('yearMonth', G.yearMonth);
-        params.append('projectId', G.projectId || '');
-        params.append('remark', remark || '');
-        
-        fetch('/attendance/month/submit', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-            body: params
-        }).then(r => r.text()).then(function(res) {
-            if (res === 'success') {
-                toast('提交审批成功', 'success');
-                loadMonthStatus();
-            } else {
-                toast(res, 'danger');
-            }
+        // 使用 Bootstrap Modal 弹窗确认
+        showModal({
+            title: '提交审批',
+            content: '<div class="alert alert-info"><i class="bi bi-info-circle-fill me-2"></i>请确认考勤数据准确性，确认提交后将进入审批流程，审批通过后考勤数据方可生效!</div>',
+            size: 'md',
+            buttons: [
+                { text: '取消', class: 'btn btn-secondary' },
+                { text: '确认提交', class: 'btn btn-primary', callback: function() {
+                    var params = new URLSearchParams();
+                    params.append('yearMonth', G.yearMonth);
+                    params.append('projectId', G.projectId || '');
+                    params.append('remark', '');
+                    
+                    fetch('/attendance/month/submit', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                        body: params
+                    }).then(r => r.text()).then(function(res) {
+                        if (res === 'success') {
+                            toast('提交审批成功', 'success');
+                            // 刷新页面
+                            window.location.reload();
+                        } else {
+                            toast(res, 'danger');
+                        }
+                    });
+                }}
+            ]
         });
     }
     
@@ -989,6 +1889,650 @@
         var ym = G.yearMonth.split('-');
         G.calDate = new Date(parseInt(ym[0]), parseInt(ym[1]) - 1, 1);
         window.location.href = '/attendance/list?projectId=' + G.projectId + '&yearMonth=' + G.yearMonth;
+    }
+    
+    /**
+     * 下载考勤模板
+     */
+    function downloadTemplate() {
+        if (!G.projectId) {
+            toast('请先选择项目', 'danger');
+            return;
+        }
+        window.location.href = '/attendance/template/download?projectId=' + G.projectId + '&yearMonth=' + G.yearMonth;
+    }
+    
+    /**
+     * 导入考勤数据
+     */
+    function importAttendance(input) {
+        if (!G.projectId) {
+            toast('请先选择项目', 'danger');
+            input.value = '';
+            return;
+        }
+        
+        var file = input.files[0];
+        if (!file) return;
+        
+        // 检查文件类型
+        var fileName = file.name.toLowerCase();
+        if (!fileName.endsWith('.xlsx') && !fileName.endsWith('.xls')) {
+            toast('请选择Excel文件（.xlsx或.xls）', 'danger');
+            input.value = '';
+            return;
+        }
+        
+        var formData = new FormData();
+        formData.append('file', file);
+        formData.append('projectId', G.projectId);
+        formData.append('yearMonth', G.yearMonth);
+        
+        fetch('/attendance/import', {
+            method: 'POST',
+            body: formData
+        }).then(r => r.json()).then(function(res) {
+            input.value = '';
+            if (res.success) {
+                toast(res.message, 'success');
+                // 刷新页面数据
+                loadMonthData();
+                loadAllEmpDays();
+            } else {
+                toast(res.message, 'danger');
+            }
+            if (res.errors && res.errors.length > 0) {
+                console.log('导入错误详情：', res.errors);
+            }
+        }).catch(function(err) {
+            input.value = '';
+            toast('导入失败：' + err.message, 'danger');
+        });
+    }
+    
+   // ===== 全局二次编辑功能 =====
+    
+    // 编辑模式标志
+    G.isEditMode = false;
+    
+    /**
+     * 申请全局修改（进入批量编辑模式）
+     */
+    function applyGlobalChange() {
+        if (G.monthStatus !== 5) {
+            toast('只有已审批锁定的月份才能申请修改', 'warning');
+            return;
+        }
+        
+        // 使用 Bootstrap Modal 弹窗提示
+        showModal({
+            title: '申请修改考勤',
+            content: '<div class="alert alert-warning"><i class="bi bi-exclamation-triangle-fill me-2"></i>考勤数据修改动作将被记录，审批通过以后方可生效。</div><p>是否继续执行修改？</p>',
+            size: 'md',
+            buttons: [
+                { text: '取消', class: 'btn btn-secondary' },
+                { text: '确认', class: 'btn btn-primary', callback: function() {
+                    // 调用后端API，将月份状态改为"变更待审"
+                    fetch('/attendance/api/apply-global-change', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                        body: 'projectId=' + (G.projectId || '') + '&yearMonth=' + G.yearMonth + '&reason=' + encodeURIComponent('申请修改考勤数据')
+                    }).then(r => r.json()).then(function(res) {
+                        if (res.success) {
+                            G.monthStatus = 2; // 变更待审
+                            G.changeApplyRemark = '申请修改考勤数据';
+                            updateUIBasedOnStatus(2);
+                            loadMonthData();
+                        } else {
+                            toast(res.message || '申请失败', 'danger');
+                        }
+                    }).catch(function(err) {
+                        toast('申请失败：' + err.message, 'danger');
+                    });
+                }}
+            ]
+        });
+    }
+    
+    /**
+     * 提交全局变更（批量提交所有修改）
+     */
+    function submitGlobalChanges() {
+        if (G.monthStatus !== 2) {
+            toast('当前不是变更编辑模式', 'warning');
+            return;
+        }
+        
+        // 从数据库查询待审批的修改记录数量
+        fetch('/attendance/count-pending-changes?projectId=' + G.projectId + '&yearMonth=' + G.yearMonth)
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            // 处理返回值，可能是数字或对象
+            var count = typeof data === 'number' ? data : (data.count || 0);
+            
+            if (count === 0) {
+                toast('没有检测到任何修改', 'warning');
+                return;
+            }
+            
+            // 使用 Bootstrap Modal 弹窗确认
+            showModal({
+                title: '提交变更审批',
+                content: '<div class="alert alert-warning"><i class="bi bi-exclamation-triangle-fill me-2"></i>申请修改前请通过"查看变更"按钮确认本次修改内容，审批通过后方可生效，请关注后续审批状态!</div><p>确认提交 ' + count + ' 条考勤修改？</p>',
+                size: 'md',
+                buttons: [
+                    { text: '取消', class: 'btn btn-secondary' },
+                    { text: '确认提交', class: 'btn btn-primary', callback: function() {
+                        // 提交变更审批
+                        var params = new URLSearchParams();
+                        params.append('projectId', G.projectId || '');
+                        params.append('yearMonth', G.yearMonth);
+                        
+                        fetch('/attendance/api/submit-global-changes', {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                            body: params
+                        }).then(r => r.json()).then(function(res) {
+                            if (res.success) {
+                                toast('变更已提交，等待审批', 'success');
+                                // 刷新页面
+                                window.location.reload();
+                            } else {
+                                toast(res.message || '提交失败', 'danger');
+                            }
+                        }).catch(function(err) {
+                            toast('提交失败：' + err.message, 'danger');
+                        });
+                    }}
+                ]
+            });
+        });
+    }
+    
+    /**
+     * 取消全局变更
+     */
+    function cancelGlobalChanges() {
+        // 使用 Bootstrap Modal 弹窗确认
+        showModal({
+            title: '取消修改',
+            content: '<p>确认取消所有修改？</p><p class="text-muted">已修改的数据将恢复为原值。</p>',
+            size: 'md',
+            buttons: [
+                { text: '取消', class: 'btn btn-secondary' },
+                { text: '确认', class: 'btn btn-primary', callback: function() {
+                    fetch('/attendance/api/cancel-global-changes', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                        body: 'projectId=' + (G.projectId || '') + '&yearMonth=' + G.yearMonth
+                    }).then(r => r.json()).then(function(res) {
+                        if (res.success) {
+                            G.monthStatus = 5; // 恢复为已审批
+                            G.isEditMode = false;
+                            updateUIBasedOnStatus(5);
+                            loadMonthData();
+                            // 刷新页面
+                            window.location.reload();
+                        } else {
+                            toast(res.message || '取消失败', 'danger');
+                        }
+                    }).catch(function(err) {
+                        toast('取消失败：' + err.message, 'danger');
+                    });
+                }}
+            ]
+        });
+    }
+    
+    /**
+     * 打开编辑弹窗（支持批量编辑模式）
+     */
+    function openBatchEditModal(attendanceId) {
+        console.log('openBatchEditModal called with attendanceId:', attendanceId, 'type:', typeof attendanceId);
+        
+        // 如果不是编辑模式（草稿或变更待审），则使用原来的逻辑
+        if (!G.isEditMode && G.monthStatus !== 0 && G.monthStatus !== 2) {
+            toast('当前状态不允许编辑', 'warning');
+            return;
+        }
+        
+        // 确保 attendanceId 是数字
+        attendanceId = parseInt(attendanceId);
+        console.log('after parseInt:', attendanceId);
+        
+        var attendance = G.attendances.find(function(a) { return a.id === attendanceId; });
+        if (!attendance) {
+            toast('考勤记录不存在', 'danger');
+            return;
+        }
+        
+        // 保存原始数据（用于对比）
+        if (!attendance.originalData) {
+            attendance.originalData = {
+                attendanceType: attendance.attendanceType,
+                overtimeType: attendance.overtimeType,
+                workHours: attendance.workHours,
+                remark: attendance.remark
+            };
+        }
+        
+        var typeName = ['','出勤','加班','请假','缺勤','迟到','旷工'];
+        
+        var content = '<div style="padding:16px;">' +
+            '<div style="margin-bottom:16px;">' +
+            '<label style="font-size:13px;color:#374151;font-weight:500;">出勤类型</label>' +
+            '<select id="editType" class="form-select">' +
+            '<option value="1" ' + (attendance.attendanceType === 1 ? 'selected' : '') + '>出勤</option>' +
+            '<option value="2" ' + (attendance.attendanceType === 2 ? 'selected' : '') + '>加班</option>' +
+            '<option value="3" ' + (attendance.attendanceType === 3 ? 'selected' : '') + '>请假</option>' +
+            '<option value="4" ' + (attendance.attendanceType === 4 ? 'selected' : '') + '>缺勤</option>' +
+            '<option value="5" ' + (attendance.attendanceType === 5 ? 'selected' : '') + '>迟到</option>' +
+            '<option value="6" ' + (attendance.attendanceType === 6 ? 'selected' : '') + '>旷工</option>' +
+            '</select>' +
+            '</div>' +
+            '<div style="margin-bottom:16px;">' +
+            '<label style="font-size:13px;color:#374151;font-weight:500;">工作时长（小时）</label>' +
+            '<input type="number" id="editHours" class="form-control" value="' + (attendance.workHours || 8) + '" step="0.5">' +
+            '</div>' +
+            '<div id="editOvertimeWrap" style="margin-bottom:16px;' + (attendance.attendanceType === 2 ? '' : 'display:none;') + '">' +
+            '<label style="font-size:13px;color:#374151;font-weight:500;"><span style="color:#dc3545;">*</span> 加班类型</label>' +
+            '<select id="editOvertime" class="form-select">' +
+            '<option value="">请选择</option>' +
+            '<option value="1" ' + (attendance.overtimeType === 1 ? 'selected' : '') + '>工作日加班</option>' +
+            '<option value="2" ' + (attendance.overtimeType === 2 ? 'selected' : '') + '>休息日加班</option>' +
+            '<option value="3" ' + (attendance.overtimeType === 3 ? 'selected' : '') + '>法定节假日加班</option>' +
+            '</select>' +
+            '</div>' +
+            '<div style="margin-bottom:16px;">' +
+            '<label style="font-size:13px;color:#374151;font-weight:500;">备注</label>' +
+            '<input type="text" id="editRemark" class="form-control" value="' + (attendance.remark || '') + '">' +
+            '</div>' +
+            '</div>';
+        
+        // 添加出勤类型变化监听
+        setTimeout(function() {
+            var typeSelect = document.getElementById('editType');
+            if (typeSelect) {
+                typeSelect.onchange = function() {
+                    var overtimeWrap = document.getElementById('editOvertimeWrap');
+                    if (overtimeWrap) {
+                        overtimeWrap.style.display = (this.value === '2') ? 'block' : 'none';
+                    }
+                };
+            }
+        }, 0);
+        
+        showModal({
+            title: '编辑考勤记录',
+            content: content,
+            size: 'md',
+            buttons: [
+                { text: '取消', class: 'btn btn-secondary' },
+                { 
+                    text: '保存', 
+                    class: 'btn btn-primary',
+                    onclick: function() {
+                        saveEditModal(attendanceId);
+                    }
+                }
+            ]
+        });
+    }
+    
+    /**
+     * 保存编辑（批量编辑模式）- 直接保存到数据库
+     */
+    function saveEditModal(attendanceId) {
+        attendanceId = parseInt(attendanceId);
+        
+        var attendance = G.attendances.find(function(a) { return a.id === attendanceId; });
+        if (!attendance) {
+            toast('考勤记录不存在', 'danger');
+            return;
+        }
+        
+        var newType = parseInt(document.getElementById('editType').value);
+        var newHours = parseFloat(document.getElementById('editHours').value);
+        var newOvertime = document.getElementById('editOvertime').value;
+        var newRemark = document.getElementById('editRemark').value;
+        
+        // 验证：如果出勤类型是加班，必须选择加班类型
+        if (newType === 2 && !newOvertime) {
+            toast('请选择加班类型', 'danger');
+            return;
+        }
+        
+        // 检查是否有实际变化
+        var oldHours = attendance.workHours ? parseFloat(attendance.workHours) : null;
+        // 加班类型比较：将 null 和空字符串视为相同
+        var oldOvertime = attendance.overtimeType || null;
+        var newOvertimeValue = newOvertime ? parseInt(newOvertime) : null;
+        // 备注比较：将 null 和空字符串视为相同
+        var oldRemark = attendance.remark || '';
+        var newRemarkValue = newRemark || '';
+        var hasChange = attendance.attendanceType !== newType
+            || oldOvertime !== newOvertimeValue
+            || oldHours !== newHours
+            || oldRemark !== newRemarkValue;
+        
+        if (!hasChange) {
+            toast('没有检测到变化，无需提交', 'warning');
+            return;
+        }
+        
+        // 构建修改记录数据
+        var changeData = {
+            attendanceId: attendanceId,
+            projectId: attendance.projectId,
+            employeeId: attendance.employeeId,
+            workDate: attendance.workDate,
+            yearMonth: G.yearMonth,
+            changeType: 'EDIT',
+            oldAttendanceType: attendance.attendanceType,
+            oldOvertimeType: attendance.overtimeType,
+            oldWorkHours: attendance.workHours ? parseFloat(attendance.workHours) : null,
+            oldRemark: attendance.remark,
+            newAttendanceType: newType,
+            newOvertimeType: newOvertime ? parseInt(newOvertime) : null,
+            newWorkHours: newHours ? parseFloat(newHours) : null,
+            newRemark: newRemark,
+            changeReason: '二次编辑修改',
+            status: 0
+        };
+        
+        // 调用后端API保存修改记录
+        console.log('Sending change data:', changeData);
+        fetch('/attendance/save-change-log', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(changeData)
+        }).then(function(r) {
+            console.log('Response status:', r.status);
+            if (!r.ok) throw new Error('保存失败');
+            return r.json();
+        }).then(function(result) {
+            console.log('Save result:', result);
+            // 不更新前端原始数据，保持原样显示
+            // 只标记为已修改，用于视觉提示
+            attendance.isModified = true;
+            
+            closeModal();
+            renderCalendar();
+            renderDetail(G.selectedDate);
+            
+            toast('已记录编辑操作，审批通过后生效。变更内容可点击"查看变更"按钮查看。', 'info');
+        }).catch(function(e) {
+            toast('保存修改记录失败: ' + e.message, 'danger');
+        });
+    }
+    
+    /**
+     * 提交二次编辑申请
+     */
+    function submitEditPending(attendanceId) {
+        var reason = document.getElementById('pendingEditReason').value.trim();
+        if (!reason) {
+            toast('请填写变更原因', 'danger');
+            return;
+        }
+        
+        var attendanceType = parseInt(document.getElementById('pendingEditType').value);
+        var workHours = parseFloat(document.getElementById('pendingEditHours').value);
+        var overtimeType = document.getElementById('pendingEditOvertime').value;
+        var remark = document.getElementById('pendingEditRemark').value;
+        
+        var params = new URLSearchParams();
+        params.append('attendanceId', attendanceId);
+        params.append('attendanceType', attendanceType);
+        params.append('workHours', workHours);
+        params.append('remark', remark || '');
+        params.append('changeReason', reason);
+        if (overtimeType) {
+            params.append('overtimeType', overtimeType);
+        }
+        
+        fetch('/attendance/api/create-change-log', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+            body: params
+        }).then(r => r.json()).then(function(res) {
+            if (res.success) {
+                toast('修改申请已提交，等待审批', 'success');
+                closeModal();
+                loadMonthData(); // 刷新数据
+            } else {
+                toast(res.message || '提交失败', 'danger');
+            }
+        }).catch(function(err) {
+            toast('提交失败：' + err.message, 'danger');
+        });
+    }
+    
+    /**
+     * 显示变更记录列表（审批人查看）- 按员工聚合展示
+     */
+    function showChangeLogs() {
+        fetch('/attendance/api/change-logs?projectId=' + (G.projectId || '') + '&yearMonth=' + G.yearMonth)
+            .then(r => r.json())
+            .then(function(res) {
+                if (!res.success || !res.logs || res.logs.length === 0) {
+                    toast('暂无变更记录', 'info');
+                    return;
+                }
+                
+                var typeName = ['','出勤','加班','请假','缺勤','迟到','旷工'];
+                var otName = ['','工作日','休息日','法定节假日'];
+                
+                // 按员工聚合
+                var empMap = {};
+                res.logs.forEach(function(log) {
+                    var empId = log.employeeId;
+                    if (!empMap[empId]) {
+                        empMap[empId] = {
+                            name: log.employeeName || '员工',
+                            logs: []
+                        };
+                    }
+                    empMap[empId].logs.push(log);
+                });
+                
+                var content = '<div style="max-height:500px;overflow-y:auto;">';
+                
+                // 遍历每个员工
+                Object.keys(empMap).forEach(function(empId) {
+                    var emp = empMap[empId];
+                    
+                    // 按日期分组
+                    var dateMap = {};
+                    emp.logs.forEach(function(log) {
+                        var date = log.workDate;
+                        if (!dateMap[date]) {
+                            dateMap[date] = [];
+                        }
+                        dateMap[date].push(log);
+                    });
+                    
+                    content += '<div style="border:1px solid #e5e7eb;border-radius:8px;margin-bottom:16px;background:#fff;overflow:hidden;">';
+                    // 员工标题栏
+                    content += '<div style="background:#f8fafc;padding:12px 16px;border-bottom:1px solid #e5e7eb;font-weight:600;color:#374151;font-size:15px;">' +
+                        '<i class="bi bi-person-circle me-2 text-primary"></i>' + emp.name +
+                        '<span style="color:#6b7280;font-weight:normal;margin-left:8px;font-size:13px;">共 ' + emp.logs.length + ' 条变更</span>' +
+                        '</div>';
+                    
+                    // 遍历每个日期
+                    Object.keys(dateMap).sort().forEach(function(date) {
+                        var dateLogs = dateMap[date];
+                        
+                        content += '<div style="padding:12px 16px;border-bottom:1px solid #f3f4f6;">';
+                        content += '<div style="font-weight:500;color:#4b5563;margin-bottom:10px;font-size:14px;">' +
+                            '<i class="bi bi-calendar3 me-2 text-secondary"></i>' + date +
+                            '<span style="color:#9ca3af;font-weight:normal;margin-left:8px;font-size:12px;">' + dateLogs.length + ' 条</span>' +
+                            '</div>';
+                        
+                        // 该日期下的所有变更
+                        dateLogs.forEach(function(log) {
+                            var changeTypeText = log.changeType === 'ADD' ? '新增' : (log.changeType === 'DELETE' ? '删除' : '编辑');
+                            var changeTypeColor = log.changeType === 'ADD' ? '#16a34a' : (log.changeType === 'DELETE' ? '#dc2626' : '#2563eb');
+                            var changeTypeBg = log.changeType === 'ADD' ? '#f0fdf4' : (log.changeType === 'DELETE' ? '#fef2f2' : '#eff6ff');
+                            
+                            // 根据变更类型显示不同的对比信息
+                            var detailHtml = '';
+                            if (log.changeType === 'ADD') {
+                                var newType = typeName[log.newAttendanceType] || '-';
+                                var newOt = log.newOvertimeType ? otName[log.newOvertimeType] : '-';
+                                var newHours = log.newWorkHours || '-';
+                                var newRemark = log.newRemark || '-';
+                                detailHtml = '<div style="background:' + changeTypeBg + ';padding:10px;border-radius:6px;margin-top:6px;">' +
+                                    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">' +
+                                    '<span style="color:' + changeTypeColor + ';font-weight:600;font-size:13px;">' +
+                                    '<i class="bi bi-plus-circle me-1"></i>新增</span>' +
+                                    '<span style="color:#6b7280;font-size:12px;">' + (log.changeReason || '无') + '</span>' +
+                                    '</div>' +
+                                    '<div style="display:grid;grid-template-columns:repeat(4, 1fr);gap:8px;font-size:12px;">' +
+                                    '<div><span style="color:#6b7280;">类型：</span><strong>' + newType + '</strong></div>' +
+                                    '<div><span style="color:#6b7280;">工时：</span><strong>' + newHours + 'h</strong></div>' +
+                                    '<div><span style="color:#6b7280;">加班：</span><strong>' + newOt + '</strong></div>' +
+                                    '<div><span style="color:#6b7280;">备注：</span><strong>' + newRemark + '</strong></div>' +
+                                    '</div></div>';
+                            } else if (log.changeType === 'DELETE') {
+                                var oldType = typeName[log.oldAttendanceType] || '-';
+                                var oldOt = log.oldOvertimeType ? otName[log.oldOvertimeType] : '-';
+                                var oldHours = log.oldWorkHours || '-';
+                                var oldRemark = log.oldRemark || '-';
+                                detailHtml = '<div style="background:' + changeTypeBg + ';padding:10px;border-radius:6px;margin-top:6px;">' +
+                                    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">' +
+                                    '<span style="color:' + changeTypeColor + ';font-weight:600;font-size:13px;">' +
+                                    '<i class="bi bi-trash me-1"></i>删除</span>' +
+                                    '<span style="color:#6b7280;font-size:12px;">' + (log.changeReason || '无') + '</span>' +
+                                    '</div>' +
+                                    '<div style="display:grid;grid-template-columns:repeat(4, 1fr);gap:8px;font-size:12px;color:#6b7280;">' +
+                                    '<div>类型：<span style="text-decoration:line-through;">' + oldType + '</span></div>' +
+                                    '<div>工时：<span style="text-decoration:line-through;">' + oldHours + 'h</span></div>' +
+                                    '<div>加班：<span style="text-decoration:line-through;">' + oldOt + '</span></div>' +
+                                    '<div>备注：<span style="text-decoration:line-through;">' + oldRemark + '</span></div>' +
+                                    '</div></div>';
+                            } else {
+                                var oldType = typeName[log.oldAttendanceType] || '-';
+                                var newType = typeName[log.newAttendanceType] || '-';
+                                var oldOt = log.oldOvertimeType ? otName[log.oldOvertimeType] : '-';
+                                var newOt = log.newOvertimeType ? otName[log.newOvertimeType] : '-';
+                                var oldHours = log.oldWorkHours || '-';
+                                var newHours = log.newWorkHours || '-';
+                                var oldRemark = log.oldRemark || '-';
+                                var newRemark = log.newRemark || '-';
+                                
+                                var typeChanged = oldType !== newType;
+                                var hoursChanged = oldHours !== newHours;
+                                var otChanged = oldOt !== newOt;
+                                var remarkChanged = oldRemark !== newRemark;
+                                
+                                detailHtml = '<div style="background:' + changeTypeBg + ';padding:10px;border-radius:6px;margin-top:6px;">' +
+                                    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">' +
+                                    '<span style="color:' + changeTypeColor + ';font-weight:600;font-size:13px;">' +
+                                    '<i class="bi bi-pencil me-1"></i>编辑</span>' +
+                                    '<span style="color:#6b7280;font-size:12px;">' + (log.changeReason || '无') + '</span>' +
+                                    '</div>' +
+                                    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;">' +
+                                    '<div style="color:#6b7280;">变更前：<span style="text-decoration:line-through;">' + 
+                                    oldType + (hoursChanged ? ' ' + oldHours + 'h' : '') + '</span></div>' +
+                                    '<div style="color:#16a34a;font-weight:500;">变更后：' + 
+                                    newType + (hoursChanged ? ' ' + newHours + 'h' : '') + '</div>' +
+                                    '</div></div>';
+                            }
+                            
+                            content += detailHtml;
+                        });
+                        
+                        content += '</div>';
+                    });
+                    
+                    content += '</div>';
+                });
+                
+                content += '</div>';
+                
+                showModal({
+                    title: '考勤变更记录（共 ' + res.logs.length + ' 条，' + Object.keys(empMap).length + ' 人）',
+                    content: content,
+                    size: 'lg',
+                    buttons: [
+                        { text: '关闭', class: 'btn btn-secondary' }
+                    ]
+                });
+            })
+            .catch(function(err) {
+                toast('获取变更记录失败：' + err.message, 'danger');
+            });
+    }
+    
+    // ===== 通用弹窗函数 =====
+    var currentModal = null;
+    function showModal(options) {
+        // 移除已存在的弹窗
+        var existing = document.getElementById('dynamicModal');
+        if (existing) existing.remove();
+        
+        var buttonsHtml = '';
+        if (options.buttons) {
+            buttonsHtml = options.buttons.map(function(btn, idx) {
+                if (btn.callback || btn.onclick) {
+                    return '<button type="button" class="' + btn.class + '" onclick="modalBtnClick(' + idx + ')">' + btn.text + '</button>';
+                } else {
+                    return '<button type="button" class="' + btn.class + '" data-bs-dismiss="modal">' + btn.text + '</button>';
+                }
+            }).join('');
+        }
+        
+        var sizeClass = options.size === 'lg' ? 'modal-lg' : (options.size === 'sm' ? 'modal-sm' : '');
+        
+        var html = '<div class="modal fade" id="dynamicModal" tabindex="-1">' +
+            '<div class="modal-dialog ' + sizeClass + '">' +
+            '<div class="modal-content">' +
+            '<div class="modal-header">' +
+            '<h5 class="modal-title">' + esc(options.title) + '</h5>' +
+            '<button type="button" class="btn-close" data-bs-dismiss="modal"></button>' +
+            '</div>' +
+            '<div class="modal-body">' + options.content + '</div>' +
+            '<div class="modal-footer">' + buttonsHtml + '</div>' +
+            '</div></div></div>';
+        
+        document.body.insertAdjacentHTML('beforeend', html);
+        
+        currentModal = {
+            el: document.getElementById('dynamicModal'),
+            buttons: options.buttons || [],
+            bsModal: null
+        };
+        
+        currentModal.bsModal = new bootstrap.Modal(currentModal.el);
+        currentModal.bsModal.show();
+    }
+    
+    function modalBtnClick(idx) {
+        var btn = currentModal.buttons[idx];
+        if (btn) {
+            // 关闭弹窗
+            if (currentModal && currentModal.bsModal) {
+                currentModal.bsModal.hide();
+            }
+            // 执行回调
+            if (btn.callback) {
+                btn.callback();
+            } else if (btn.onclick) {
+                btn.onclick();
+            }
+        }
+    }
+    
+    function closeModal() {
+        if (currentModal && currentModal.bsModal) {
+            currentModal.bsModal.hide();
+        }
+    }
+    
+    function esc(s) {
+        if (!s) return '';
+        return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
     }
     </script>
 </div>

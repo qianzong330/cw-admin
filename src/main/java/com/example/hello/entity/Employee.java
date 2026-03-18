@@ -8,9 +8,11 @@ public class Employee {
     private String name;
     private Long roleId;
     private String phone;
+    private String idCard;        // 身份证号
+    private String nativeAddress; // 籍贯地址
     private Long jobCategoryId;
     private BigDecimal salaryAmount;
-    private Integer salaryType;
+    private Integer salaryType = 1; // 默认日薪
     private String password;
     private Integer status;
     private LocalDateTime createTime;
@@ -57,6 +59,22 @@ public class Employee {
 
     public void setPhone(String phone) {
         this.phone = phone;
+    }
+
+    public String getIdCard() {
+        return idCard;
+    }
+
+    public void setIdCard(String idCard) {
+        this.idCard = idCard;
+    }
+
+    public String getNativeAddress() {
+        return nativeAddress;
+    }
+
+    public void setNativeAddress(String nativeAddress) {
+        this.nativeAddress = nativeAddress;
     }
 
     public Long getJobCategoryId() {
@@ -154,6 +172,10 @@ public class Employee {
     // Thymeleaf 使用 boss 属性时会调用此方法
     public boolean getBoss() {
         return isBoss();
+    }
+
+    public boolean isRoot() {
+        return roleCode != null && "root".equalsIgnoreCase(roleCode);
     }
 
     public boolean isFinance() {

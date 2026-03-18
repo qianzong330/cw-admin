@@ -23,6 +23,8 @@ public interface EmployeeMapper {
     java.util.Map<String, Object> findRoleByEmployeeId(@Param("employeeId") Long employeeId);
     
     List<Employee> findAll();
+
+    List<Employee> findExcludeRoot();
     
     List<Employee> findByRoleCode(String roleCode);
     

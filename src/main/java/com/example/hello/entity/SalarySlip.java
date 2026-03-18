@@ -24,6 +24,9 @@ public class SalarySlip {
     /** 身份证号 */
     private String idCard;
 
+    /** 手机号 */
+    private String phone;
+
     /** 工种名称 */
     private String jobCategoryName;
 
@@ -103,8 +106,8 @@ public class SalarySlip {
     public void calculatePayable() {
         BigDecimal base = baseAmount != null ? baseAmount : BigDecimal.ZERO;
         BigDecimal add  = additionAmount  != null ? additionAmount  : BigDecimal.ZERO;
-        BigDecimal ded  = deductionAmount != null ? deductionAmount : BigDecimal.ZERO;
-        this.payableAmount = base.add(add).subtract(ded);
+        // 应付工资 = 考勤工资 + 费用加项（不包含费用减项）
+        this.payableAmount = base.add(add);
     }
 
     // ===== Getters and Setters =====
@@ -122,6 +125,9 @@ public class SalarySlip {
 
     public String getIdCard() { return idCard; }
     public void setIdCard(String idCard) { this.idCard = idCard; }
+
+    public String getPhone() { return phone; }
+    public void setPhone(String phone) { this.phone = phone; }
 
     public String getJobCategoryName() { return jobCategoryName; }
     public void setJobCategoryName(String jobCategoryName) { this.jobCategoryName = jobCategoryName; }

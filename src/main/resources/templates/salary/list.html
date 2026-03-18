@@ -16,6 +16,9 @@
     }
     .top-bar h5 { margin: 0; font-weight: 600; }
     
+    /* 年度汇总模式下隐藏筛选框 */
+    .year-mode .filter-item { display: none !important; }
+    
     /* 工资条表格 */
     .salary-table-wrap { 
         border: 1px solid #dee2e6; border-radius: 8px; overflow: hidden;
@@ -72,7 +75,8 @@
     .salary-table tr.slip-row {
         transition: opacity 0.3s ease, transform 0.3s ease;
     }
-    .salary-table tr.slip-row.fading-out {
+    .salary-table tr.slip-row.fading-out,
+    .salary-table tr.year-slip-row.fading-out {
         display: none;
     }
     
@@ -81,7 +85,6 @@
     .fee-detail-row td { padding: 0; border-bottom: 1px solid #dee2e6; }
     .fee-detail-content {
         padding: 20px;
-        animation: fadeSlideIn 0.3s ease;
         min-height: calc(100vh - 280px);
     }
     @keyframes fadeSlideIn {
@@ -158,6 +161,48 @@
     .empty-hint {
         text-align: center; padding: 60px 20px; color: #6b7280;
     }
+    
+    /* 【已移除】重新计算按钮样式 */
+    
+    /* 【已移除】变更原因按钮样式 */
+    
+    /* 【已移除】差异对比弹窗样式 */
+    .diff-modal-content {
+        max-width: 600px;
+    }
+    .diff-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 12px 16px;
+        border-bottom: 1px solid #f0f0f0;
+    }
+    .diff-row:last-child {
+        border-bottom: none;
+    }
+    .diff-label {
+        color: #6b7280;
+        font-size: 14px;
+    }
+    .diff-value {
+        font-family: 'Courier New', monospace;
+        font-weight: 600;
+    }
+    .diff-old {
+        color: #dc2626;
+        text-decoration: line-through;
+    }
+    .diff-new {
+        color: #16a34a;
+    }
+    .diff-arrow {
+        color: #9ca3af;
+        margin: 0 8px;
+    }
+    @keyframes pulse-info {
+        0%   { box-shadow: 0 0 0 0 rgba(13, 202, 240, 0.7); transform: scale(1); }
+        50%  { box-shadow: 0 0 0 8px rgba(13, 202, 240, 0); transform: scale(1.05); }
+        100% { box-shadow: 0 0 0 0 rgba(13, 202, 240, 0); transform: scale(1); }
+    }
 </style>
 
 <div class="salary-container">
@@ -165,7 +210,7 @@
     <div class="top-bar">
         <h5><i class="bi bi-cash-coin me-2"></i>工资条管理</h5>
         
-        <div class="d-flex align-items-center gap-2">
+        <div class="d-flex align-items-center gap-2 filter-item" id="filterProject">
             <label class="text-muted mb-0" style="font-size:13px;">项目</label>
             <select class="form-select form-select-sm" id="projectId" style="width:150px;" onchange="changeFilter()">
                 <option th:each="proj : ${projects}" th:value="${proj.id}" th:text="${proj.name}"
@@ -173,27 +218,81 @@
             </select>
         </div>
         
-        <div class="d-flex align-items-center gap-2">
+        <div class="d-flex align-items-center gap-2 filter-item" id="filterMonth">
             <label class="text-muted mb-0" style="font-size:13px;">月份</label>
             <input type="month" class="form-control form-control-sm" id="salaryPeriod" style="width:130px;"
                    th:value="${salaryPeriod}" onchange="changeFilter()">
         </div>
         
+        <!-- 姓名搜索框 -->
+        <div class="d-flex align-items-center gap-2" id="filterName">
+            <label class="text-muted mb-0" style="font-size:13px;">姓名</label>
+            <input type="text" class="form-control form-control-sm" id="searchName" style="width:120px;"
+                   placeholder="输入姓名搜索" oninput="filterByName()">
+        </div>
+
+        <!-- 年度汇总模式标题（年度视图时显示） -->
+        <div id="yearViewLabel" style="display:none;">
+            <span class="badge bg-primary text-white" style="font-size:14px;padding:8px 12px;" id="yearViewLabelText"></span>
+        </div>
+
+        <!-- 页面提示容器（内容由JS填充到顶部导航栏） -->
+        <div id="salaryPageHints" style="display:none;" data-target="topPageHints">
+            <span id="pendingSalaryHintData" style="font-size:12px;color:#d97706;background:#fef3c7;border:1px solid #fcd34d;border-radius:6px;padding:4px 10px;display:none;">
+                <i class="bi bi-bell-fill me-1"></i><span id="pendingSalaryHintText"></span>
+            </span>
+            <span id="inactiveSalaryHintData" style="font-size:12px;color:#dc2626;background:#fee2e2;border:1px solid #fca5a5;border-radius:6px;padding:4px 10px;display:none;">
+                <i class="bi bi-x-circle-fill me-1"></i><span id="inactiveSalaryHintText"></span>
+            </span>
+        </div>
+        
         <div class="ms-auto d-flex align-items-center gap-2">
-            <span class="text-muted" style="font-size:13px;">工资条状态：</span>
-            <span id="monthStatusBadge" class="badge bg-secondary">草稿</span>
-            <span id="statusTip" class="text-muted" style="font-size:12px;display:none;"></span>
-            <button class="btn btn-sm btn-primary" id="btnSubmit" onclick="submitMonth()">
-                <i class="bi bi-send me-1"></i>提交审批
+            <button class="btn btn-sm btn-outline-primary" id="btnYearTotal" onclick="toggleYearMode()">
+                <i class="bi bi-bar-chart-line me-1"></i><span id="btnYearTotalText">年度汇总</span>
             </button>
-            <!-- BOSS/root 审批按钮区域，待审批时显示 -->
-            <div id="btnApproveArea" style="display:none; gap:8px; align-items:center;">
-                <button class="btn btn-sm btn-success" onclick="approveMonth(true)">
-                    <i class="bi bi-check-lg me-1"></i>审批通过
+            <!-- 变更费用按钮（已锁定状态下显示） -->
+            <button class="btn btn-sm btn-outline-warning" id="btnChangeFee" onclick="showChangeFeeConfirm()" style="display:none;">
+                <i class="bi bi-pencil-square me-1"></i>变更费用
+            </button>
+            <!-- 编辑模式下的取消和查看变更按钮 -->
+            <div id="editModeArea" style="display:none; gap:8px; align-items:center;">
+                <button class="btn btn-sm btn-outline-info" onclick="showChangeLogs()">
+                    <i class="bi bi-eye me-1"></i>查看变更
                 </button>
-                <button class="btn btn-sm btn-danger" onclick="approveMonth(false)">
-                    <i class="bi bi-x-lg me-1"></i>审批驳回
+                <button class="btn btn-sm btn-outline-danger" onclick="cancelChanges()">
+                    <i class="bi bi-x-circle me-1"></i>取消变更
                 </button>
+                <button class="btn btn-sm btn-outline-success" onclick="submitAllChanges()">
+                    <i class="bi bi-send me-1"></i>提交变更
+                </button>
+            </div>
+            <!-- 月度模式时显示的状态区域 -->
+            <div id="monthModeArea" class="d-flex align-items-center gap-2">
+                <span class="text-muted" style="font-size:13px;">状态：</span>
+                <span id="monthStatusBadge" class="badge bg-secondary">草稿</span>
+                <span id="statusTip" class="text-muted" style="font-size:12px;display:none;"></span>
+                <button class="btn btn-sm btn-outline-success" id="btnSubmit" onclick="submitMonth()">
+                    <i class="bi bi-send me-1"></i>提交审批
+                </button>
+                <!-- BOSS/root 审批按钮区域，待审批时显示（编辑模式下隐藏） -->
+                <div id="btnApproveArea" style="display:none; gap:8px; align-items:center;">
+                    <!-- 待审批时首先显示查看变更按钮，高亮提示审批人 -->
+                    <button class="btn btn-sm btn-info text-white" id="btnViewChangeInApprove" onclick="showChangeLogsModal()" style="animation: pulse-info 1.5s ease-in-out 3;">
+                        <i class="bi bi-eye-fill me-1"></i>查看变更
+                    </button>
+                    <button class="btn btn-sm btn-outline-success" onclick="approveMonth(true)">
+                        <i class="bi bi-check-lg me-1"></i>通过
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="approveMonth(false)">
+                        <i class="bi bi-x-lg me-1"></i>驳回
+                    </button>
+                </div>
+                <!-- 待审批时显示查看变更按钮（非审批人查看） -->
+                <div id="btnViewChangeArea" style="display:none; gap:8px; align-items:center;">
+                    <button class="btn btn-sm btn-outline-info" onclick="showChangeLogsModal()">
+                        <i class="bi bi-eye me-1"></i>查看变更
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -201,18 +300,36 @@
     <!-- 工资条表格 -->
     <div class="salary-table-wrap">
         <table class="salary-table">
-            <thead>
-                <tr>
-                    <th style="width:80px;">姓名</th>
-                    <th style="width:120px;">身份证号</th>
-                    <th style="width:100px;">工种</th>
-                    <th style="width:80px;">薪资类型</th>
-                    <th style="width:70px; text-align:right;">薪资</th>
+            <thead id="salaryTableHead">
+                <!-- 月度模式表头（默认） -->
+                <tr id="headMonthly">
+                    <th style="width:70px;">姓名</th>
+                    <th style="width:130px;">身份证号</th>
+                    <th style="width:100px;">手机号</th>
+                    <th style="width:90px;">工种</th>
+                    <th style="width:100px; text-align:right;">薪资</th>
                     <th style="width:65px; text-align:right; white-space:nowrap;">出勤天数</th>
                     <th style="width:70px; text-align:right;">考勤工资</th>
                     <th style="width:60px; text-align:right;" class="amount-plus">费用+</th>
-                    <th style="width:60px; text-align:right;" class="amount-minus">费用-</th>
                     <th style="width:80px; text-align:right;">应付工资</th>
+                    <th style="width:60px; text-align:right;" class="amount-minus">费用-</th>
+                    <th style="width:80px; text-align:right;">实际付款</th>
+                    <th style="width:80px; text-align:right;">剩余待付</th>
+                    <th style="width:100px;">操作</th>
+                </tr>
+                <!-- 年度汇总模式表头（年度视图时显示） -->
+                <tr id="headYearly" style="display:none;">
+                    <th style="width:70px;">姓名</th>
+                    <th style="width:130px;">身份证号</th>
+                    <th style="width:100px;">手机号</th>
+                    <th style="width:90px;">工种</th>
+                    <th style="width:70px; text-align:right;">统计月数</th>
+                    <th style="width:90px; text-align:right;">考勤工资</th>
+                    <th style="width:80px; text-align:right;" class="amount-plus">费用加项</th>
+                    <th style="width:80px; text-align:right;" class="amount-minus">费用减项</th>
+                    <th style="width:90px; text-align:right;">应付工资</th>
+                    <th style="width:90px; text-align:right;">实际付款</th>
+                    <th style="width:90px; text-align:right;">剩余待付</th>
                     <th style="width:100px;">操作</th>
                 </tr>
             </thead>
@@ -322,6 +439,123 @@
     </div>
 </div>
 
+<!-- 变更费用确认 Modal -->
+<div class="modal fade" id="changeFeeConfirmModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">变更费用确认</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div style="background:#fef3c7;border:1px solid #f59e0b;border-radius:8px;padding:12px;margin-bottom:16px;">
+                    <i class="bi bi-exclamation-triangle-fill" style="color:#d97706;"></i>
+                    <strong>工资条已锁定</strong>
+                </div>
+                <p style="color:#374151;margin-bottom:12px;">
+                    <span id="changeFeeProjectName">米脂项目</span> <span id="changeFeePeriod">2026年03月</span> 工资条已处于锁定状态，如需修改：
+                </p>
+                <ul style="color:#6b7280;font-size:14px;line-height:1.8;margin:0;padding-left:20px;">
+                    <li>您的操作行为将被记录</li>
+                    <li>修改后的数据会触发审批流程</li>
+                    <li>BOSS审批通过后方可生效</li>
+                    <li>审批驳回则保持原数据不变</li>
+                </ul>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-warning" onclick="enterEditMode()">确认变更</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 取消变更确认 Modal -->
+<div class="modal fade" id="cancelConfirmModal" tabindex="-1">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">确认取消</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center">
+                <i class="bi bi-exclamation-circle text-warning" style="font-size:48px;"></i>
+                <p class="mt-3">确定取消本次变更？<br><span class="text-muted">所有未提交的操作将被清除。</span></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">保留</button>
+                <button type="button" class="btn btn-danger" onclick="confirmCancelChanges()">确定取消</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 删除费用项确认 Modal -->
+<div class="modal fade" id="deleteFeeConfirmModal" tabindex="-1">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">确认删除</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center">
+                <i class="bi bi-exclamation-triangle text-warning" style="font-size:48px;"></i>
+                <p class="mt-3">确定删除费用项 <strong id="deleteFeeItemName"></strong>？<br><span class="text-muted">金额: <span id="deleteFeeItemAmount"></span></span></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-danger" onclick="confirmDeleteFee()">确定删除</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 查看变更日志 Modal -->
+<div class="modal fade" id="changeLogsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">变更记录</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="changeLogsContent" style="max-height:400px;overflow-y:auto;">
+                    <!-- JS填充 -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 待审批变更列表 Modal -->
+<div class="modal fade" id="pendingChangesModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-cash-stack me-2"></i>费用项变更详情</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="pendingChangesContent" style="max-height:500px;overflow-y:auto;">
+                    <!-- JS填充 -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-success" onclick="batchApproveChanges()">
+                    <i class="bi bi-check-lg me-1"></i>批量通过
+                </button>
+                <button type="button" class="btn btn-danger" onclick="batchRejectChanges()">
+                    <i class="bi bi-x-lg me-1"></i>批量驳回
+                </button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- 提交审批确认 Modal -->
 <div class="modal fade" id="submitModal" tabindex="-1">
     <div class="modal-dialog modal-sm">
@@ -341,15 +575,71 @@
     </div>
 </div>
 
+<!-- 年度汇总 Modal -->
+<div class="modal fade" id="yearTotalModal" tabindex="-1">
+    <div class="modal-dialog modal-md">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-bar-chart-line me-2"></i>年度汇总</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="d-flex align-items-center gap-3 mb-4">
+                    <label class="text-muted mb-0" style="font-size:13px;white-space:nowrap;">选择年度</label>
+                    <select class="form-select form-select-sm" id="yearSelect" style="width:130px;" onchange="loadYearTotal()">
+                    </select>
+                </div>
+                <!-- 有数据：显示确认按钮 -->
+                <div id="yearTotalHasData" style="display:none;">
+                    <div class="alert alert-info d-flex align-items-center py-2 mb-3">
+                        <i class="bi bi-info-circle me-2"></i>
+                        <small>仅统计已审批通过（已锁定）的月份数据，共 <b id="approvedMonthsHint">0</b> 个月</small>
+                    </div>
+                    <div class="d-grid">
+                        <button class="btn btn-primary" id="btnViewYearDetail" onclick="applyYearView()">
+                            <i class="bi bi-eye me-1"></i>
+                            <span id="btnViewYearDetailText">查看年度汇总</span>
+                        </button>
+                    </div>
+                </div>
+                <!-- 无数据 -->
+                <div id="yearTotalEmpty" class="text-center text-muted py-4" style="display:none;">
+                    <i class="bi bi-inbox fs-2"></i>
+                    <p class="mt-2 mb-0" style="font-size:13px;">该年度暂无已审批通过的工资条数据</p>
+                </div>
+                <!-- 加载中 -->
+                <div id="yearTotalLoading" class="text-center text-muted py-4">
+                    <div class="spinner-border spinner-border-sm me-2"></div>加载中...
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script th:inline="javascript">
     var projectId = /*[[${projectId}]]*/ 1;
     var salaryPeriod = /*[[${salaryPeriod}]]*/ '2026-03';
     var employees = /*[[${employees}]]*/ [];
     var currentUserRoleCode = /*[[${session.currentUser != null ? session.currentUser.roleCode : ''}]]*/ '';
+    var currentUserName = /*[[${session.currentUser != null ? session.currentUser.name : ''}]]*/ '';
+    var projects = /*[[${projects}]]*/ [];
     var salarySlips = [];
     var currentSlip = null;
     var currentFeeDir = null;
     var expandedSlipId = null;
+    
+    // 编辑模式状态
+    var isEditMode = false;  // 是否处于费用变更编辑模式
+    var editModeLogs = [];   // 编辑模式下的操作日志
+    var originalSlips = [];  // 原始工资条数据备份
+    var pendingChanges = {}; // 待提交的变更 {slipId: {add: [], edit: {}, delete: []}}
+
+    // 年度汇总模式状态
+    var G_yearMode = false;  // 是否处于年度汇总模式
+    var G_yearSelected = ''; // 当前选中年份
     
     var PLUS_TYPES = [];
     var MINUS_TYPES = [];
@@ -374,12 +664,1151 @@
     document.addEventListener('DOMContentLoaded', function() {
         loadFeeItems();
         loadSalarySlips();
+        loadSalaryPendingHint();
     });
+
+    function loadSalaryPendingHint() {
+        // 同时调用两个接口：待审批/已驳回 + 考勤已审批但工资条未提交
+        Promise.all([
+            fetch('/api/pending/salary/projects').then(function(r) { return r.json(); }),
+            fetch('/api/pending/salary/missing').then(function(r) { return r.json(); })
+        ])
+        .then(function(results) {
+            var pendingData = results[0];
+            var missingData = results[1];
+            
+            var pending = pendingData.pending || [];
+            // 待审批提示（黄色）- 根据是否当前用户审批显示不同文案
+            var myApprovals = [];
+            var otherApprovals = [];
+            pending.forEach(function(item) {
+                if (item.isMyApproval) {
+                    myApprovals.push(item.project);
+                } else {
+                    otherApprovals.push(item.project);
+                }
+            });
+            
+            var pendingHtml = '';
+            if (myApprovals.length > 0) {
+                pendingHtml += '<span style="font-size:12px;color:#d97706;background:#fef3c7;border:1px solid #fcd34d;border-radius:6px;padding:4px 10px;margin-right:4px;">' +
+                    '<i class="bi bi-bell-fill me-1"></i>待我审批：' + myApprovals.join('、') + '</span>';
+            }
+            if (otherApprovals.length > 0) {
+                pendingHtml += '<span style="font-size:12px;color:#d97706;background:#fef3c7;border:1px solid #fcd34d;border-radius:6px;padding:4px 10px;">' +
+                    '<i class="bi bi-bell-fill me-1"></i>审批中：' + otherApprovals.join('、') + '</span>';
+            }
+            
+            // 未生效提示（红色）：已驳回 + 考勤已审批但工资条未提交/被驳回
+            var rejected = pendingData.rejected || [];
+            var draft = missingData.draft || [];
+            var missingRejected = missingData.rejected || [];
+            // 合并所有未生效的项目月份（去重）
+            var inactiveSet = new Set();
+            rejected.forEach(function(item) { inactiveSet.add(item); });
+            draft.forEach(function(item) { inactiveSet.add(item); });
+            missingRejected.forEach(function(item) { inactiveSet.add(item); });
+            var inactiveList = Array.from(inactiveSet);
+            var inactiveHtml = '';
+            if (inactiveList.length > 0) {
+                inactiveHtml = '<span style="font-size:12px;color:#dc2626;background:#fee2e2;border:1px solid #fca5a5;border-radius:6px;padding:4px 10px;">' +
+                    '<i class="bi bi-x-circle-fill me-1"></i>未生效：' + inactiveList.join('、') + '</span>';
+            }
+            
+            // 填充到顶部导航栏的提示区域
+            var topHints = document.getElementById('topPageHints');
+            if (topHints) {
+                topHints.innerHTML = pendingHtml + (pendingHtml && inactiveHtml ? ' ' : '') + inactiveHtml;
+            }
+        })
+        .catch(function() {});
+    }
+    
+    // ===================== 年度汇总逻辑 =====================
+
+    // 点击顶部按钮：年度汇总 / 恢复当月
+    function toggleYearMode() {
+        if (G_yearMode) {
+            // 当前是年度模式 → 恢复当月
+            exitYearMode();
+        } else {
+            // 当前是月度模式 → 打开弹窗选年份
+            showYearTotal();
+        }
+    }
+
+    // 打开年度汇总弹窗
+    function showYearTotal() {
+        var yearSelect = document.getElementById('yearSelect');
+        var currentYear = new Date().getFullYear();
+        yearSelect.innerHTML = '';
+        for (var i = 0; i < 5; i++) {
+            var y = currentYear - i;
+            var opt = document.createElement('option');
+            opt.value = y.toString();
+            opt.textContent = y + '年';
+            if (i === 0) opt.selected = true;
+            yearSelect.appendChild(opt);
+        }
+        // 重置弹窗状态
+        document.getElementById('yearTotalHasData').style.display = 'none';
+        document.getElementById('yearTotalEmpty').style.display = 'none';
+        document.getElementById('yearTotalLoading').style.display = '';
+        // 更新按钮文案为当前项目名
+        updateYearBtnText();
+        // 加载数据
+        loadYearTotal();
+        var modal = new bootstrap.Modal(document.getElementById('yearTotalModal'));
+        modal.show();
+    }
+
+    // 更新弹窗内"查看"按钮文案
+    function updateYearBtnText() {
+        var year = document.getElementById('yearSelect') ? document.getElementById('yearSelect').value : '';
+        var projName = getProjectName(projectId);
+        document.getElementById('btnViewYearDetailText').textContent =
+            '查看' + year + '年度' + projName + '员工工资汇总';
+    }
+
+    // 根据 projectId 获取项目名称
+    function getProjectName(pid) {
+        if (!projects || !projects.length) {
+            var sel = document.getElementById('projectId');
+            if (sel) {
+                var opt = sel.options[sel.selectedIndex];
+                return opt ? opt.text : '当前项目';
+            }
+            return '当前项目';
+        }
+        for (var i = 0; i < projects.length; i++) {
+            if (String(projects[i].id) === String(pid)) return projects[i].name;
+        }
+        return '当前项目';
+    }
+
+    // 加载年度汇总检查（仅检查有无数据）
+    function loadYearTotal() {
+        var year = document.getElementById('yearSelect').value;
+        G_yearSelected = year;
+        document.getElementById('yearTotalHasData').style.display = 'none';
+        document.getElementById('yearTotalEmpty').style.display = 'none';
+        document.getElementById('yearTotalLoading').style.display = '';
+        updateYearBtnText();
+        fetch('/salary/api/year-total?projectId=' + projectId + '&year=' + year)
+            .then(function(r) { return r.json(); })
+            .then(function(result) {
+                document.getElementById('yearTotalLoading').style.display = 'none';
+                if (result.success) {
+                    var months = parseInt(result.data.approvedMonths) || 0;
+                    if (months === 0) {
+                        document.getElementById('yearTotalEmpty').style.display = '';
+                    } else {
+                        document.getElementById('approvedMonthsHint').textContent = months;
+                        document.getElementById('yearTotalHasData').style.display = '';
+                    }
+                } else {
+                    document.getElementById('yearTotalEmpty').style.display = '';
+                }
+            })
+            .catch(function() {
+                document.getElementById('yearTotalLoading').style.display = 'none';
+                document.getElementById('yearTotalEmpty').style.display = '';
+            });
+    }
+
+    // 点击弹窗内"查看"按钮：进入年度汇总列表模式
+    function applyYearView() {
+        // 关闭弹窗
+        var modalEl = document.getElementById('yearTotalModal');
+        var modal = bootstrap.Modal.getInstance(modalEl);
+        if (modal) modal.hide();
+        // 进入年度视图
+        enterYearMode(G_yearSelected);
+    }
+
+    // 进入年度汇总模式
+    function enterYearMode(year) {
+        G_yearMode = true;
+        G_yearSelected = year;
+        var projName = getProjectName(projectId);
+
+        // 按钮变为"恢复当月"
+        document.getElementById('btnYearTotalText').textContent = '返回月度视图';
+        document.getElementById('btnYearTotal').classList.remove('btn-outline-primary');
+        document.getElementById('btnYearTotal').classList.add('btn-outline-secondary');
+
+        // 隐藏项目和月份筛选，显示年度标签
+        document.querySelector('.salary-container').classList.add('year-mode');
+        // 姓名筛选框保持显示
+        var yearLabel = document.getElementById('yearViewLabel');
+        if (yearLabel) yearLabel.style.display = '';
+        document.getElementById('yearViewLabelText').textContent =
+            year + '年度 · ' + projName + ' · 员工工资汇总';
+
+        // 隐藏月度状态区域
+        document.getElementById('monthModeArea').style.display = 'none';
+        // 年度模式下隐藏提交审批按钮（避免年度汇总页面误操作）
+        var btnSubmit = document.getElementById('btnSubmit');
+        if (btnSubmit) btnSubmit.style.display = 'none';
+
+        // 切换表头
+        document.getElementById('headMonthly').style.display = 'none';
+        document.getElementById('headYearly').style.display = '';
+
+        // 加载年度员工汇总列表
+        loadYearTableData(year);
+    }
+
+    // 退出年度汇总模式，恢复当月
+    function exitYearMode() {
+        G_yearMode = false;
+        G_yearExpandedId = null;
+        G_yearList = [];
+        // 按钮恢复
+        document.getElementById('btnYearTotalText').textContent = '年度汇总';
+        document.getElementById('btnYearTotal').classList.remove('btn-outline-secondary');
+        document.getElementById('btnYearTotal').classList.add('btn-outline-primary');
+
+        // 恢复项目和月份筛选，隐藏年度标签
+        document.querySelector('.salary-container').classList.remove('year-mode');
+        var yearLabel = document.getElementById('yearViewLabel');
+        if (yearLabel) yearLabel.style.display = 'none';
+
+        // 恢复月度状态区域
+        document.getElementById('monthModeArea').style.display = '';
+
+        // 恢复月度表头
+        document.getElementById('headMonthly').style.display = '';
+        document.getElementById('headYearly').style.display = 'none';
+
+        // 重新加载当月数据
+        loadSalarySlips();
+    }
+
+    // 加载年度按员工聚合列表
+    function loadYearTableData(year) {
+        var tbody = document.getElementById('salaryTableBody');
+        var emptyHint = document.getElementById('emptyHint');
+        tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">' +
+            '<div class="spinner-border spinner-border-sm me-2"></div>加载中...</td></tr>';
+        emptyHint.style.display = 'none';
+
+        fetch('/salary/api/year-by-employee?projectId=' + projectId + '&year=' + year)
+            .then(function(r) { return r.json(); })
+            .then(function(result) {
+                if (!result.success) {
+                    tbody.innerHTML = '';
+                    emptyHint.style.display = '';
+                    return;
+                }
+                var list = result.list || [];
+                if (list.length === 0) {
+                    tbody.innerHTML = '';
+                    emptyHint.style.display = '';
+                    return;
+                }
+                emptyHint.style.display = 'none';
+                renderYearTable(list);
+            })
+            .catch(function() {
+                tbody.innerHTML = '';
+                emptyHint.style.display = '';
+            });
+    }
+
+    // 年度汇总数据缓存（按员工id）
+    var G_yearList = [];
+    var G_yearExpandedId = null;
+
+    // 渲染年度汇总表格（按员工）
+    function renderYearTable(list) {
+        G_yearList = list;
+        G_yearExpandedId = null;
+        var tbody = document.getElementById('salaryTableBody');
+        // 计算合计行
+        var totalBase = 0, totalAdd = 0, totalDed = 0, totalPay = 0, totalActual = 0, totalRemain = 0;
+        list.forEach(function(r) {
+            totalBase += parseFloat(r.baseAmount) || 0;
+            totalAdd  += parseFloat(r.additionAmount) || 0;
+            totalDed  += parseFloat(r.deductionAmount) || 0;
+            totalPay  += parseFloat(r.payableAmount) || 0;
+            // 实际付款 = 费用减项总和
+            var actualPay = parseFloat(r.deductionAmount) || 0;
+            totalActual += actualPay;
+            // 剩余待付 = 应付工资总和 - 实际付款总和
+            totalRemain += (parseFloat(r.payableAmount) || 0) - actualPay;
+        });
+
+        var html = '';
+        list.forEach(function(r) {
+            var eid = r.employeeId;
+            // 计算实际付款和剩余待付
+            var actualPay = parseFloat(r.deductionAmount) || 0;
+            var remainPay = (parseFloat(r.payableAmount) || 0) - actualPay;
+            html += '<tr class="year-slip-row" data-eid="' + eid + '">' +
+                '<td>' + esc(r.employeeName || '-') + '</td>' +
+                '<td style="font-size:12px;color:#6b7280;">' + esc(r.idCard || '-') + '</td>' +
+                '<td style="font-size:12px;color:#6b7280;">' + esc(r.phone || '-') + '</td>' +
+                '<td>' + esc(r.jobCategoryName || '-') + '</td>' +
+                '<td class="amount-cell" style="color:#6b7280;text-align:right;">' + (r.monthCount || 0) + ' 个月</td>' +
+                '<td class="amount-cell amount-plain" style="text-align:right;">' + fmt(r.baseAmount) + '</td>' +
+                '<td class="amount-cell amount-plus" style="text-align:right;">' + fmt(r.additionAmount) + '</td>' +
+                '<td class="amount-cell amount-minus" style="text-align:right;">' + fmt(r.deductionAmount) + '</td>' +
+                '<td class="amount-cell amount-total payable-cell" style="text-align:right;">' + fmt(r.payableAmount) + '</td>' +
+                '<td class="amount-cell" style="text-align:right;color:#374151;">' + fmt(actualPay) + '</td>' +
+                '<td class="amount-cell" style="text-align:right;color:#dc2626;font-weight:600;">' + fmt(remainPay) + '</td>' +
+                '<td style="white-space:nowrap;">' +
+                    '<button class="btn btn-sm btn-outline-secondary" onclick="toggleYearExpand(' + eid + ')" style="padding:4px 10px;font-size:12px;">' +
+                    '费用明细<i class="bi bi-chevron-down"></i></button>' +
+                '</td>' +
+                '</tr>';
+        });
+
+        // 合计行
+        html += '<tr class="year-total-row" style="background:#f0f7ff;font-weight:700;border-top:2px solid #3b82f6;">' +
+            '<td colspan="4" style="font-weight:700;color:#374151;">合计（共 ' + list.length + ' 人）</td>' +
+            '<td></td>' +
+            '<td class="amount-cell amount-plain" style="text-align:right;">' + fmt(totalBase) + '</td>' +
+            '<td class="amount-cell amount-plus" style="text-align:right;">' + fmt(totalAdd) + '</td>' +
+            '<td class="amount-cell amount-minus" style="text-align:right;">' + fmt(totalDed) + '</td>' +
+            '<td class="amount-cell amount-total payable-cell" style="text-align:right;">' + fmt(totalPay) + '</td>' +
+            '<td class="amount-cell" style="text-align:right;color:#374151;">' + fmt(totalActual) + '</td>' +
+            '<td class="amount-cell" style="text-align:right;color:#dc2626;font-weight:600;">' + fmt(totalRemain) + '</td>' +
+            '<td></td>' +
+            '</tr>';
+
+        tbody.innerHTML = html;
+    }
+
+    // 年度模式下展开/收起某员工的年度明细
+    function toggleYearExpand(employeeId) {
+        var tbody = document.getElementById('salaryTableBody');
+        var isClosing = (G_yearExpandedId == employeeId);
+
+        // 先清理已展开的明细行
+        var oldDetail = tbody.querySelector('.year-fee-detail-row');
+        if (oldDetail) oldDetail.parentNode.removeChild(oldDetail);
+        // 恢复所有行显示
+        tbody.querySelectorAll('tr.year-slip-row.fading-out').forEach(function(tr) {
+            tr.classList.remove('fading-out');
+        });
+        tbody.querySelectorAll('tr.year-slip-row.expanded').forEach(function(tr) {
+            tr.classList.remove('expanded');
+        });
+        // 合计行恢复显示
+        var totalRow = tbody.querySelector('tr.year-total-row');
+        if (totalRow) totalRow.style.display = '';
+
+        if (isClosing) {
+            G_yearExpandedId = null;
+            return;
+        }
+
+        G_yearExpandedId = employeeId;
+
+        // 找目标行，置顶并标记展开
+        var targetRow = tbody.querySelector('tr.year-slip-row[data-eid="' + employeeId + '"]');
+        if (!targetRow) return;
+        targetRow.classList.add('expanded');
+        tbody.insertBefore(targetRow, tbody.firstChild);
+
+        // 隐藏其他员工行和合计行
+        tbody.querySelectorAll('tr.year-slip-row').forEach(function(tr) {
+            if (tr.getAttribute('data-eid') != employeeId) tr.classList.add('fading-out');
+        });
+        if (totalRow) totalRow.style.display = 'none';
+
+        // 显示加载占位
+        var loadingTr = document.createElement('tr');
+        loadingTr.className = 'year-fee-detail-row';
+        loadingTr.innerHTML = '<td colspan="9"><div class="fee-detail-content" style="min-height:80px;">' +
+            '<div class="text-center text-muted py-4"><div class="spinner-border spinner-border-sm me-2"></div>加载中...</div>' +
+            '</div></td>';
+        targetRow.parentNode.insertBefore(loadingTr, targetRow.nextSibling);
+
+        // 请求年度明细数据
+        fetch('/salary/api/year-slips-by-employee?projectId=' + projectId +
+              '&employeeId=' + employeeId + '&year=' + G_yearSelected)
+            .then(function(r) { return r.json(); })
+            .then(function(result) {
+                var detailRow = tbody.querySelector('.year-fee-detail-row');
+                if (!detailRow) return;
+                if (!result.success || !result.slips || result.slips.length === 0) {
+                    detailRow.querySelector('.fee-detail-content').innerHTML =
+                        '<div class="text-center text-muted py-4">暂无明细数据</div>';
+                    return;
+                }
+                detailRow.querySelector('.fee-detail-content').innerHTML =
+                    renderYearFeeDetail(result.slips);
+            })
+            .catch(function() {
+                var detailRow = tbody.querySelector('.year-fee-detail-row');
+                if (detailRow) detailRow.querySelector('.fee-detail-content').innerHTML =
+                    '<div class="text-center text-muted py-4">加载失败，请重试</div>';
+            });
+    }
+
+    // 渲染年度员工费用明细（按月份逐条展示，含完整计算说明）
+    function renderYearFeeDetail(slips) {
+        var html = '';
+        slips.forEach(function(slip) {
+            var items = slip.items || [];
+            var plusItems = items.filter(function(i) { return i.itemType == 1; });
+            var minusItems = items.filter(function(i) { return i.itemType == 2; });
+            var maxRows = Math.max(plusItems.length, minusItems.length, 0);
+
+            html += '<div style="margin-bottom:24px;">';
+            // 月份标题
+            html += '<div style="font-size:13px;font-weight:600;color:#1d4ed8;margin-bottom:8px;padding:6px 10px;' +
+                'background:#eff6ff;border-radius:6px;border-left:3px solid #3b82f6;">' +
+                '<i class="bi bi-calendar3 me-2"></i>' + esc(slip.salaryPeriod) + ' 工资条</div>';
+
+            // === 计算说明（与月度视图保持一致） ===
+            var salaryType = slip.salaryType == 1 ? '日薪' : '月薪';
+            var calcLines = [];
+            if (salaryType == '日薪') {
+                var dh = slip.dailyWorkHours ? parseFloat(slip.dailyWorkHours) : null;
+                var ah = slip.attendanceHours != null ? parseFloat(slip.attendanceHours) : null;
+                var wot = slip.weekdayOTHours != null ? parseFloat(slip.weekdayOTHours) : 0;
+                var rot = slip.restdayOTHours != null ? parseFloat(slip.restdayOTHours) : 0;
+                var hot = slip.holidayOTHours != null ? parseFloat(slip.holidayOTHours) : 0;
+                if (dh && ah !== null) {
+                    var wr = slip.weekdayOTRate != null ? parseFloat(slip.weekdayOTRate) : 1;
+                    var rr = slip.restdayOTRate != null ? parseFloat(slip.restdayOTRate) : 1;
+                    var hr = slip.holidayOTRate != null ? parseFloat(slip.holidayOTRate) : 1;
+                    calcLines.push('<i class="bi bi-info-circle me-1"></i>出勤天数计算公式：（出勤工时 ÷ 每日工时）+（工作日加班工时 × 工作日加班费率 ÷ 每日工时）+（休息日加班工时 × 休息日加班费率 ÷ 每日工时）+（节假日加班工时 × 节假日加班费率 ÷ 每日工时）');
+                    var valueLine = '每日标准工时：' + dh.toFixed(0) + 'h，当月出勤总工时 ' + ah.toFixed(1) + 'h';
+                    if (wot > 0) valueLine += '，当月工作日加班总工时 ' + wot.toFixed(1) + 'h，加班费率' + wr.toFixed(1);
+                    if (rot > 0) valueLine += '，当月休息日加班总工时 ' + rot.toFixed(1) + 'h，加班费率' + rr.toFixed(1);
+                    if (hot > 0) valueLine += '，当月节假日加班总工时 ' + hot.toFixed(1) + 'h，加班费率' + hr.toFixed(1);
+                    calcLines.push('<i class="bi bi-clock me-1"></i>' + valueLine);
+                    var calcParts = ['（' + ah.toFixed(1) + ' ÷ ' + dh.toFixed(0) + '）'];
+                    if (wot > 0) calcParts.push('（' + wot.toFixed(1) + ' × ' + wr.toFixed(1) + ' ÷ ' + dh.toFixed(0) + '）');
+                    if (rot > 0) calcParts.push('（' + rot.toFixed(1) + ' × ' + rr.toFixed(1) + ' ÷ ' + dh.toFixed(0) + '）');
+                    if (hot > 0) calcParts.push('（' + hot.toFixed(1) + ' × ' + hr.toFixed(1) + ' ÷ ' + dh.toFixed(0) + '）');
+                    calcLines.push('<i class="bi bi-calculator me-1"></i>出勤天数：' + calcParts.join(' + ') + ' = <b style="color:#374151;font-size:13px;">' + fmt(slip.attendanceDays) + ' 天</b>');
+                    calcLines.push('<i class="bi bi-calculator me-1"></i>考勤工资 = 日薪（' + fmt(slip.baseSalary) + ' 元）× 出勤天数（' + fmt(slip.attendanceDays) + ' 天）= <b style="color:#16a34a;font-size:13px;">' + fmt(slip.baseAmount) + ' 元</b>');
+                } else if (dh && parseFloat(dh) === -1) {
+                    var days = ah !== null ? parseFloat(ah) : parseFloat(slip.attendanceDays || 0);
+                    calcLines.push('<i class="bi bi-clock me-1"></i>本月共有 <b>' + days + ' 条</b>考勤记录（未配置工时标准，每条记录计 1 天）');
+                    calcLines.push('<i class="bi bi-info-circle me-1"></i>出勤天数 = 考勤条数 = <b style="color:#374151;font-size:13px;">' + fmt(slip.attendanceDays) + ' 天</b>');
+                    calcLines.push('<i class="bi bi-calculator me-1"></i>考勤工资 = 日薪（' + fmt(slip.baseSalary) + ' 元）× 出勤天数（' + fmt(slip.attendanceDays) + ' 天）= <b style="color:#16a34a;font-size:13px;">' + fmt(slip.baseAmount) + ' 元</b>');
+                } else {
+                    calcLines.push('<i class="bi bi-info-circle me-1"></i>出勤天数 = <b style="color:#374151;font-size:13px;">' + fmt(slip.attendanceDays) + ' 天</b>');
+                    calcLines.push('<i class="bi bi-calculator me-1"></i>考勤工资 = 日薪（' + fmt(slip.baseSalary) + ' 元）× 出勤天数（' + fmt(slip.attendanceDays) + ' 天）= <b style="color:#16a34a;font-size:13px;">' + fmt(slip.baseAmount) + ' 元</b>');
+                }
+            } else {
+                calcLines.push('<i class="bi bi-info-circle me-1"></i>月薪制，考勤工资直接取月薪');
+                calcLines.push('<i class="bi bi-calculator me-1"></i>考勤工资 = 月薪 <b style="color:#16a34a;font-size:13px;">' + fmt(slip.baseSalary) + ' 元</b>');
+            }
+            calcLines.push('<i class="bi bi-cash-stack me-1"></i>应付工资 = 考勤工资（' + fmt(slip.baseAmount) + ' 元）+ 费用加项（' + fmt(slip.additionAmount) + ' 元）= <b style="color:#1d4ed8;font-size:14px;">' + fmt(slip.payableAmount) + ' 元</b>');
+            
+            // 计算实际付款和剩余待付
+            var actualPayment = slip.deductionAmount || 0;
+            var remainingAmount = (slip.payableAmount || 0) - actualPayment;
+            calcLines.push('<i class="bi bi-credit-card me-1"></i>实际付款 = 费用减项（' + fmt(slip.deductionAmount) + ' 元）= <b style="color:#374151;font-size:14px;">' + fmt(actualPayment) + ' 元</b>');
+            calcLines.push('<i class="bi bi-wallet me-1"></i>剩余待付 = 应付工资（' + fmt(slip.payableAmount) + ' 元）− 实际付款（' + fmt(actualPayment) + ' 元）= <b style="color:#dc2626;font-size:14px;">' + fmt(remainingAmount) + ' 元</b>');
+
+            html += '<div style="background:#f8f9fa;border-radius:6px;padding:10px 12px;margin-bottom:10px;font-size:12px;color:#6b7280;line-height:1.9;">' +
+                calcLines.map(function(line) { return '<div>' + line + '</div>'; }).join('') +
+                '</div>';
+
+            // 费用明细表
+            if (maxRows === 0) {
+                html += '<div class="fee-table-header" style="grid-template-columns:1fr 1fr;">' +
+                    '<span class="col-plus">费用加项</span><span class="col-minus">费用减项</span></div>' +
+                    '<div class="fee-table-row"><div class="fee-empty">暂无费用明细</div></div>';
+            } else {
+                html += '<div class="fee-table-header" style="grid-template-columns:1fr 1fr;">' +
+                    '<span class="col-plus">费用加项</span><span class="col-minus">费用减项</span></div>';
+                for (var i = 0; i < maxRows; i++) {
+                    var plus = plusItems[i];
+                    var minus = minusItems[i];
+                    html += '<div class="fee-table-row">';
+                    if (plus) {
+                        html += '<span class="fee-col-name">' + esc(plus.itemName) + '</span>' +
+                            '<span class="fee-col-amt plus">' + fmt(plus.amount) + '</span>' +
+                            '<span></span>';
+                    } else {
+                        html += '<span></span><span></span><span></span>';
+                    }
+                    if (minus) {
+                        html += '<span class="fee-col-name">' + esc(minus.itemName) + '</span>' +
+                            '<span class="fee-col-amt minus">' + fmt(minus.amount) + '</span>' +
+                            '<span></span>';
+                    } else {
+                        html += '<span></span><span></span><span></span>';
+                    }
+                    html += '</div>';
+                }
+            }
+            html += '</div>';
+        });
+        return html;
+    }
+
+    // ===================== 月度逻辑 =====================
+    // ===================== 月度逻辑 =====================
+    
+    // ===== 变更费用相关功能 =====
+    
+    // 显示变更费用确认弹窗
+    function showChangeFeeConfirm() {
+        // 更新弹窗中的项目名称和月份
+        var projectName = '';
+        var projectSelect = document.getElementById('projectId');
+        if (projectSelect) {
+            projectName = projectSelect.options[projectSelect.selectedIndex].text;
+        }
+        var periodText = salaryPeriod.replace('-', '年') + '月';
+        document.getElementById('changeFeeProjectName').textContent = projectName;
+        document.getElementById('changeFeePeriod').textContent = periodText;
+        
+        new bootstrap.Modal(document.getElementById('changeFeeConfirmModal')).show();
+    }
+    
+    // 进入编辑模式
+    function enterEditMode() {
+        bootstrap.Modal.getInstance(document.getElementById('changeFeeConfirmModal')).hide();
+        
+        // 备份原始数据
+        originalSlips = JSON.parse(JSON.stringify(salarySlips));
+        editModeLogs = [];
+        isEditMode = true;
+        
+        // 更新UI
+        document.getElementById('btnChangeFee').style.display = 'none';
+        document.getElementById('btnYearTotal').style.display = 'none';
+        document.getElementById('btnApproveArea').style.display = 'none';
+        document.getElementById('monthModeArea').style.display = 'none';
+        document.getElementById('editModeArea').style.display = 'flex';
+        
+        // 重新渲染表格，显示加减费用按钮
+        renderTable();
+        
+        // 更新状态为变更待审（status=2）
+        updateMonthStatusToChangePending();
+        
+        // 添加提示
+        showEditModeToast();
+    }
+    
+    // 从状态2（变更待审）自动进入编辑模式（不调用后端API）
+    function enterEditModeFromStatus() {
+        // 备份原始数据
+        originalSlips = JSON.parse(JSON.stringify(salarySlips));
+        editModeLogs = [];
+        isEditMode = true;
+        
+        // 更新UI
+        document.getElementById('btnChangeFee').style.display = 'none';
+        document.getElementById('btnYearTotal').style.display = 'none';
+        document.getElementById('btnApproveArea').style.display = 'none';
+        document.getElementById('monthModeArea').style.display = 'none';
+        document.getElementById('editModeArea').style.display = 'flex';
+        
+        // 添加提示
+        showEditModeToast();
+    }
+    
+    // 更新状态为变更待审（进入编辑模式时调用）
+    function updateMonthStatusToChangePending() {
+        var params = new URLSearchParams();
+        params.append('projectId', projectId);
+        params.append('salaryPeriod', salaryPeriod);
+        params.append('changeReason', '进入费用变更编辑模式');
+        
+        fetch('/salary/api/enter-edit-mode', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+            body: params
+        }).then(function(r) { return r.json(); })
+        .then(function(res) {
+            if (res.success) {
+                // 更新本地状态
+                G.monthStatus = 2;
+                updateMonthStatus(2, G.monthStatusData);
+            } else {
+                console.error('更新状态失败:', res.message);
+            }
+        }).catch(function(e) {
+            console.error('更新状态失败:', e);
+        });
+    }
+    
+    // 显示编辑模式提示
+    function showEditModeToast() {
+        var toast = document.createElement('div');
+        toast.id = 'editModeToast';
+        toast.style.cssText = 'position:sticky;top:0;left:0;right:0;background:#fef3c7;border-bottom:1px solid #f59e0b;color:#92400e;padding:10px 16px;z-index:100;font-size:13px;text-align:center;';
+        toast.innerHTML = '<i class="bi bi-pencil-square me-2"></i>您已进入费用变更编辑模式，所有操作将被记录，点击"提交所有变更"审批通过后方可生效';
+        
+        // 插入到表格容器前面
+        var tableWrap = document.querySelector('.salary-table-wrap');
+        if (tableWrap) {
+            tableWrap.parentNode.insertBefore(toast, tableWrap);
+        }
+    }
+    
+    // 退出编辑模式
+    function exitEditMode() {
+        isEditMode = false;
+        editModeLogs = [];
+        pendingChanges = {}; // 清空待提交变更
+        
+        // 恢复原始数据
+        if (originalSlips.length > 0) {
+            salarySlips = JSON.parse(JSON.stringify(originalSlips));
+        }
+        
+        // 更新UI
+        document.getElementById('editModeArea').style.display = 'none';
+        document.getElementById('monthModeArea').style.display = 'flex';
+        document.getElementById('btnYearTotal').style.display = 'inline-block'; // 恢复年度汇总按钮
+        
+        // 检查是否显示变更费用按钮
+        var monthStatus = G.monthStatus || 0;
+        if (monthStatus == 5) {
+            document.getElementById('btnChangeFee').style.display = 'inline-block';
+        }
+        
+        // 移除提示
+        var toast = document.getElementById('editModeToast');
+        if (toast) toast.remove();
+        
+        // 更新状态显示（恢复"已锁定"）
+        updateMonthStatus(G.monthStatus, G.monthStatusData);
+        
+        // 重新渲染
+        renderTable();
+    }
+    
+    // 取消变更
+    function cancelChanges() {
+        // 使用Bootstrap Modal确认
+        new bootstrap.Modal(document.getElementById('cancelConfirmModal')).show();
+    }
+    
+    // 确认取消变更
+    function confirmCancelChanges() {
+        bootstrap.Modal.getInstance(document.getElementById('cancelConfirmModal')).hide();
+        doCancelChanges();
+    }
+    
+    // 执行取消变更（调用后端接口）
+    function doCancelChanges() {
+        var params = new URLSearchParams();
+        params.append('projectId', projectId);
+        params.append('salaryPeriod', salaryPeriod);
+        
+        fetch('/salary/api/cancel-fee-change', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: params
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.success) {
+                exitEditMode();
+                loadSalarySlips(); // 刷新数据
+                showToast('变更已取消', 'success');
+            } else {
+                showToast(data.message || '取消失败', 'error');
+            }
+        })
+        .catch(function(e) {
+            console.error('取消变更失败:', e);
+            showToast('取消失败，请重试', 'error');
+        });
+    }
+    
+    // 记录操作日志
+    function logOperation(operationType, slipId, employeeName, itemName, oldValue, newValue) {
+        var log = {
+            time: new Date().toLocaleString(),
+            operation: operationType, // ADD, EDIT, DELETE
+            slipId: slipId,
+            employeeName: employeeName,
+            itemName: itemName,
+            oldValue: oldValue,
+            newValue: newValue
+        };
+        editModeLogs.push(log);
+        console.log('[操作日志]', log);
+    }
+    
+    // 查看变更日志
+    function showChangeLogs() {
+        if (editModeLogs.length == 0) {
+            showModal({
+                title: '提示',
+                content: '<div class="text-center py-3"><i class="bi bi-info-circle text-muted" style="font-size:32px;"></i><p class="mt-2 text-muted">暂无变更记录</p></div>',
+                size: 'sm',
+                buttons: [
+                    { text: '确定', class: 'btn btn-primary' }
+                ]
+            });
+            return;
+        }
+        
+        // 按员工分组
+        var logsByEmployee = {};
+        editModeLogs.forEach(function(log) {
+            if (!logsByEmployee[log.employeeName]) {
+                logsByEmployee[log.employeeName] = {
+                    plus: [],
+                    minus: []
+                };
+            }
+            // 根据itemType或从pendingChanges中查找来确定加减项类型
+            var itemType = log.itemType;
+            if (!itemType && log.itemId) {
+                // 从pendingChanges中查找
+                for (var slipId in pendingChanges) {
+                    var changes = pendingChanges[slipId];
+                    if (changes.edit[log.itemId]) {
+                        itemType = changes.edit[log.itemId].itemType;
+                        break;
+                    }
+                    if (changes.delete.find(function(d) { return d.itemId == log.itemId; })) {
+                        var delItem = changes.delete.find(function(d) { return d.itemId == log.itemId; });
+                        itemType = delItem.itemType;
+                        break;
+                    }
+                }
+            }
+            
+            if (itemType == 2) {
+                logsByEmployee[log.employeeName].minus.push(log);
+            } else {
+                logsByEmployee[log.employeeName].plus.push(log);
+            }
+        });
+        
+        var html = '<div style="padding:8px;">';
+        
+        for (var employeeName in logsByEmployee) {
+            var group = logsByEmployee[employeeName];
+            
+            html += '<div style="padding:12px;border:1px solid #e5e7eb;border-radius:6px;margin-bottom:12px;background:#f8f9fa;">' +
+                '<div style="font-weight:600;color:#374151;margin-bottom:12px;border-bottom:1px solid #e5e7eb;padding-bottom:8px;">' + esc(employeeName) + '</div>' +
+                '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">';
+            
+            // 费用加项
+            if (group.plus.length > 0) {
+                html += '<div>' +
+                    '<div style="font-weight:600;color:#16a34a;font-size:13px;margin-bottom:6px;">费用加项</div>';
+                group.plus.forEach(function(log) {
+                    html += renderChangeLogItem(log);
+                });
+                html += '</div>';
+            } else {
+                html += '<div></div>';
+            }
+            
+            // 费用减项
+            if (group.minus.length > 0) {
+                html += '<div>' +
+                    '<div style="font-weight:600;color:#dc2626;font-size:13px;margin-bottom:6px;">费用减项</div>';
+                group.minus.forEach(function(log) {
+                    html += renderChangeLogItem(log);
+                });
+                html += '</div>';
+            } else {
+                html += '<div></div>';
+            }
+            
+            html += '</div></div>';
+        }
+        
+        html += '</div>';
+        
+        document.getElementById('changeLogsContent').innerHTML = html;
+        new bootstrap.Modal(document.getElementById('changeLogsModal')).show();
+    }
+    
+    // 显示待审批的变更内容（状态1时使用，打开变更记录弹窗）
+    function showChangeLogsModal() {
+        // 从后端查询待审批的变更日志
+        fetch('/salary/api/fee-change-logs-by-period?projectId=' + projectId + '&salaryPeriod=' + salaryPeriod)
+            .then(function(r) { return r.json(); })
+            .then(function(result) {
+                var logs = result.logs || [];
+                if (logs.length == 0) {
+                    showModal({
+                        title: '提示',
+                        content: '<div class="text-center py-3"><i class="bi bi-info-circle text-muted" style="font-size:32px;"></i><p class="mt-2 text-muted">暂无变更记录</p></div>',
+                        size: 'sm',
+                        buttons: [{ text: '确定', class: 'btn btn-primary' }]
+                    });
+                    return;
+                }
+                
+                // 按员工分组
+                var logsByEmployee = {};
+                logs.forEach(function(log) {
+                    var empName = log.employeeName || '未知员工';
+                    if (!logsByEmployee[empName]) {
+                        logsByEmployee[empName] = { plus: [], minus: [] };
+                    }
+                    if (log.itemType == 2) {
+                        logsByEmployee[empName].minus.push(log);
+                    } else {
+                        logsByEmployee[empName].plus.push(log);
+                    }
+                });
+                
+                var html = '<div style="padding:8px;">';
+                
+                for (var empName in logsByEmployee) {
+                    var empLogs = logsByEmployee[empName];
+                    html += '<div style="margin-bottom:16px;border:1px solid #e5e7eb;border-radius:8px;padding:12px;">' +
+                        '<div style="font-weight:600;color:#374151;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid #e5e7eb;">' + esc(empName) + '</div>' +
+                        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">';
+                    
+                    // 费用加项
+                    html += '<div>' +
+                        '<div style="font-weight:600;color:#16a34a;font-size:13px;margin-bottom:8px;">费用加项</div>';
+                    if (empLogs.plus.length == 0) {
+                        html += '<div style="color:#9ca3af;font-size:12px;">无</div>';
+                    } else {
+                        empLogs.plus.forEach(function(log) {
+                            html += renderPendingChangeLogItem(log);
+                        });
+                    }
+                    html += '</div>';
+                    
+                    // 费用减项
+                    html += '<div>' +
+                        '<div style="font-weight:600;color:#dc2626;font-size:13px;margin-bottom:8px;">费用减项</div>';
+                    if (empLogs.minus.length == 0) {
+                        html += '<div style="color:#9ca3af;font-size:12px;">无</div>';
+                    } else {
+                        empLogs.minus.forEach(function(log) {
+                            html += renderPendingChangeLogItem(log);
+                        });
+                    }
+                    html += '</div>';
+                    
+                    html += '</div></div>';
+                }
+                
+                html += '</div>';
+                
+                document.getElementById('changeLogsContent').innerHTML = html;
+                new bootstrap.Modal(document.getElementById('changeLogsModal')).show();
+            })
+            .catch(function(e) {
+                console.error('加载变更日志失败:', e);
+                showToast('加载变更日志失败', 'error');
+            });
+    }
+    
+    // 渲染待审批变更日志项
+    function renderPendingChangeLogItem(log) {
+        var opText = log.operation == 'ADD' ? '新增' : (log.operation == 'DELETE' ? '删除' : '修改');
+        var opColor = log.operation == 'ADD' ? '#16a34a' : (log.operation == 'DELETE' ? '#dc2626' : '#d97706');
+        
+        var html = '<div style="font-size:13px;padding:4px 0;">' +
+            '<span style="color:' + opColor + ';font-weight:600;">' + opText + '</span> ' +
+            esc(log.itemName);
+        
+        if (log.operation == 'EDIT') {
+            html += ' <span style="color:#dc2626;text-decoration:line-through;">' + fmt(log.oldAmount) + '</span>' +
+                ' <i class="bi bi-arrow-right" style="color:#9ca3af;"></i> ' +
+                '<span style="color:#16a34a;">' + fmt(log.newAmount) + '</span>';
+        } else if (log.operation == 'ADD') {
+            html += ' <span style="color:#16a34a;">+' + fmt(log.newAmount) + '</span>';
+        } else if (log.operation == 'DELETE') {
+            html += ' <span style="color:#dc2626;">-' + fmt(log.oldAmount) + '</span>';
+        }
+        
+        html += '</div>';
+        return html;
+    }
+    
+    // 渲染单条变更日志
+    function renderChangeLogItem(log) {
+        var opText = log.operation == 'ADD' ? '新增' : (log.operation == 'DELETE' ? '删除' : '修改');
+        var opColor = log.operation == 'ADD' ? '#16a34a' : (log.operation == 'DELETE' ? '#dc2626' : '#d97706');
+        
+        // 新增项和编辑项不展示ID，只有删除项展示ID
+        var idLabel = '';
+        // ID 标签已移除，不再展示
+        
+        // 修改人信息已移除，不再展示
+        var modifierLabel = '';
+        
+        var html = '<div style="font-size:13px;padding:4px 0;">' +
+            '<span style="color:' + opColor + ';font-weight:600;">' + opText + '</span> ' +
+            esc(log.itemName);
+        
+        if (log.operation == 'EDIT') {
+            html += ' <span style="color:#dc2626;text-decoration:line-through;">' + fmt(log.oldValue) + '</span>' +
+                ' <i class="bi bi-arrow-right" style="color:#9ca3af;"></i> ' +
+                '<span style="color:#16a34a;">' + fmt(log.newValue) + '</span>';
+        } else if (log.operation == 'ADD') {
+            html += ' <span style="color:#16a34a;">+' + fmt(log.newValue) + '</span>';
+        } else if (log.operation == 'DELETE') {
+            html += ' <span style="color:#dc2626;">-' + fmt(log.oldValue) + '</span>';
+        }
+        
+        html += '</div>';
+        
+        return html;
+    }
+    
+    // 提交所有变更
+    function submitAllChanges() {
+        if (editModeLogs.length == 0) {
+            alert('暂无变更需要提交');
+            return;
+        }
+        
+        // 按员工分组整理变更
+        var changesBySlip = {};
+        editModeLogs.forEach(function(log) {
+            if (!changesBySlip[log.slipId]) {
+                changesBySlip[log.slipId] = {
+                    slipId: log.slipId,
+                    employeeName: log.employeeName,
+                    logs: []
+                };
+            }
+            changesBySlip[log.slipId].logs.push(log);
+        });
+        
+        // 显示提交确认弹窗
+        var html = '<div style="padding:16px;">' +
+            '<div style="background:#fef3c7;border:1px solid #f59e0b;border-radius:8px;padding:12px;margin-bottom:16px;">' +
+            '<i class="bi bi-info-circle-fill" style="color:#d97706;"></i> ' +
+            '<strong>即将提交 ' + editModeLogs.length + ' 条变更记录</strong>' +
+            '</div>';
+        
+        for (var slipId in changesBySlip) {
+            var group = changesBySlip[slipId];
+            html += '<div style="margin-bottom:12px;">' +
+                '<div style="font-weight:600;color:#374151;margin-bottom:8px;">' + esc(group.employeeName) + '</div>';
+            group.logs.forEach(function(log) {
+                var opText = log.operation == 'ADD' ? '新增' : (log.operation == 'DELETE' ? '删除' : '修改');
+                html += '<div style="font-size:13px;color:#6b7280;margin-left:12px;">• ' + opText + ' ' + esc(log.itemName);
+                if (log.operation == 'EDIT') {
+                    html += ' ' + fmt(log.oldValue) + ' → ' + fmt(log.newValue);
+                } else if (log.operation == 'ADD') {
+                    html += ' +' + fmt(log.newValue);
+                } else if (log.operation == 'DELETE') {
+                    html += ' -' + fmt(log.oldValue);
+                }
+                html += '</div>';
+            });
+            html += '</div>';
+        }
+        
+        html += '<div style="margin-top:16px;">' +
+            '<label style="font-size:13px;color:#374151;">变更原因（必填）：</label>' +
+            '<textarea id="submitChangeReason" class="form-control" rows="3" placeholder="请填写变更原因，如：补发餐补、扣除罚款等" style="margin-top:8px;"></textarea>' +
+            '</div></div>';
+        
+        showModal({
+            title: '提交变更申请',
+            content: html,
+            size: 'md',
+            buttons: [
+                { text: '取消', class: 'btn btn-secondary' },
+                { 
+                    text: '提交审批', 
+                    class: 'btn btn-warning',
+                    onclick: function() {
+                        var reason = document.getElementById('submitChangeReason').value.trim();
+                        if (!reason) {
+                            alert('请填写变更原因');
+                            return;
+                        }
+                        doSubmitChanges(reason);
+                        closeModal();
+                    }
+                }
+            ]
+        });
+    }
+    
+    // 执行提交变更
+    function doSubmitChanges(reason) {
+        // 变更已经实时记录到数据库，只需要提交审批（修改状态）
+        var params = new URLSearchParams();
+        params.append('projectId', projectId);
+        params.append('salaryPeriod', salaryPeriod);
+        params.append('changeReason', reason);
+        
+        fetch('/salary/api/submit-fee-changes', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+            body: params
+        }).then(function(r) { return r.json(); })
+        .then(function(res) {
+            if (res.success) {
+                alert('变更申请已提交，等待BOSS审批');
+                exitEditMode();
+                loadSalarySlips();
+            } else {
+                alert('提交失败：' + res.message);
+            }
+        })
+        .catch(function(e) {
+            console.error('提交失败', e);
+            alert('提交失败，请稍后重试');
+        });
+    }
     
     function changeFilter() {
         projectId = document.getElementById('projectId').value;
         salaryPeriod = document.getElementById('salaryPeriod').value;
         window.location.href = '/salary/list?projectId=' + projectId + '&salaryPeriod=' + salaryPeriod;
+    }
+    
+    // 按姓名筛选工资条
+    function filterByName() {
+        var searchValue = document.getElementById('searchName').value.trim().toLowerCase();
+        
+        if (G_yearMode) {
+            // 年度汇总模式下筛选
+            renderYearTableWithFilter(searchValue);
+        } else {
+            // 普通模式下筛选
+            renderTableWithFilter(searchValue);
+        }
+    }
+    
+    // 普通模式下按姓名筛选渲染
+    function renderTableWithFilter(searchValue) {
+        var tbody = document.getElementById('salaryTableBody');
+        var emptyHint = document.getElementById('emptyHint');
+        
+        if (salarySlips.length == 0) {
+            tbody.innerHTML = '';
+            emptyHint.style.display = '';
+            return;
+        }
+        
+        // 筛选数据
+        var filteredSlips = salarySlips;
+        if (searchValue) {
+            filteredSlips = salarySlips.filter(function(s) {
+                return (s.employeeName || '').toLowerCase().indexOf(searchValue) !== -1;
+            });
+        }
+        
+        if (filteredSlips.length == 0) {
+            tbody.innerHTML = '';
+            emptyHint.style.display = '';
+            emptyHint.querySelector('p').textContent = '没有找到匹配的工资条数据';
+            return;
+        }
+        emptyHint.style.display = 'none';
+        
+        // 获取当前月份状态
+        var monthStatus = G.monthStatus || 0;
+        var editable = (monthStatus == 0 || monthStatus == 12);
+        var isApproved = (monthStatus == 5);
+        
+        var html = '';
+        filteredSlips.forEach(function(s) {
+            var salaryTypeText = s.salaryType == 1 ? '日薪' : '月薪';
+            var showAddFeeBtn = isEditMode || editable;
+            
+            // 计算实际付款和剩余待付
+            var actualPayment = s.deductionAmount || 0;
+            var remainingAmount = (s.payableAmount || 0) - actualPayment;
+            
+            html += '<tr data-slip-id="' + s.id + '" class="slip-row">' +
+                '<td>' + esc(s.employeeName) + '</td>' +
+                '<td style="font-size:12px;color:#6b7280;">' + esc(s.idCard || '-') + '</td>' +
+                '<td style="font-size:12px;color:#6b7280;">' + esc(s.phone || '-') + '</td>' +
+                '<td>' + esc(s.jobCategoryName || '-') + '</td>' +
+                '<td class="amount-cell amount-plain" style="text-align:right;">' + fmt(s.baseSalary) + '/' + salaryTypeText + '</td>' +
+                '<td class="amount-cell" style="color:#374151;">' + (s.attendanceDays || 0) + '</td>' +
+                '<td class="amount-cell" style="color:#374151;">' + fmt(s.baseAmount) + '</td>' +
+                '<td class="amount-cell amount-plus">' + fmt(s.additionAmount) + '</td>' +
+                '<td class="amount-cell amount-total payable-cell">' + fmt(s.payableAmount) + '</td>' +
+                '<td class="amount-cell amount-minus">' + fmt(s.deductionAmount) + '</td>' +
+                '<td class="amount-cell" style="color:#374151;">' + fmt(actualPayment) + '</td>' +
+                '<td class="amount-cell" style="color:#dc2626;font-weight:600;">' + fmt(remainingAmount) + '</td>' +
+                '<td style="white-space:nowrap;">' +
+                    (showAddFeeBtn ? '<button class="btn btn-sm btn-outline-primary me-1" onclick="openAddFeeModal(' + s.id + ')" style="padding:4px 10px;font-size:12px;"><i class="bi bi-plus-minus"></i>加减费用</button>' : '') +
+                    '<button class="btn btn-sm btn-outline-secondary" onclick="toggleExpand(' + s.id + ')" style="padding:4px 10px;font-size:12px;">' +
+                    '费用明细<i class="bi bi-chevron-down"></i></button></td>' +
+                '</tr>';
+        });
+        
+        tbody.innerHTML = html;
+    }
+    
+    // 年度汇总模式下按姓名筛选渲染
+    function renderYearTableWithFilter(searchValue) {
+        if (!G_yearList || G_yearList.length == 0) return;
+        
+        // 筛选数据（不修改 G_yearList）
+        var filteredList = G_yearList;
+        if (searchValue) {
+            filteredList = G_yearList.filter(function(r) {
+                return (r.employeeName || '').toLowerCase().indexOf(searchValue) !== -1;
+            });
+        }
+        
+        // 直接渲染表格，不调用 renderYearTable（避免覆盖 G_yearList）
+        var tbody = document.getElementById('salaryTableBody');
+        G_yearExpandedId = null;
+        
+        // 计算合计行
+        var totalBase = 0, totalAdd = 0, totalDed = 0, totalPay = 0, totalActual = 0, totalRemain = 0;
+        filteredList.forEach(function(r) {
+            totalBase += parseFloat(r.baseAmount) || 0;
+            totalAdd  += parseFloat(r.additionAmount) || 0;
+            totalDed  += parseFloat(r.deductionAmount) || 0;
+            totalPay  += parseFloat(r.payableAmount) || 0;
+            var actualPay = parseFloat(r.deductionAmount) || 0;
+            totalActual += actualPay;
+            totalRemain += (parseFloat(r.payableAmount) || 0) - actualPay;
+        });
+
+        var html = '';
+        filteredList.forEach(function(r) {
+            var eid = r.employeeId;
+            var actualPay = parseFloat(r.deductionAmount) || 0;
+            var remainPay = (parseFloat(r.payableAmount) || 0) - actualPay;
+            html += '<tr class="year-slip-row" data-eid="' + eid + '">' +
+                '<td>' + esc(r.employeeName || '-') + '</td>' +
+                '<td style="font-size:12px;color:#6b7280;">' + esc(r.idCard || '-') + '</td>' +
+                '<td style="font-size:12px;color:#6b7280;">' + esc(r.phone || '-') + '</td>' +
+                '<td>' + esc(r.jobCategoryName || '-') + '</td>' +
+                '<td class="amount-cell" style="color:#6b7280;text-align:right;">' + (r.monthCount || 0) + ' 个月</td>' +
+                '<td class="amount-cell amount-plain" style="text-align:right;">' + fmt(r.baseAmount) + '</td>' +
+                '<td class="amount-cell amount-plus" style="text-align:right;">' + fmt(r.additionAmount) + '</td>' +
+                '<td class="amount-cell amount-minus" style="text-align:right;">' + fmt(r.deductionAmount) + '</td>' +
+                '<td class="amount-cell amount-total payable-cell" style="text-align:right;">' + fmt(r.payableAmount) + '</td>' +
+                '<td class="amount-cell" style="text-align:right;color:#374151;">' + fmt(actualPay) + '</td>' +
+                '<td class="amount-cell" style="text-align:right;color:#dc2626;font-weight:600;">' + fmt(remainPay) + '</td>' +
+                '<td style="white-space:nowrap;">' +
+                    '<button class="btn btn-sm btn-outline-secondary" onclick="toggleYearExpand(' + eid + ')" style="padding:4px 10px;font-size:12px;">' +
+                    '费用明细<i class="bi bi-chevron-down"></i></button>' +
+                '</td>' +
+                '</tr>';
+        });
+
+        // 合计行
+        html += '<tr class="year-total-row" style="background:#f0f7ff;font-weight:700;border-top:2px solid #3b82f6;">' +
+            '<td colspan="4" style="font-weight:700;color:#374151;">合计（共 ' + filteredList.length + ' 人）</td>' +
+            '<td></td>' +
+            '<td class="amount-cell amount-plain" style="text-align:right;">' + fmt(totalBase) + '</td>' +
+            '<td class="amount-cell amount-plus" style="text-align:right;">' + fmt(totalAdd) + '</td>' +
+            '<td class="amount-cell amount-minus" style="text-align:right;">' + fmt(totalDed) + '</td>' +
+            '<td class="amount-cell amount-total payable-cell" style="text-align:right;">' + fmt(totalPay) + '</td>' +
+            '<td class="amount-cell" style="text-align:right;color:#374151;">' + fmt(totalActual) + '</td>' +
+            '<td class="amount-cell" style="text-align:right;color:#dc2626;font-weight:600;">' + fmt(totalRemain) + '</td>' +
+            '<td></td>' +
+            '</tr>';
+
+        tbody.innerHTML = html;
     }
     
     function loadSalarySlips() {
@@ -388,13 +1817,34 @@
             .then(function(data) {
                 salarySlips = data.slips || [];
                 expandedSlipId = null; // 数据刷新时清除展开状态
+                
+                // 解析变更效果标记
+                if (data.approveRemark) {
+                    if (data.approveRemark.indexOf('[CHANGE_APPLIED]') >= 0) {
+                        data.changeEffect = 'applied';
+                        data.approveRemark = data.approveRemark.replace('[CHANGE_APPLIED]', '');
+                    } else if (data.approveRemark.indexOf('[CHANGE_REJECTED]') >= 0) {
+                        data.changeEffect = 'rejected';
+                        data.approveRemark = data.approveRemark.replace('[CHANGE_REJECTED]', '');
+                    }
+                }
+                
                 updateMonthStatus(data.monthStatus, data);
+                
+                // 如果状态是2（变更待审），自动进入编辑模式
+                if (data.monthStatus == 2 && !isEditMode) {
+                    enterEditModeFromStatus();
+                }
+                
                 renderTable();
             })
             .catch(function(e) {
                 console.error('加载失败', e);
             });
     }
+    
+    // 【已移除】检查所有工资条是否需要重新计算
+    // 工资条重新计算功能已去除
     
     // 全局状态对象
     var G = { monthStatus: 0, monthStatusData: null, rejectRemark: '' };
@@ -412,26 +1862,56 @@
         if (btnApproveArea) btnApproveArea.style.display = 'none';
         if (statusTip) statusTip.style.display = 'none';
         
+        // 非编辑模式下且非年度汇总模式显示年度汇总按钮
+        if (!isEditMode && !G_yearMode) {
+            document.getElementById('btnYearTotal').style.display = 'inline-block';
+        }
+        
+        // 默认隐藏查看变更按钮
+        var btnViewChangeArea = document.getElementById('btnViewChangeArea');
+        if (btnViewChangeArea) btnViewChangeArea.style.display = 'none';
+        
         if (status == null || status == 0) {
             badge.className = 'badge bg-secondary';
             badge.textContent = '草稿';
-            btnSubmit.style.display = 'inline-block';
+            // 无工资条数据时隐藏提交审批按钮
+            btnSubmit.style.display = (salarySlips.length > 0) ? 'inline-block' : 'none';
         } else if (status == 1) {
             badge.className = 'badge bg-warning text-dark';
             badge.textContent = '待审批';
             btnSubmit.style.display = 'none';
-            // 显示等待谁审批
-            if (statusTip && data.bosses && data.bosses.length > 0) {
-                var bossNames = data.bosses.map(function(b) { return b.name; }).join('、');
-                statusTip.textContent = '等待 ' + bossNames + ' 审批';
-                statusTip.style.display = 'inline';
-            }
-            // BOSS/root 显示审批按钮
+            // 隐藏年度汇总按钮
+            var btnYearTotal = document.getElementById('btnYearTotal');
+            if (btnYearTotal) btnYearTotal.style.display = 'none';
+            // BOSS/root 显示审批按钮（里面已包含查看变更按钮）
             if (isBoss && btnApproveArea) btnApproveArea.style.display = 'inline-flex';
-        } else if (status == 5) {
-            badge.className = 'badge bg-success';
-            badge.textContent = '已锁定';
+            // 非审批人显示查看变更按钮
+            if (!isBoss && btnViewChangeArea) btnViewChangeArea.style.display = 'inline-flex';
+        } else if (status == 2) {
+            badge.className = 'badge bg-info';
+            badge.textContent = '变更待审';
             btnSubmit.style.display = 'none';
+            // 状态2（变更待审）不显示"等待谁审批"和审批按钮
+            // 这些只在状态1（待审批）时显示
+        } else if (status == 5) {
+            // 状态5：已锁定
+            // 判断是否有变更生效标记
+            var changeEffect = data.changeEffect; // 'applied' = 变更已生效, 'rejected' = 变更未生效
+            if (changeEffect === 'applied') {
+                badge.className = 'badge bg-success';
+                badge.textContent = '已锁定、变更已生效';
+            } else if (changeEffect === 'rejected') {
+                badge.className = 'badge bg-success';
+                badge.textContent = '已锁定、变更未生效';
+            } else {
+                badge.className = 'badge bg-success';
+                badge.textContent = '已锁定';
+            }
+            btnSubmit.style.display = 'none';
+            // 非编辑模式下且非年度汇总模式显示变更费用按钮
+            if (!isEditMode && !G_yearMode) {
+                document.getElementById('btnChangeFee').style.display = 'inline-block';
+            }
         } else if (status == 12) {
             badge.className = 'badge bg-danger';
             badge.textContent = '\u5df2\u9a73\u56de';
@@ -446,6 +1926,13 @@
     }
     
     function renderTable() {
+        // 检查是否有姓名筛选条件
+        var searchValue = document.getElementById('searchName').value.trim().toLowerCase();
+        if (searchValue) {
+            renderTableWithFilter(searchValue);
+            return;
+        }
+        
         var tbody = document.getElementById('salaryTableBody');
         var emptyHint = document.getElementById('emptyHint');
         
@@ -459,42 +1946,172 @@
         // 获取当前月份状态（从全局变量或通过updateMonthStatus传递）
         var monthStatus = G.monthStatus || 0;
         var editable = (monthStatus == 0 || monthStatus == 12); // 草稿或已驳回时可编辑
+        var isApproved = (monthStatus == 5); // 已审批状态
         
         var html = '';
         salarySlips.forEach(function(s) {
             var salaryTypeText = s.salaryType == 1 ? '日薪' : '月薪';
             
+            // 编辑模式下显示加减费用按钮
+            var showAddFeeBtn = isEditMode || editable;
+            
+            // 计算实际付款 = 费用减项
+            var actualPayment = s.deductionAmount || 0;
+            // 计算剩余待付 = 应付工资 - 实际付款
+            var remainingAmount = (s.payableAmount || 0) - actualPayment;
+            
             // 主行
             html += '<tr data-slip-id="' + s.id + '" class="slip-row">' +
                 '<td>' + esc(s.employeeName) + '</td>' +
                 '<td style="font-size:12px;color:#6b7280;">' + esc(s.idCard || '-') + '</td>' +
+                '<td style="font-size:12px;color:#6b7280;">' + esc(s.phone || '-') + '</td>' +
                 '<td>' + esc(s.jobCategoryName || '-') + '</td>' +
-                '<td>' + salaryTypeText + '</td>' +
-                '<td class="amount-cell amount-plain">' + fmt(s.baseSalary) + '</td>' +
+                '<td class="amount-cell amount-plain" style="text-align:right;">' + fmt(s.baseSalary) + '/' + salaryTypeText + '</td>' +
                 '<td class="amount-cell" style="color:#374151;">' + (s.attendanceDays || 0) + '</td>' +
                 '<td class="amount-cell" style="color:#374151;">' + fmt(s.baseAmount) + '</td>' +
                 '<td class="amount-cell amount-plus">' + fmt(s.additionAmount) + '</td>' +
-                '<td class="amount-cell amount-minus">' + fmt(s.deductionAmount) + '</td>' +
                 '<td class="amount-cell amount-total payable-cell">' + fmt(s.payableAmount) + '</td>' +
+                '<td class="amount-cell amount-minus">' + fmt(s.deductionAmount) + '</td>' +
+                '<td class="amount-cell" style="color:#374151;">' + fmt(actualPayment) + '</td>' +
+                '<td class="amount-cell" style="color:#dc2626;font-weight:600;">' + fmt(remainingAmount) + '</td>' +
                 '<td style="white-space:nowrap;">' +
-                    (editable ? '<button class="btn btn-sm btn-outline-primary me-1" onclick="openAddFeeModal(' + s.id + ')" style="padding:4px 10px;font-size:12px;"><i class="bi bi-plus-minus"></i>加减费用</button>' : '') +
+                    (showAddFeeBtn ? '<button class="btn btn-sm btn-outline-primary me-1" onclick="openAddFeeModal(' + s.id + ')" style="padding:4px 10px;font-size:12px;"><i class="bi bi-plus-minus"></i>加减费用</button>' : '') +
                     '<button class="btn btn-sm btn-outline-secondary" onclick="toggleExpand(' + s.id + ')" style="padding:4px 10px;font-size:12px;">' +
                     '费用明细<i class="bi bi-chevron-down"></i></button></td>' +
                 '</tr>';
         });
         
         tbody.innerHTML = html;
+        
+        // 如果有之前展开的行，重新展开
+        if (expandedSlipId) {
+            var slip = salarySlips.find(function(s) { return s.id == expandedSlipId; });
+            if (slip) {
+                // 使用 setTimeout 确保 DOM 已经更新
+                setTimeout(function() {
+                    toggleExpand(expandedSlipId);
+                }, 0);
+            }
+        }
+    }
+    
+    // 日志整理：清理已不存在的变更对应的日志
+    function consolidateLogs(slipId) {
+        if (!pendingChanges[slipId]) return;
+        
+        var changes = pendingChanges[slipId];
+        
+        // 清理空日志：只清理那些变更已不存在的日志
+        editModeLogs = editModeLogs.filter(function(log) {
+            if (log.slipId != slipId) return true;
+            // 检查该日志对应的变更是否还存在
+            if (log.operation == 'ADD') {
+                return changes.add.some(function(a) { return a.tempId == log.tempId; });
+            }
+            if (log.operation == 'DELETE') {
+                return changes.delete.some(function(d) { return d.itemId == log.itemId; });
+            }
+            if (log.operation == 'EDIT') {
+                return changes.edit[log.itemId] != null;
+            }
+            return true;
+        });
+    }
+    
+    // 计算编辑模式下的费用汇总（包含待提交变更）
+    function calculatePendingSummary(slip) {
+        var changes = pendingChanges[slip.id] || { add: [], edit: {}, delete: [] };
+        var items = slip.items || [];
+        
+        // 基于实际items计算基础合计（避免使用slip中的缓存值）
+        var baseAddition = items.filter(function(i) { return i.itemType == 1; })
+            .reduce(function(sum, item) { return sum + (parseFloat(item.amount) || 0); }, 0);
+        var baseDeduction = items.filter(function(i) { return i.itemType == 2; })
+            .reduce(function(sum, item) { return sum + (parseFloat(item.amount) || 0); }, 0);
+        
+        // 应用待提交的删除
+        changes.delete.forEach(function(d) {
+            if (d.itemType == 1) baseAddition -= d.oldAmount;
+            else baseDeduction -= d.oldAmount;
+        });
+        
+        // 应用待提交的编辑
+        Object.values(changes.edit).forEach(function(e) {
+            if (e.itemType == 1) {
+                baseAddition = baseAddition - e.oldAmount + e.newAmount;
+            } else {
+                baseDeduction = baseDeduction - e.oldAmount + e.newAmount;
+            }
+        });
+        
+        // 应用待提交的新增
+        changes.add.forEach(function(a) {
+            if (a.itemType == 1) baseAddition += a.amount;
+            else baseDeduction += a.amount;
+        });
+        
+        return {
+            addition: baseAddition,
+            deduction: baseDeduction,
+            payable: (slip.baseAmount || 0) + baseAddition
+        };
+    }
+    
+    // 获取带变更标记的费用项列表
+    function getItemsWithChanges(slip) {
+        var changes = pendingChanges[slip.id] || { add: [], edit: {}, delete: [] };
+        var items = (slip.items || []).map(function(i) { return Object.assign({}, i); });
+        
+        // 标记删除的项
+        changes.delete.forEach(function(d) {
+            var item = items.find(function(i) { return i.id == d.itemId; });
+            if (item) item._deleted = true;
+        });
+        
+        // 应用编辑
+        Object.values(changes.edit).forEach(function(e) {
+            var item = items.find(function(i) { return i.id == e.itemId; });
+            if (item) {
+                item.amount = e.newAmount;
+                item._edited = true;
+            }
+        });
+        
+        // 添加新增项
+        changes.add.forEach(function(a) {
+            items.push({
+                id: a.tempId,
+                itemName: a.itemName,
+                amount: a.amount,
+                itemType: a.itemType,
+                _added: true
+            });
+        });
+        
+        return items;
     }
     
     function renderFeeDetailHtml(slip, editable) {
+        // 编辑模式下显示左右对比视图
+        if (isEditMode) {
+            return renderEditCompareView(slip);
+        }
+        
+        // 非编辑模式保持原有逻辑 - 渲染普通费用明细
+        return renderNormalDetail(slip, editable);
+    }
+    
+    // 非编辑模式下渲染普通费用明细（包含考勤工资计算说明）
+    function renderNormalDetail(slip, editable) {
         var items = slip.items || [];
         var plusItems = items.filter(function(i) { return i.itemType == 1; });
         var minusItems = items.filter(function(i) { return i.itemType == 2; });
-        var maxRows = Math.max(plusItems.length, minusItems.length);
         
-        // 计算说明
+        var html = '';
+        
+        // === 考勤工资计算说明 ===
         var salaryType = slip.salaryType == 1 ? '日薪' : '月薪';
-        var calcLines = []; // 每行说明，最终拼到 html
+        var calcLines = [];
         if (salaryType == '日薪') {
             var dh = slip.dailyWorkHours ? parseFloat(slip.dailyWorkHours) : null;
             var ah = slip.attendanceHours != null ? parseFloat(slip.attendanceHours) : null;
@@ -502,93 +2119,679 @@
             var rot = slip.restdayOTHours != null ? parseFloat(slip.restdayOTHours) : 0;
             var hot = slip.holidayOTHours != null ? parseFloat(slip.holidayOTHours) : 0;
             if (dh && ah !== null) {
-                // 出勤天数计算说明（文字公式 + 具体数值代入）
                 var wr = slip.weekdayOTRate != null ? parseFloat(slip.weekdayOTRate) : 1;
                 var rr = slip.restdayOTRate != null ? parseFloat(slip.restdayOTRate) : 1;
                 var hr = slip.holidayOTRate != null ? parseFloat(slip.holidayOTRate) : 1;
-                
-                // 第1行：计算公式说明
                 calcLines.push('<i class="bi bi-info-circle me-1"></i>出勤天数计算公式：（出勤工时 ÷ 每日工时）+（工作日加班工时 × 工作日加班费率 ÷ 每日工时）+（休息日加班工时 × 休息日加班费率 ÷ 每日工时）+（节假日加班工时 × 节假日加班费率 ÷ 每日工时）');
-                
-                // 第2行：具体数值说明
                 var valueLine = '每日标准工时：' + dh.toFixed(0) + 'h，当月出勤总工时 ' + ah.toFixed(1) + 'h';
                 if (wot > 0) valueLine += '，当月工作日加班总工时 ' + wot.toFixed(1) + 'h，加班费率' + wr.toFixed(1);
                 if (rot > 0) valueLine += '，当月休息日加班总工时 ' + rot.toFixed(1) + 'h，加班费率' + rr.toFixed(1);
                 if (hot > 0) valueLine += '，当月节假日加班总工时 ' + hot.toFixed(1) + 'h，加班费率' + hr.toFixed(1);
                 calcLines.push('<i class="bi bi-clock me-1"></i>' + valueLine);
-                
-                // 第3行：代入计算
-                var calcParts = [];
-                calcParts.push('（' + ah.toFixed(1) + ' ÷ ' + dh.toFixed(0) + '）');
+                var calcParts = ['（' + ah.toFixed(1) + ' ÷ ' + dh.toFixed(0) + '）'];
                 if (wot > 0) calcParts.push('（' + wot.toFixed(1) + ' × ' + wr.toFixed(1) + ' ÷ ' + dh.toFixed(0) + '）');
                 if (rot > 0) calcParts.push('（' + rot.toFixed(1) + ' × ' + rr.toFixed(1) + ' ÷ ' + dh.toFixed(0) + '）');
                 if (hot > 0) calcParts.push('（' + hot.toFixed(1) + ' × ' + hr.toFixed(1) + ' ÷ ' + dh.toFixed(0) + '）');
                 calcLines.push('<i class="bi bi-calculator me-1"></i>出勤天数：' + calcParts.join(' + ') + ' = <b style="color:#374151;font-size:13px;">' + fmt(slip.attendanceDays) + ' 天</b>');
-                // 考勤工资
                 calcLines.push('<i class="bi bi-calculator me-1"></i>考勤工资 = 日薪（' + fmt(slip.baseSalary) + ' 元）× 出勤天数（' + fmt(slip.attendanceDays) + ' 天）= <b style="color:#16a34a;font-size:13px;">' + fmt(slip.baseAmount) + ' 元</b>');
             } else if (dh && parseFloat(dh) === -1) {
-                // 降级模式：无工时配置，直接按考勤条数计数
                 var days = ah !== null ? parseFloat(ah) : parseFloat(slip.attendanceDays || 0);
                 calcLines.push('<i class="bi bi-clock me-1"></i>本月共有 <b>' + days + ' 条</b>考勤记录（未配置工时标准，每条记录计 1 天）');
                 calcLines.push('<i class="bi bi-info-circle me-1"></i>出勤天数 = 考勤条数 = <b style="color:#374151;font-size:13px;">' + fmt(slip.attendanceDays) + ' 天</b>');
                 calcLines.push('<i class="bi bi-calculator me-1"></i>考勤工资 = 日薪（' + fmt(slip.baseSalary) + ' 元）× 出勤天数（' + fmt(slip.attendanceDays) + ' 天）= <b style="color:#16a34a;font-size:13px;">' + fmt(slip.baseAmount) + ' 元</b>');
             } else {
-                // 工时数据未返回（旧数据兴许没有重算），加载完成后展示天数结果
-                calcLines.push('<i class="bi bi-info-circle me-1"></i>出勤天数 = 出勤工时 ÷ 每日工时 = <b style="color:#374151;font-size:13px;">' + fmt(slip.attendanceDays) + ' 天</b>');
+                calcLines.push('<i class="bi bi-info-circle me-1"></i>出勤天数 = <b style="color:#374151;font-size:13px;">' + fmt(slip.attendanceDays) + ' 天</b>');
                 calcLines.push('<i class="bi bi-calculator me-1"></i>考勤工资 = 日薪（' + fmt(slip.baseSalary) + ' 元）× 出勤天数（' + fmt(slip.attendanceDays) + ' 天）= <b style="color:#16a34a;font-size:13px;">' + fmt(slip.baseAmount) + ' 元</b>');
             }
         } else {
             calcLines.push('<i class="bi bi-info-circle me-1"></i>月薪制，考勤工资直接取月薪');
             calcLines.push('<i class="bi bi-calculator me-1"></i>考勤工资 = 月薪 <b style="color:#16a34a;font-size:13px;">' + fmt(slip.baseSalary) + ' 元</b>');
         }
-        // 应付工资说明（每项名称都展示）
-        calcLines.push('<i class="bi bi-cash-stack me-1"></i>应付工资 = 考勤工资（' + fmt(slip.baseAmount) + ' 元）+ 费用加项（' + fmt(slip.additionAmount) + ' 元）− 费用减项（' + fmt(slip.deductionAmount) + ' 元）= <b style="color:#1d4ed8;font-size:14px;">' + fmt(slip.payableAmount) + ' 元</b>');
+        calcLines.push('<i class="bi bi-cash-stack me-1"></i>应付工资 = 考勤工资（' + fmt(slip.baseAmount) + ' 元）+ 费用加项（' + fmt(slip.additionAmount) + ' 元）= <b style="color:#1d4ed8;font-size:14px;">' + fmt(slip.payableAmount) + ' 元</b>');
         
-        var html = '<div class="fee-table">' +
-            '<div style="background:#f8f9fa;border-radius:6px;padding:10px 12px;margin-bottom:10px;font-size:12px;color:#6b7280;line-height:1.9;">' +
+        // 计算实际付款和剩余待付
+        var actualPayment = slip.deductionAmount || 0;
+        var remainingAmount = (slip.payableAmount || 0) - actualPayment;
+        calcLines.push('<i class="bi bi-credit-card me-1"></i>实际付款 = 费用减项（' + fmt(slip.deductionAmount) + ' 元）= <b style="color:#374151;font-size:14px;">' + fmt(actualPayment) + ' 元</b>');
+        calcLines.push('<i class="bi bi-wallet me-1"></i>剩余待付 = 应付工资（' + fmt(slip.payableAmount) + ' 元）− 实际付款（' + fmt(actualPayment) + ' 元）= <b style="color:#dc2626;font-size:14px;">' + fmt(remainingAmount) + ' 元</b>');
+        
+        html += '<div style="background:#f8f9fa;border-radius:6px;padding:10px 12px;margin:16px;font-size:12px;color:#6b7280;line-height:1.9;">' +
             calcLines.map(function(line) { return '<div>' + line + '</div>'; }).join('') +
-            '</div>' +
-            '<div class="fee-table-header" style="grid-template-columns: 1fr 1fr;">' +
-            '<span class="col-plus">费用加项</span>' +
-            '<span class="col-minus">费用减项</span>' +
             '</div>';
         
-        // 数据行
-        if (maxRows == 0) {
-            html += '<div class="fee-table-row"><div class="fee-empty">暂无费用明细</div></div>';
+        // 费用明细
+        html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:16px;">';
+        
+        // 费用加项
+        html += '<div style="background:#f0fdf4;border-radius:8px;padding:12px;">' +
+            '<div style="font-weight:600;color:#16a34a;margin-bottom:12px;">费用加项</div>';
+        if (plusItems.length == 0) {
+            html += '<div style="color:#9ca3af;font-size:13px;">暂无费用加项</div>';
         } else {
-            for (var i = 0; i < maxRows; i++) {
-                var plus = plusItems[i];
-                var minus = minusItems[i];
-                
-                html += '<div class="fee-table-row">';
-                
-                // 费用加项
-                if (plus) {
-                    html += '<span class="fee-col-name">' + esc(plus.itemName) + '</span>' +
-                        '<span class="fee-col-amt plus' + (editable ? ' editable' : '') + '"' +
-                        (editable ? ' onclick="editFeeItem(' + plus.id + ', ' + plus.amount + ', this)"' : '') + '>' + fmt(plus.amount) + '</span>' +
-                        '<span class="fee-col-del">' + (editable ? '<i class="bi bi-trash3" onclick="delFeeItem(' + plus.id + ')"></i>' : '') + '</span>';
-                } else {
-                    html += '<span></span><span></span><span></span>';
-                }
-                
-                // 费用减项
-                if (minus) {
-                    html += '<span class="fee-col-name">' + esc(minus.itemName) + '</span>' +
-                        '<span class="fee-col-amt minus' + (editable ? ' editable' : '') + '"' +
-                        (editable ? ' onclick="editFeeItem(' + minus.id + ', ' + minus.amount + ', this)"' : '') + '>' + fmt(minus.amount) + '</span>' +
-                        '<span class="fee-col-del">' + (editable ? '<i class="bi bi-trash3" onclick="delFeeItem(' + minus.id + ')"></i>' : '') + '</span>';
-                } else {
-                    html += '<span></span><span></span><span></span>';
-                }
-                
-                html += '</div>';
-            }
+            plusItems.forEach(function(item) {
+                html += '<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #e5e7eb;">' +
+                    '<span>' + esc(item.itemName) + '</span>' +
+                    '<span style="font-weight:600;color:#16a34a;">' + fmt(item.amount) + '</span>' +
+                    '</div>';
+            });
         }
+        html += '<div style="margin-top:12px;padding-top:12px;border-top:2px solid #16a34a;font-weight:700;color:#16a34a;">' +
+            '合计: ' + fmt(slip.additionAmount || 0) + '</div></div>';
+        
+        // 费用减项
+        html += '<div style="background:#fef2f2;border-radius:8px;padding:12px;">' +
+            '<div style="font-weight:600;color:#dc2626;margin-bottom:12px;">费用减项</div>';
+        if (minusItems.length == 0) {
+            html += '<div style="color:#9ca3af;font-size:13px;">暂无费用减项</div>';
+        } else {
+            minusItems.forEach(function(item) {
+                html += '<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #e5e7eb;">' +
+                    '<span>' + esc(item.itemName) + '</span>' +
+                    '<span style="font-weight:600;color:#dc2626;">' + fmt(item.amount) + '</span>' +
+                    '</div>';
+            });
+        }
+        html += '<div style="margin-top:12px;padding-top:12px;border-top:2px solid #dc2626;font-weight:700;color:#dc2626;">' +
+            '合计: ' + fmt(slip.deductionAmount || 0) + '</div></div>';
         
         html += '</div>';
+        
         return html;
+    }
+    
+    // 编辑模式下的对比视图渲染函数
+    function renderEditCompareView(slip) {
+        var changes = pendingChanges[slip.id] || { add: [], edit: {}, delete: [] };
+        var items = slip.items || [];
+        
+        // 构建预览数据
+        var previewItems = items.map(function(i) { return Object.assign({}, i); });
+        
+        // 应用删除
+        changes.delete.forEach(function(d) {
+            var idx = previewItems.findIndex(function(i) { return i.id == d.itemId; });
+            if (idx >= 0) previewItems[idx]._deleted = true;
+        });
+        
+        // 应用编辑
+        Object.values(changes.edit).forEach(function(e) {
+            var item = previewItems.find(function(i) { return i.id == e.itemId; });
+            if (item) { item.amount = e.newAmount; item._edited = true; item._editLog = e; }
+        });
+        
+        // 添加新增
+        changes.add.forEach(function(a, idx) {
+            previewItems.push({ itemName: a.itemName, amount: a.amount, itemType: a.itemType, _added: true, _addIdx: idx });
+        });
+        
+        var original = { 
+            plus: items.filter(function(i){return i.itemType==1}), 
+            minus: items.filter(function(i){return i.itemType==2}) 
+        };
+        var preview = { 
+            plus: previewItems.filter(function(i){return i.itemType==1&&!i._deleted}), 
+            minus: previewItems.filter(function(i){return i.itemType==2&&!i._deleted}) 
+        };
+        
+        // 根据原始items重新计算合计（避免使用slip中的缓存值）
+        var origAddition = original.plus.reduce(function(sum, item) { return sum + (parseFloat(item.amount) || 0); }, 0);
+        var origDeduction = original.minus.reduce(function(sum, item) { return sum + (parseFloat(item.amount) || 0); }, 0);
+        var origSum = { 
+            addition: origAddition,
+            deduction: origDeduction,
+            payable: (slip.baseAmount || 0) + origAddition
+        };
+        var prevSum = calculatePendingSummary(slip);
+        var diff = prevSum.payable - origSum.payable;
+        
+        var html = '';
+        
+        // 原始费用明细（只读）- 展示在变更预览上方
+        html += '<div style="background:#f9fafb;border:2px solid #9ca3af;border-radius:8px;padding:16px;margin-bottom:16px;">' +
+            '<div style="text-align:center;font-weight:600;color:#4b5563;margin-bottom:12px;">原始费用明细</div>' +
+            renderOriginalColumn(slip, original.plus, original.minus, origSum) +
+            '</div>';
+        
+        // 变更预览（可编辑）- 编辑模式下展示变更预览
+        html += '<div style="background:#eff6ff;border:2px solid #3b82f6;border-radius:8px;padding:16px;">' +
+            '<div style="text-align:center;font-weight:600;color:#1d4ed8;margin-bottom:12px;">变更预览</div>' +
+            renderPreviewColumn(slip.id, preview.plus, preview.minus, prevSum, changes) +
+            '</div>';
+        
+        return html;
+    }
+    
+    // 渲染原始数据列（只读）
+    function renderOriginalColumn(slip, plusItems, minusItems, summary) {
+        var html = '';
+        
+        // === 考勤工资计算说明 ===
+        var salaryType = slip.salaryType == 1 ? '日薪' : '月薪';
+        var calcLines = [];
+        if (salaryType == '日薪') {
+            calcLines.push('<i class="bi bi-calculator me-1"></i>考勤工资 = 日薪（' + fmt(slip.baseSalary) + ' 元）× 出勤天数（' + fmt(slip.attendanceDays) + ' 天）= <b style="color:#16a34a;font-size:13px;">' + fmt(slip.baseAmount) + ' 元</b>');
+        } else {
+            calcLines.push('<i class="bi bi-calculator me-1"></i>考勤工资 = 月薪 <b style="color:#16a34a;font-size:13px;">' + fmt(slip.baseSalary) + ' 元</b>');
+        }
+        calcLines.push('<i class="bi bi-cash-stack me-1"></i>应付工资 = 考勤工资（' + fmt(slip.baseAmount) + ' 元）+ 费用加项（' + fmt(summary.addition) + ' 元）= <b style="color:#1d4ed8;font-size:14px;">' + fmt(summary.payable) + ' 元</b>');
+        
+        html += '<div style="background:#f3f4f6;border-radius:6px;padding:10px 12px;margin-bottom:12px;font-size:12px;color:#6b7280;line-height:1.8;">' +
+            calcLines.map(function(line) { return '<div>' + line + '</div>'; }).join('') +
+            '</div>';
+        
+        html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">';
+        
+        // 费用加项
+        html += '<div>' +
+            '<div style="font-weight:600;color:#16a34a;font-size:13px;margin-bottom:8px;">费用加项</div>';
+        if (plusItems.length == 0) {
+            html += '<div style="color:#9ca3af;font-size:12px;">无</div>';
+        } else {
+            plusItems.forEach(function(item) {
+                var metaInfo = '<span style="color:#9ca3af;font-size:11px;">[ID:' + (item.id || '-') + ']</span>';
+                if (item.modifier) {
+                    metaInfo += ' <span style="color:#6b7280;font-size:11px;">' + esc(item.modifier) + '</span>';
+                }
+                if (item.remark) {
+                    metaInfo += ' <span style="color:#9ca3af;font-size:11px;">(' + esc(item.remark) + ')</span>';
+                }
+                html += '<div style="font-size:13px;padding:3px 0;">' + metaInfo + '<br>' + esc(item.itemName) + ' ' + fmt(item.amount) + '</div>';
+            });
+        }
+        html += '<div style="margin-top:8px;padding-top:8px;border-top:1px solid #e5e7eb;font-weight:600;color:#16a34a;font-size:13px;">合计: ' + fmt(summary.addition) + '</div>' +
+            '</div>';
+        
+        // 费用减项
+        html += '<div>' +
+            '<div style="font-weight:600;color:#dc2626;font-size:13px;margin-bottom:8px;">费用减项</div>';
+        if (minusItems.length == 0) {
+            html += '<div style="color:#9ca3af;font-size:12px;">无</div>';
+        } else {
+            minusItems.forEach(function(item) {
+                var metaInfo = '<span style="color:#9ca3af;font-size:11px;">[ID:' + (item.id || '-') + ']</span>';
+                if (item.modifier) {
+                    metaInfo += ' <span style="color:#6b7280;font-size:11px;">' + esc(item.modifier) + '</span>';
+                }
+                if (item.remark) {
+                    metaInfo += ' <span style="color:#9ca3af;font-size:11px;">(' + esc(item.remark) + ')</span>';
+                }
+                html += '<div style="font-size:13px;padding:3px 0;">' + metaInfo + '<br>' + esc(item.itemName) + ' ' + fmt(item.amount) + '</div>';
+            });
+        }
+        html += '<div style="margin-top:8px;padding-top:8px;border-top:1px solid #e5e7eb;font-weight:600;color:#dc2626;font-size:13px;">合计: ' + fmt(summary.deduction) + '</div>' +
+            '</div>';
+        
+        html += '</div>';
+        
+        // 应付工资
+        html += '<div style="margin-top:12px;padding-top:12px;border-top:2px solid #e5e7eb;text-align:center;">' +
+            '<span style="font-size:13px;color:#6b7280;">应付工资: </span>' +
+            '<span style="font-size:16px;font-weight:700;color:#1d4ed8;">' + fmt(summary.payable) + '</span>' +
+            '</div>';
+        
+        return html;
+    }
+    
+    // 渲染变更预览列（可编辑）
+    function renderPreviewColumn(slipId, plusItems, minusItems, summary, changes) {
+        var html = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">';
+        
+        // 费用加项
+        html += '<div>' +
+            '<div style="display:grid;grid-template-columns:minmax(100px,1fr) 80px 60px;align-items:center;margin-bottom:8px;gap:4px;">' +
+            '<div style="font-weight:600;color:#16a34a;font-size:13px;">费用加项</div>' +
+            '<div style="font-weight:600;color:#374151;font-size:13px;text-align:center;">操作人</div>' +
+            '<div></div>' +
+            '</div>';
+        if (plusItems.length == 0) {
+            html += '<div style="color:#9ca3af;font-size:12px;">无</div>';
+        } else {
+            plusItems.forEach(function(item) {
+                var badge = '';
+                var actions = '';
+                var operator = '-';
+                
+                if (item._added) {
+                    badge = '<span style="background:#16a34a;color:white;font-size:10px;padding:1px 4px;border-radius:3px;margin-left:4px;">新增</span>';
+                    // 新增的费用可以删除（取消新增）
+                    actions = '<button class="btn btn-sm btn-link text-danger py-0 px-1" onclick="cancelAddFee(' + slipId + ', ' + item._addIdx + ')" title="删除此项" style="padding:0 2px;"><i class="bi bi-trash" style="font-size:12px;"></i></button>';
+                    // 新增项展示当前登录人
+                    operator = currentUserName || '-';
+                } else if (item._edited) {
+                    badge = '<span style="background:#d97706;color:white;font-size:10px;padding:1px 4px;border-radius:3px;margin-left:4px;">修改</span>';
+                    // 修改过的费用可以再次编辑或恢复
+                    actions = '<button class="btn btn-sm btn-link py-0 px-1" onclick="reEditFee(' + slipId + ', ' + item.id + ')" title="重新编辑" style="padding:0 2px;"><i class="bi bi-pencil" style="font-size:12px;"></i></button>' +
+                        '<button class="btn btn-sm btn-link text-secondary py-0 px-1" onclick="cancelEditFee(' + slipId + ', ' + item.id + ')" title="恢复原始值" style="padding:0 2px;"><i class="bi bi-arrow-counterclockwise" style="font-size:12px;"></i></button>';
+                    // 编辑项展示当前登录人（本次修改的用户）
+                    operator = currentUserName || '-';
+                } else {
+                    // 原始费用可以编辑或删除
+                    actions = '<button class="btn btn-sm btn-link py-0 px-1" onclick="editFeeFromPreview(' + slipId + ', ' + item.id + ')" title="修改" style="padding:0 2px;"><i class="bi bi-pencil" style="font-size:12px;"></i></button>' +
+                        '<button class="btn btn-sm btn-link text-danger py-0 px-1" onclick="deleteFeeFromPreview(' + slipId + ', ' + item.id + ', \'' + esc(item.itemName) + '\', ' + item.amount + ', ' + item.itemType + ', \'' + esc(item.modifier || '') + '\')" title="删除" style="padding:0 2px;"><i class="bi bi-trash" style="font-size:12px;"></i></button>';
+                    // 原始费用展示修改人
+                    operator = item.modifier || '-';
+                }
+                
+                html += '<div style="font-size:13px;padding:3px 0;display:grid;grid-template-columns:minmax(100px,1fr) 80px 60px;align-items:center;gap:4px;">' +
+                    '<span>' + badge + esc(item.itemName) + ' ' + fmt(item.amount) + '</span>' +
+                    '<div style="height:24px;display:flex;justify-content:center;align-items:center;color:#374151;font-weight:500;">' + esc(operator) + '</div>' +
+                    '<div style="height:24px;display:flex;justify-content:center;align-items:center;">' + actions + '</div>' +
+                    '</div>';
+            });
+        }
+        html += '<div style="margin-top:8px;padding-top:8px;border-top:1px solid #e5e7eb;font-weight:600;color:#16a34a;font-size:13px;">合计: ' + fmt(summary.addition) + '</div>' +
+            '</div>';
+        
+        // 费用减项
+        html += '<div>' +
+            '<div style="display:grid;grid-template-columns:minmax(100px,1fr) 80px 60px;align-items:center;margin-bottom:8px;gap:4px;">' +
+            '<div style="font-weight:600;color:#dc2626;font-size:13px;">费用减项</div>' +
+            '<div style="font-weight:600;color:#374151;font-size:13px;text-align:center;">操作人</div>' +
+            '<div></div>' +
+            '</div>';
+        if (minusItems.length == 0) {
+            html += '<div style="color:#9ca3af;font-size:12px;">无</div>';
+        } else {
+            minusItems.forEach(function(item) {
+                var badge = '';
+                var actions = '';
+                var operator = '-';
+                
+                if (item._added) {
+                    badge = '<span style="background:#16a34a;color:white;font-size:10px;padding:1px 4px;border-radius:3px;margin-left:4px;">新增</span>';
+                    actions = '<button class="btn btn-sm btn-link text-danger py-0 px-1" onclick="cancelAddFee(' + slipId + ', ' + item._addIdx + ')" title="删除此项" style="padding:0 2px;"><i class="bi bi-trash" style="font-size:12px;"></i></button>';
+                    // 新增项展示当前登录人
+                    operator = currentUserName || '-';
+                } else if (item._edited) {
+                    badge = '<span style="background:#d97706;color:white;font-size:10px;padding:1px 4px;border-radius:3px;margin-left:4px;">修改</span>';
+                    actions = '<button class="btn btn-sm btn-link py-0 px-1" onclick="reEditFee(' + slipId + ', ' + item.id + ')" title="重新编辑" style="padding:0 2px;"><i class="bi bi-pencil" style="font-size:12px;"></i></button>' +
+                        '<button class="btn btn-sm btn-link text-secondary py-0 px-1" onclick="cancelEditFee(' + slipId + ', ' + item.id + ')" title="恢复原始值" style="padding:0 2px;"><i class="bi bi-arrow-counterclockwise" style="font-size:12px;"></i></button>';
+                    // 编辑项展示当前登录人（本次修改的用户）
+                    operator = currentUserName || '-';
+                } else {
+                    actions = '<button class="btn btn-sm btn-link py-0 px-1" onclick="editFeeFromPreview(' + slipId + ', ' + item.id + ')" title="修改" style="padding:0 2px;"><i class="bi bi-pencil" style="font-size:12px;"></i></button>' +
+                        '<button class="btn btn-sm btn-link text-danger py-0 px-1" onclick="deleteFeeFromPreview(' + slipId + ', ' + item.id + ', \'' + esc(item.itemName) + '\', ' + item.amount + ', ' + item.itemType + ', \'' + esc(item.modifier || '') + '\')" title="删除" style="padding:0 2px;"><i class="bi bi-trash" style="font-size:12px;"></i></button>';
+                    // 原始费用展示修改人
+                    operator = item.modifier || '-';
+                }
+                
+                html += '<div style="font-size:13px;padding:3px 0;display:grid;grid-template-columns:minmax(100px,1fr) 80px 60px;align-items:center;gap:4px;">' +
+                    '<span>' + badge + esc(item.itemName) + ' ' + fmt(item.amount) + '</span>' +
+                    '<div style="height:24px;display:flex;justify-content:center;align-items:center;color:#374151;font-weight:500;">' + esc(operator) + '</div>' +
+                    '<div style="height:24px;display:flex;justify-content:center;align-items:center;">' + actions + '</div>' +
+                    '</div>';
+            });
+        }
+        html += '<div style="margin-top:8px;padding-top:8px;border-top:1px solid #e5e7eb;font-weight:600;color:#dc2626;font-size:13px;">合计: ' + fmt(summary.deduction) + '</div>' +
+            '</div>';
+        
+        html += '</div>';
+        
+        // 新增费用按钮
+        html += '<div style="text-align:center;padding-top:12px;margin-top:12px;border-top:1px dashed #bfdbfe;">' +
+            '<button class="btn btn-sm btn-outline-success me-2" onclick="openAddFeeFromDetail(' + slipId + ', 1)">' +
+            '<i class="bi bi-plus-circle me-1"></i>新增加项</button>' +
+            '<button class="btn btn-sm btn-outline-danger" onclick="openAddFeeFromDetail(' + slipId + ', 2)">' +
+            '<i class="bi bi-plus-circle me-1"></i>新增减项</button>' +
+            '</div>';
+        
+        return html;
+    }
+
+    function renderCompareColumn(plusItems, minusItems, summary, isPreview) {
+        var html = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">';
+        
+        // 费用加项
+        html += '<div>' +
+            '<div style="font-weight:600;color:#16a34a;font-size:13px;margin-bottom:8px;">费用加项</div>';
+        if (plusItems.length == 0) {
+            html += '<div style="color:#9ca3af;font-size:12px;">无</div>';
+        } else {
+            plusItems.forEach(function(item) {
+                var style = 'font-size:13px;padding:3px 0;';
+                var badge = '';
+                if (isPreview) {
+                    if (item._added) {
+                        style += 'color:#16a34a;font-weight:600;';
+                        badge = '<span style="background:#16a34a;color:white;font-size:10px;padding:1px 4px;border-radius:3px;margin-left:4px;">新增</span>';
+                    } else if (item._edited) {
+                        style += 'color:#d97706;';
+                        badge = '<span style="background:#d97706;color:white;font-size:10px;padding:1px 4px;border-radius:3px;margin-left:4px;">修改</span>';
+                    }
+                }
+                html += '<div style="' + style + '">' + esc(item.itemName) + ' ' + fmt(item.amount) + badge + '</div>';
+            });
+        }
+        html += '<div style="margin-top:8px;padding-top:8px;border-top:1px solid #e5e7eb;font-weight:600;color:#16a34a;font-size:13px;">合计: ' + fmt(summary.addition) + '</div>' +
+            '</div>';
+        
+        // 费用减项
+        html += '<div>' +
+            '<div style="font-weight:600;color:#dc2626;font-size:13px;margin-bottom:8px;">费用减项</div>';
+        if (minusItems.length == 0) {
+            html += '<div style="color:#9ca3af;font-size:12px;">无</div>';
+        } else {
+            minusItems.forEach(function(item) {
+                var style = 'font-size:13px;padding:3px 0;';
+                var badge = '';
+                if (isPreview) {
+                    if (item._added) {
+                        style += 'color:#16a34a;font-weight:600;';
+                        badge = '<span style="background:#16a34a;color:white;font-size:10px;padding:1px 4px;border-radius:3px;margin-left:4px;">新增</span>';
+                    } else if (item._edited) {
+                        style += 'color:#d97706;';
+                        badge = '<span style="background:#d97706;color:white;font-size:10px;padding:1px 4px;border-radius:3px;margin-left:4px;">修改</span>';
+                    }
+                }
+                html += '<div style="' + style + '">' + esc(item.itemName) + ' ' + fmt(item.amount) + badge + '</div>';
+            });
+        }
+        html += '<div style="margin-top:8px;padding-top:8px;border-top:1px solid #e5e7eb;font-weight:600;color:#dc2626;font-size:13px;">合计: ' + fmt(summary.deduction) + '</div>' +
+            '</div>';
+        
+        html += '</div>';
+        
+        // 应付工资
+        html += '<div style="margin-top:12px;padding-top:12px;border-top:2px solid #e5e7eb;text-align:center;">' +
+            '<span style="font-size:13px;color:#6b7280;">应付工资: </span>' +
+            '<span style="font-size:16px;font-weight:700;color:#1d4ed8;">' + fmt(summary.payable) + '</span>' +
+            '</div>';
+        
+        return html;
+    }
+    
+    // 刷新费用明细（编辑模式下使用，保持展开状态）
+    function refreshFeeDetail(slipId) {
+        var tbody = document.getElementById('salaryTableBody');
+        var detailRow = tbody.querySelector('.fee-detail-row');
+        var targetRow = tbody.querySelector('tr.slip-row[data-slip-id="' + slipId + '"]');
+        
+        if (detailRow && targetRow) {
+            var slip = salarySlips.find(function(s) { return s.id == slipId; });
+            if (slip) {
+                // 重新渲染明细内容
+                var detailContent = detailRow.querySelector('.fee-detail-content');
+                if (detailContent) {
+                    detailContent.innerHTML = renderFeeDetailHtml(slip, false);
+                }
+            }
+        } else {
+            // 如果明细行不存在，重新渲染整个表格
+            renderTable();
+        }
+    }
+    
+    // ============ 变更预览区域操作函数 ============
+    
+    // 获取工资条对应的员工姓名
+    function getSlipEmployeeName(slipId) {
+        var slip = salarySlips.find(function(s) { return s.id == slipId; });
+        return slip ? slip.employeeName : '-';
+    }
+    
+    // 打开编辑费用项弹窗
+    function openEditFeeItem(slipId, itemId, itemName, amount, itemType, modifier) {
+        showModal({
+            title: '修改费用项',
+            content: '<div class="mb-3"><label class="form-label">项目名称</label><input type="text" class="form-control" id="editItemName" value="' + esc(itemName) + '" readonly></div>' +
+                '<div class="mb-3"><label class="form-label">金额</label><input type="number" class="form-control" id="editItemAmount" value="' + amount + '" step="0.01"></div>',
+            size: 'sm',
+            buttons: [
+                { text: '取消', class: 'btn btn-secondary' },
+                {
+                    text: '保存',
+                    class: 'btn btn-primary',
+                    onclick: function() {
+                        var newAmount = parseFloat(document.getElementById('editItemAmount').value);
+                        if (isNaN(newAmount) || newAmount < 0) {
+                            alert('请输入有效金额');
+                            return;
+                        }
+                        
+                        // 调用API记录变更（EDIT操作）
+                        var params = new URLSearchParams();
+                        params.append('salarySlipId', slipId);
+                        params.append('itemId', itemId);
+                        params.append('itemName', itemName);
+                        params.append('itemType', itemType);
+                        params.append('operation', 'EDIT');
+                        params.append('oldAmount', amount.toString());
+                        params.append('newAmount', newAmount.toString());
+                        params.append('changeReason', '编辑模式修改费用项');
+                        
+                        fetch('/salary/api/record-fee-item-change', {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                            body: params
+                        }).then(function(r) { return r.json(); })
+                        .then(function(res) {
+                            if (res.success) {
+                                // 记录到本地缓存用于展示
+                                if (!pendingChanges[slipId]) pendingChanges[slipId] = { add: [], edit: {}, delete: [] };
+                                
+                                pendingChanges[slipId].edit[itemId] = {
+                                    itemId: itemId,
+                                    itemName: itemName,
+                                    itemType: itemType,
+                                    oldAmount: amount,
+                                    newAmount: newAmount,
+                                    time: new Date().toLocaleString()
+                                };
+                                
+                                var existingLog = editModeLogs.find(function(l) {
+                                    return l.slipId == slipId && l.itemId == itemId && l.operation == 'EDIT';
+                                });
+                                if (existingLog) {
+                                    existingLog.newValue = newAmount;
+                                    existingLog.time = new Date().toLocaleString();
+                                } else {
+                                    editModeLogs.push({
+                                        slipId: slipId,
+                                        employeeName: getSlipEmployeeName(slipId),
+                                        operation: 'EDIT',
+                                        itemId: itemId,
+                                        itemName: itemName,
+                                        oldValue: amount,
+                                        newValue: newAmount,
+                                        time: new Date().toLocaleString(),
+                                        modifier: modifier
+                                    });
+                                }
+                                
+                                closeModal();
+                                refreshFeeDetail(slipId);
+                            } else {
+                                alert('记录变更失败：' + res.message);
+                            }
+                        });
+                    }
+                }
+            ]
+        });
+    }
+    
+    // 从预览区域编辑原始费用
+    function editFeeFromPreview(slipId, itemId) {
+        var slip = salarySlips.find(function(s) { return s.id == slipId; });
+        if (!slip) return;
+        
+        var item = slip.items.find(function(i) { return i.id == itemId; });
+        if (!item) return;
+        
+        // 打开编辑弹窗
+        openEditFeeItem(slipId, itemId, item.itemName, item.amount, item.itemType, item.modifier);
+    }
+    
+    // 从预览区域删除原始费用（带确认弹窗）
+    // 删除费用项的全局变量
+    var deleteFeeParams = null;
+    
+    function deleteFeeFromPreview(slipId, itemId, itemName, amount, itemType, modifier) {
+        // 保存参数到全局变量
+        deleteFeeParams = { slipId: slipId, itemId: itemId, itemName: itemName, amount: amount, itemType: itemType, modifier: modifier };
+        
+        // 更新弹窗内容
+        document.getElementById('deleteFeeItemName').textContent = itemName;
+        document.getElementById('deleteFeeItemAmount').textContent = fmt(amount);
+        
+        // 显示Bootstrap Modal
+        new bootstrap.Modal(document.getElementById('deleteFeeConfirmModal')).show();
+    }
+    
+    // 确认删除费用项
+    function confirmDeleteFee() {
+        bootstrap.Modal.getInstance(document.getElementById('deleteFeeConfirmModal')).hide();
+        
+        if (!deleteFeeParams) return;
+        
+        var slipId = deleteFeeParams.slipId;
+        var itemId = deleteFeeParams.itemId;
+        var itemName = deleteFeeParams.itemName;
+        var amount = deleteFeeParams.amount;
+        var itemType = deleteFeeParams.itemType;
+        var modifier = deleteFeeParams.modifier;
+        
+        // 调用API记录变更（DELETE操作）
+        var params = new URLSearchParams();
+        params.append('salarySlipId', slipId);
+        params.append('itemId', itemId);
+        params.append('itemName', itemName);
+        params.append('itemType', itemType);
+        params.append('operation', 'DELETE');
+        params.append('oldAmount', amount.toString());
+        params.append('newAmount', '0');
+        params.append('changeReason', '编辑模式删除费用项');
+        
+        fetch('/salary/api/record-fee-item-change', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+            body: params
+        }).then(function(r) { return r.json(); })
+        .then(function(res) {
+            if (res.success) {
+                // 记录到本地缓存用于展示
+                if (!pendingChanges[slipId]) pendingChanges[slipId] = { add: [], edit: {}, delete: [] };
+                pendingChanges[slipId].delete.push({
+                    itemId: itemId,
+                    itemName: itemName,
+                    itemType: itemType,
+                    oldAmount: amount,
+                    time: new Date().toLocaleString()
+                });
+                
+                editModeLogs.push({
+                    slipId: slipId,
+                    employeeName: getSlipEmployeeName(slipId),
+                    operation: 'DELETE',
+                    itemId: itemId,
+                    itemName: itemName,
+                    oldValue: amount,
+                    newValue: 0,
+                    time: new Date().toLocaleString(),
+                    modifier: modifier
+                });
+                
+                refreshFeeDetail(slipId);
+            } else {
+                alert('记录变更失败：' + res.message);
+            }
+        });
+    }
+    
+    // 重新编辑已修改的费用
+    function reEditFee(slipId, itemId) {
+        var slip = salarySlips.find(function(s) { return s.id == slipId; });
+        if (!slip) return;
+        
+        var changes = pendingChanges[slipId];
+        if (!changes || !changes.edit[itemId]) return;
+        
+        var editLog = changes.edit[itemId];
+        
+        // 打开编辑弹窗，使用当前修改后的值
+        showModal({
+            title: '修改费用项',
+            content: '<div class="mb-3"><label class="form-label">项目名称</label><input type="text" class="form-control" id="editItemName" value="' + esc(editLog.itemName) + '" readonly></div>' +
+                '<div class="mb-3"><label class="form-label">金额</label><input type="number" class="form-control" id="editItemAmount" value="' + editLog.newAmount + '" step="0.01"></div>',
+            size: 'sm',
+            buttons: [
+                { text: '取消', class: 'btn btn-secondary' },
+                {
+                    text: '保存',
+                    class: 'btn btn-primary',
+                    onclick: function() {
+                        var newAmount = parseFloat(document.getElementById('editItemAmount').value);
+                        if (isNaN(newAmount) || newAmount < 0) {
+                            alert('请输入有效金额');
+                            return;
+                        }
+                        
+                        // 更新编辑记录
+                        var oldAmount = editLog.oldAmount;
+                        editLog.newAmount = newAmount;
+                        editLog.time = new Date().toLocaleString();
+                        
+                        // 更新日志
+                        var logIdx = editModeLogs.findIndex(function(l) { 
+                            return l.slipId == slipId && l.itemName == editLog.itemName && l.operation == 'EDIT'; 
+                        });
+                        if (logIdx >= 0) {
+                            editModeLogs[logIdx].newValue = newAmount;
+                            editModeLogs[logIdx].time = new Date().toLocaleString();
+                        }
+                        
+                        closeModal();
+                        refreshFeeDetail(slipId);
+                    }
+                }
+            ]
+        });
+    }
+    
+    // 取消编辑，恢复原始值（无确认弹窗）
+    function cancelEditFee(slipId, itemId) {
+        var changes = pendingChanges[slipId];
+        if (!changes || !changes.edit[itemId]) return;
+        
+        var editLog = changes.edit[itemId];
+        
+        // 从编辑列表中移除
+        delete changes.edit[itemId];
+        
+        // 从日志中移除
+        editModeLogs = editModeLogs.filter(function(l) {
+            return !(l.slipId == slipId && l.itemName == editLog.itemName && l.operation == 'EDIT');
+        });
+        
+        // 如果该员工没有任何变更了，清理空对象
+        if (changes.add.length == 0 && Object.keys(changes.edit).length == 0 && changes.delete.length == 0) {
+            delete pendingChanges[slipId];
+        }
+        
+        refreshFeeDetail(slipId);
+    }
+    
+    // 取消新增费用（无确认弹窗）
+    function cancelAddFee(slipId, addIdx) {
+        var changes = pendingChanges[slipId];
+        if (!changes || !changes.add[addIdx]) return;
+        
+        var addLog = changes.add[addIdx];
+        
+        // 从新增列表中移除
+        changes.add.splice(addIdx, 1);
+        
+        // 从日志中移除
+        editModeLogs = editModeLogs.filter(function(l) {
+            return !(l.slipId == slipId && l.itemName == addLog.itemName && l.operation == 'ADD');
+        });
+        
+        // 如果该员工没有任何变更了，清理空对象
+        if (changes.add.length == 0 && Object.keys(changes.edit).length == 0 && changes.delete.length == 0) {
+            delete pendingChanges[slipId];
+        }
+        
+        refreshFeeDetail(slipId);
     }
     
     function toggleExpand(slipId) {
@@ -619,8 +2822,6 @@
                     // 移除展开高亮状态
                     var expandedRow = tbody.querySelector('tr.slip-row.expanded');
                     if (expandedRow) expandedRow.classList.remove('expanded');
-                    var btn = tbody.querySelector('.btn-fee-expand.active');
-                    if (btn) btn.classList.remove('active');
                 }, 250);
             }
             expandedSlipId = null;
@@ -652,29 +2853,380 @@
                 tbody.insertBefore(targetRow, tbody.firstChild);
             }
 
-            // 延迟一小段等渐隐完成后插入明细行
-            setTimeout(function() {
-                var slip = salarySlips.find(function(s) { return s.id == slipId; });
-                if (!slip || !targetRow) return;
-
+            // 直接插入明细行（不需要延迟）
+            var slip = salarySlips.find(function(s) { return s.id == slipId; });
+            if (slip && targetRow) {
                 var detailTr = document.createElement('tr');
                 detailTr.className = 'fee-detail-row';
                 detailTr.innerHTML = '<td colspan="11"><div class="fee-detail-content">' +
                     renderFeeDetailHtml(slip, editable) + '</div></td>';
                 targetRow.parentNode.insertBefore(detailTr, targetRow.nextSibling);
-            }, 50);
+            }
         }
     }
     
     // 打开新增费用对话框（新接口）
     function openAddFeeModal(slipId) {
         currentSlip = salarySlips.find(function(s) { return s.id == slipId; });
+        // 检查是否已锁定状态且不在编辑模式
+        var monthStatus = G.monthStatus || 0;
+        var isApproved = (monthStatus == 5);
+        
+        // 如果已锁定且不在编辑模式，提示需要先进入编辑模式
+        if (isApproved && !isEditMode) {
+            alert('请先点击右上角"变更费用"按钮进入编辑模式');
+            return;
+        }
+        
         // 默认选择费用加项
         document.getElementById('feeDirType').value = 'plus';
         onFeeDirTypeChange();
         document.getElementById('feeTypeCustom').style.display = 'none';
         document.getElementById('feeAmount').value = '';
         document.getElementById('feeModalTitle').textContent = '新增费用';
+        new bootstrap.Modal(document.getElementById('feeModal')).show();
+    }
+    
+    // 显示费用变更确认弹窗（已锁定状态下）
+    function showFeeChangeConfirmModal(slipId) {
+        // 先检查是否已有待审批的变更
+        fetch('/salary/api/has-pending-fee-change?salarySlipId=' + slipId)
+            .then(r => r.json())
+            .then(function(data) {
+                if (data.hasPending) {
+                    alert('该工资条已有待审批的费用项变更，请等待审批完成后再提交');
+                    return;
+                }
+                
+                var content = '<div style="padding:16px;">' +
+                    '<div style="background:#fef3c7;border:1px solid #f59e0b;border-radius:8px;padding:12px;margin-bottom:16px;">' +
+                    '<i class="bi bi-exclamation-triangle-fill" style="color:#d97706;"></i> ' +
+                    '<strong>工资条已锁定</strong>' +
+                    '</div>' +
+                    '<p style="color:#374151;margin-bottom:16px;">当前工资条处于已锁定状态，修改费用项需要提交审批。</p>' +
+                    '<div style="background:#f8f9fa;border-radius:8px;padding:16px;margin-bottom:16px;">' +
+                    '<h6 style="margin-bottom:12px;color:#374151;">变更流程：</h6>' +
+                    '<ol style="color:#6b7280;font-size:14px;line-height:1.8;margin:0;padding-left:20px;">' +
+                    '<li>提交费用项变更申请</li>' +
+                    '<li>等待BOSS审批</li>' +
+                    '<li>审批通过后变更生效</li>' +
+                    '<li>审批驳回则保持原数据</li>' +
+                    '</ol>' +
+                    '</div>' +
+                    '</div>';
+                
+                showModal({
+                    title: '费用项变更确认',
+                    content: content,
+                    size: 'md',
+                    buttons: [
+                        { text: '取消', class: 'btn btn-secondary' },
+                        { 
+                            text: '进入变更编辑', 
+                            class: 'btn btn-warning',
+                            onclick: function() {
+                                closeModal();
+                                openFeeChangeEditor(slipId);
+                            }
+                        }
+                    ]
+                });
+            });
+    }
+    
+    // 打开费用变更编辑器（已锁定状态下）
+    function openFeeChangeEditor(slipId) {
+        currentSlip = salarySlips.find(function(s) { return s.id == slipId; });
+        if (!currentSlip) return;
+        
+        // 构建费用项编辑界面
+        var items = currentSlip.items || [];
+        var plusItems = items.filter(function(i) { return i.itemType == 1; });
+        var minusItems = items.filter(function(i) { return i.itemType == 2; });
+        
+        var content = '<div style="padding:16px;">' +
+            '<div style="margin-bottom:20px;">' +
+            '<h6 style="color:#374151;margin-bottom:12px;"><i class="bi bi-plus-circle" style="color:#16a34a;"></i> 费用加项</h6>' +
+            '<div id="feePlusList" style="min-height:40px;">';
+        
+        if (plusItems.length == 0) {
+            content += '<div style="color:#9ca3af;font-size:13px;">暂无费用加项</div>';
+        } else {
+            plusItems.forEach(function(item) {
+                content += '<div class="fee-item-row" data-item-id="' + item.id + '" data-type="1" style="display:flex;align-items:center;padding:8px;background:#f0fdf4;border-radius:6px;margin-bottom:8px;">' +
+                    '<span style="flex:1;">' + esc(item.itemName) + '</span>' +
+                    '<input type="number" class="fee-amt-input" value="' + item.amount + '" step="0.01" style="width:100px;margin-right:8px;" onchange="updateFeeItemTotal()">' +
+                    '<button class="btn btn-sm btn-outline-danger" onclick="removeFeeItemRow(this)"><i class="bi bi-trash"></i></button>' +
+                    '</div>';
+            });
+        }
+        
+        content += '</div>' +
+            '<button class="btn btn-sm btn-outline-success mt-2" onclick="addNewFeeItemRow(1)"><i class="bi bi-plus"></i> 添加加项</button>' +
+            '</div>' +
+            '<div style="margin-bottom:20px;">' +
+            '<h6 style="color:#374151;margin-bottom:12px;"><i class="bi bi-dash-circle" style="color:#dc2626;"></i> 费用减项</h6>' +
+            '<div id="feeMinusList" style="min-height:40px;">';
+        
+        if (minusItems.length == 0) {
+            content += '<div style="color:#9ca3af;font-size:13px;">暂无费用减项</div>';
+        } else {
+            minusItems.forEach(function(item) {
+                content += '<div class="fee-item-row" data-item-id="' + item.id + '" data-type="2" style="display:flex;align-items:center;padding:8px;background:#fef2f2;border-radius:6px;margin-bottom:8px;">' +
+                    '<input type="text" class="fee-name-input" value="' + esc(item.itemName) + '" style="flex:1;margin-right:8px;">' +
+                    '<input type="number" class="fee-amt-input" value="' + item.amount + '" step="0.01" style="width:100px;margin-right:8px;" onchange="updateFeeItemTotal()">' +
+                    '<button class="btn btn-sm btn-outline-danger" onclick="removeFeeItemRow(this)"><i class="bi bi-trash"></i></button>' +
+                    '</div>';
+            });
+        }
+        
+        content += '</div>' +
+            '<button class="btn btn-sm btn-outline-danger mt-2" onclick="addNewFeeItemRow(2)"><i class="bi bi-plus"></i> 添加减项</button>' +
+            '</div>' +
+            '<div style="background:#f8f9fa;border-radius:8px;padding:16px;margin-bottom:16px;">' +
+            '<div style="display:flex;justify-content:space-between;margin-bottom:8px;">' +
+            '<span style="color:#6b7280;">原应付工资：</span>' +
+            '<span style="font-weight:600;">' + fmt(currentSlip.payableAmount) + '</span>' +
+            '</div>' +
+            '<div style="display:flex;justify-content:space-between;margin-bottom:8px;">' +
+            '<span style="color:#6b7280;">变更后应付：</span>' +
+            '<span id="newPayableAmount" style="font-weight:600;color:#d97706;">' + fmt(currentSlip.payableAmount) + '</span>' +
+            '</div>' +
+            '</div>' +
+            '<div style="margin-bottom:16px;">' +
+            '<label style="font-size:13px;color:#374151;">变更原因（必填）：</label>' +
+            '<textarea id="feeChangeReason" class="form-control" rows="3" placeholder="请填写变更原因，如：补发餐补、扣除罚款等" style="margin-top:8px;"></textarea>' +
+            '</div>' +
+            '</div>';
+        
+        showModal({
+            title: '费用项变更 - ' + currentSlip.employeeName,
+            content: content,
+            size: 'lg',
+            buttons: [
+                { text: '取消', class: 'btn btn-secondary' },
+                { 
+                    text: '提交变更申请', 
+                    class: 'btn btn-warning',
+                    onclick: function() {
+                        submitFeeChange(slipId);
+                    }
+                }
+            ]
+        });
+        
+        // 初始化计算
+        updateFeeItemTotal();
+    }
+    
+    // 添加新的费用项行
+    function addNewFeeItemRow(itemType) {
+        var containerId = itemType == 1 ? 'feePlusList' : 'feeMinusList';
+        var container = document.getElementById(containerId);
+        var bgColor = itemType == 1 ? '#f0fdf4' : '#fef2f2';
+        
+        // 清空"暂无"提示
+        if (container.querySelector('.fee-item-row') == null) {
+            container.innerHTML = '';
+        }
+        
+        var row = document.createElement('div');
+        row.className = 'fee-item-row';
+        row.setAttribute('data-item-id', 'new');
+        row.setAttribute('data-type', itemType);
+        row.style.cssText = 'display:flex;align-items:center;padding:8px;background:' + bgColor + ';border-radius:6px;margin-bottom:8px;';
+        row.innerHTML = 
+            '<input type="text" class="fee-name-input" placeholder="费用名称" style="flex:1;margin-right:8px;">' +
+            '<input type="number" class="fee-amt-input" placeholder="金额" step="0.01" style="width:100px;margin-right:8px;" onchange="updateFeeItemTotal()">' +
+            '<button class="btn btn-sm btn-outline-danger" onclick="removeFeeItemRow(this)"><i class="bi bi-trash"></i></button>';
+        
+        container.appendChild(row);
+    }
+    
+    // 删除费用项行
+    function removeFeeItemRow(btn) {
+        var row = btn.closest('.fee-item-row');
+        if (row) {
+            row.remove();
+            updateFeeItemTotal();
+        }
+    }
+    
+    // 更新费用项总计
+    function updateFeeItemTotal() {
+        if (!currentSlip) return;
+        
+        var plusTotal = 0;
+        var minusTotal = 0;
+        
+        document.querySelectorAll('#feePlusList .fee-item-row').forEach(function(row) {
+            var amt = parseFloat(row.querySelector('.fee-amt-input').value) || 0;
+            plusTotal += amt;
+        });
+        
+        document.querySelectorAll('#feeMinusList .fee-item-row').forEach(function(row) {
+            var amt = parseFloat(row.querySelector('.fee-amt-input').value) || 0;
+            minusTotal += amt;
+        });
+        
+        var baseAmount = currentSlip.baseAmount || 0;
+        var newPayable = baseAmount + plusTotal - minusTotal;
+        
+        var el = document.getElementById('newPayableAmount');
+        if (el) el.textContent = fmt(newPayable);
+    }
+    
+    // 提交费用项变更
+    function submitFeeChange(slipId) {
+        var reason = document.getElementById('feeChangeReason').value.trim();
+        if (!reason) {
+            alert('请填写变更原因');
+            return;
+        }
+        
+        // 收集变更后的费用项
+        var newItems = [];
+        var changeDetail = [];
+        var oldItems = currentSlip.items || [];
+        
+        // 收集加项
+        document.querySelectorAll('#feePlusList .fee-item-row').forEach(function(row) {
+            var nameInput = row.querySelector('.fee-name-input');
+            var amtInput = row.querySelector('.fee-amt-input');
+            var itemId = row.getAttribute('data-item-id');
+            var itemName = nameInput ? nameInput.value.trim() : row.querySelector('span').textContent.trim();
+            var amount = parseFloat(amtInput.value) || 0;
+            
+            if (itemName && amount > 0) {
+                newItems.push({
+                    itemId: itemId,
+                    itemName: itemName,
+                    itemType: 1,
+                    amount: amount
+                });
+                
+                // 查找原数据对比
+                var oldItem = oldItems.find(function(i) { return i.id == itemId; });
+                if (oldItem) {
+                    if (oldItem.amount != amount) {
+                        changeDetail.push({
+                            itemId: itemId,
+                            itemName: itemName,
+                            changeType: 'EDIT',
+                            oldAmount: oldItem.amount,
+                            newAmount: amount
+                        });
+                    }
+                } else {
+                    changeDetail.push({
+                        itemId: itemId,
+                        itemName: itemName,
+                        changeType: 'ADD',
+                        oldAmount: 0,
+                        newAmount: amount
+                    });
+                }
+            }
+        });
+        
+        // 收集减项
+        document.querySelectorAll('#feeMinusList .fee-item-row').forEach(function(row) {
+            var nameInput = row.querySelector('.fee-name-input');
+            var amtInput = row.querySelector('.fee-amt-input');
+            var itemId = row.getAttribute('data-item-id');
+            var itemName = nameInput ? nameInput.value.trim() : row.querySelector('span').textContent.trim();
+            var amount = parseFloat(amtInput.value) || 0;
+            
+            if (itemName && amount > 0) {
+                newItems.push({
+                    itemId: itemId,
+                    itemName: itemName,
+                    itemType: 2,
+                    amount: amount
+                });
+                
+                // 查找原数据对比
+                var oldItem = oldItems.find(function(i) { return i.id == itemId; });
+                if (oldItem) {
+                    if (oldItem.amount != amount) {
+                        changeDetail.push({
+                            itemId: itemId,
+                            itemName: itemName,
+                            changeType: 'EDIT',
+                            oldAmount: oldItem.amount,
+                            newAmount: amount
+                        });
+                    }
+                } else {
+                    changeDetail.push({
+                        itemId: itemId,
+                        itemName: itemName,
+                        changeType: 'ADD',
+                        oldAmount: 0,
+                        newAmount: amount
+                    });
+                }
+            }
+        });
+        
+        // 检测删除项
+        oldItems.forEach(function(oldItem) {
+            var stillExists = newItems.some(function(ni) { 
+                return ni.itemId == oldItem.id || ni.itemName == oldItem.itemName; 
+            });
+            if (!stillExists) {
+                changeDetail.push({
+                    itemId: oldItem.id,
+                    itemName: oldItem.itemName,
+                    changeType: 'DELETE',
+                    oldAmount: oldItem.amount,
+                    newAmount: 0
+                });
+            }
+        });
+        
+        // 判断变更类型
+        var changeType = 'BATCH';
+        if (changeDetail.length == 1) {
+            changeType = changeDetail[0].changeType;
+        }
+        
+        // 提交变更记录
+        var params = new URLSearchParams();
+        params.append('salarySlipId', slipId);
+        params.append('changeType', changeType);
+        params.append('changeDetail', JSON.stringify(changeDetail));
+        params.append('oldFeeItemsJson', JSON.stringify(oldItems));
+        params.append('newFeeItemsJson', JSON.stringify(newItems));
+        params.append('changeReason', reason);
+        
+        fetch('/salary/api/create-fee-change-log', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+            body: params
+        }).then(r => r.json()).then(function(data) {
+            if (data.success) {
+                closeModal();
+                alert('费用项变更申请已提交，等待审批');
+                loadSalarySlips();
+            } else {
+                alert('提交失败：' + data.message);
+            }
+        }).catch(function(e) {
+            console.error('提交失败', e);
+            alert('提交失败，请稍后重试');
+        });
+    }
+    
+    // 从费用明细打开新增费用（编辑模式下）
+    function openAddFeeFromDetail(slipId, itemType) {
+        currentSlip = salarySlips.find(function(s) { return s.id == slipId; });
+        currentFeeDir = itemType == 1 ? 'plus' : 'minus';
+        document.getElementById('feeDirType').value = currentFeeDir;
+        onFeeDirTypeChange();
+        document.getElementById('feeTypeCustom').style.display = 'none';
+        document.getElementById('feeAmount').value = '';
+        document.getElementById('feeModalTitle').textContent = itemType == 1 ? '新增费用加项' : '新增费用减项';
         new bootstrap.Modal(document.getElementById('feeModal')).show();
     }
     
@@ -716,6 +3268,63 @@
         var amount = parseFloat(document.getElementById('feeAmount').value);
         if (!amount || amount <= 0) { alert('请输入有效金额'); return; }
         
+        // 编辑模式下，实时记录变更到数据库
+        if (isEditMode) {
+            var slipId = currentSlip.id;
+            var itemType = currentFeeDir == 'plus' ? 1 : 2;
+            var tempId = Date.now(); // 临时ID，用于新增项
+            
+            // 调用API记录变更（ADD操作）
+            var params = new URLSearchParams();
+            params.append('salarySlipId', slipId);
+            params.append('itemId', tempId);
+            params.append('itemName', typeVal);
+            params.append('itemType', itemType);
+            params.append('operation', 'ADD');
+            params.append('oldAmount', '0');
+            params.append('newAmount', amount.toString());
+            params.append('changeReason', '编辑模式新增费用项');
+            
+            fetch('/salary/api/record-fee-item-change', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: params
+            }).then(function(r) { return r.json(); })
+            .then(function(res) {
+                if (res.success) {
+                    // 记录到本地缓存用于展示
+                    if (!pendingChanges[slipId]) {
+                        pendingChanges[slipId] = { add: [], edit: {}, delete: [] };
+                    }
+                    pendingChanges[slipId].add.push({
+                        tempId: tempId,
+                        itemName: typeVal,
+                        amount: amount,
+                        itemType: itemType
+                    });
+                    
+                    editModeLogs.push({
+                        time: new Date().toLocaleString(),
+                        operation: 'ADD',
+                        slipId: slipId,
+                        employeeName: currentSlip.employeeName,
+                        itemName: typeVal,
+                        oldValue: 0,
+                        newValue: amount,
+                        tempId: tempId,
+                        itemType: itemType,
+                        modifier: currentUserName
+                    });
+                    
+                    bootstrap.Modal.getInstance(document.getElementById('feeModal')).hide();
+                    refreshFeeDetail(slipId);
+                } else {
+                    alert('记录变更失败：' + res.message);
+                }
+            });
+            return;
+        }
+        
         var payload = {
             salarySlipId: currentSlip.id,
             itemName: typeVal,
@@ -755,6 +3364,51 @@
             return;
         }
         
+        // 编辑模式下，只记录到 pendingChanges，不修改原数据
+        if (isEditMode) {
+            // 找到对应的工资条和费用项
+            var slip = salarySlips.find(function(s) { 
+                return s.items && s.items.some(function(i) { return i.id == itemId; });
+            });
+            if (slip) {
+                var item = slip.items.find(function(i) { return i.id == itemId; });
+                if (item) {
+                    var oldAmount = item.amount;
+                    
+                    // 记录到 pendingChanges
+                    var slipId = slip.id;
+                    if (!pendingChanges[slipId]) {
+                        pendingChanges[slipId] = { add: [], edit: {}, delete: [] };
+                    }
+                    
+                    // 如果是新增后又编辑，直接修改新增记录
+                    var addedItem = pendingChanges[slipId].add.find(function(a) { return a.tempId == itemId; });
+                    if (addedItem) {
+                        addedItem.amount = newAmount;
+                        // 不记录日志，因为新增时已经记录了
+                    } else {
+                        // 记录编辑
+                        pendingChanges[slipId].edit[itemId] = {
+                            itemId: itemId,
+                            itemName: item.itemName,
+                            oldAmount: oldAmount,
+                            newAmount: newAmount,
+                            itemType: item.itemType
+                        };
+                        // 记录操作日志
+                        logOperation('EDIT', slipId, slip.employeeName, item.itemName, oldAmount, newAmount);
+                    }
+                    
+                    // 检查日志抵消
+                    consolidateLogs(slipId);
+                    
+                    // 编辑模式下保持在费用明细列表，重新渲染明细
+                    refreshFeeDetail(slipId);
+                    return;
+                }
+            }
+        }
+        
         fetch('/salary/item/update/' + itemId + '?amount=' + newAmount, {method: 'POST'})
             .then(r => r.text()).then(function(res) {
                 if (res === 'success') {
@@ -768,6 +3422,50 @@
     
     function delFeeItem(itemId) {
         if (!confirm('确认删除该费用项？')) return;
+        
+        // 编辑模式下，只记录到 pendingChanges，不修改原数据
+        if (isEditMode) {
+            var slip = salarySlips.find(function(s) { 
+                return s.items && s.items.some(function(i) { return i.id == itemId; });
+            });
+            if (slip) {
+                var itemIndex = slip.items.findIndex(function(i) { return i.id == itemId; });
+                if (itemIndex >= 0) {
+                    var item = slip.items[itemIndex];
+                    var oldAmount = item.amount;
+                    var slipId = slip.id;
+                    
+                    if (!pendingChanges[slipId]) {
+                        pendingChanges[slipId] = { add: [], edit: {}, delete: [] };
+                    }
+                    
+                    // 检查是否是新增的项目
+                    var addedIndex = pendingChanges[slipId].add.findIndex(function(a) { return a.tempId == itemId; });
+                    if (addedIndex >= 0) {
+                        // 新增后又删除，直接移除新增记录，不记录日志
+                        pendingChanges[slipId].add.splice(addedIndex, 1);
+                    } else {
+                        // 记录删除
+                        pendingChanges[slipId].delete.push({
+                            itemId: itemId,
+                            itemName: item.itemName,
+                            oldAmount: oldAmount,
+                            itemType: item.itemType
+                        });
+                        // 记录操作日志
+                        logOperation('DELETE', slipId, slip.employeeName, item.itemName, oldAmount, 0);
+                    }
+                    
+                    // 检查日志抵消
+                    consolidateLogs(slipId);
+                    
+                    // 编辑模式下保持在费用明细列表，重新渲染明细
+                    refreshFeeDetail(slipId);
+                    return;
+                }
+            }
+        }
+        
         fetch('/salary/item/delete/' + itemId, {method:'POST'})
             .then(r => r.text()).then(function(res) {
                 if (res === 'success') {
@@ -811,16 +3509,198 @@
     
     // 执行审批
     function doApprove(approved, remark) {
-        fetch('/salary/month/approve?projectId=' + projectId + '&salaryPeriod=' + salaryPeriod + '&approved=' + approved + '&remark=' + encodeURIComponent(remark), {method:'POST'})
+        // 直接执行审批，不显示批量审批弹窗
+        executeApprove(approved, remark);
+    }
+    
+    // 显示批量审批工资条修改弹窗
+    function showBatchApproveModal(pendingChanges, pendingFeeChanges, monthRemark) {
+        var allChangesHtml = '';
+        
+        // 考勤工资变更
+        if (pendingChanges.length > 0) {
+            allChangesHtml += '<div style="margin-bottom:16px;"><h6 style="color:#374151;margin-bottom:12px;"><i class="bi bi-clock-history"></i> 考勤工资变更 (' + pendingChanges.length + '条)</h6>';
+            allChangesHtml += pendingChanges.map(function(log) {
+                return '<div style="padding:12px;border:1px solid #e5e7eb;border-radius:6px;margin-bottom:8px;background:#f8f9fa;">' +
+                    '<div style="font-weight:600;color:#374151;margin-bottom:8px;">' + esc(log.employeeName) + '</div>' +
+                    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:13px;">' +
+                    '<div><span style="color:#6b7280;">出勤天数：</span><span style="color:#dc2626;text-decoration:line-through;">' + fmt(log.oldAttendanceDays) + '</span> <i class="bi bi-arrow-right" style="color:#9ca3af;"></i> <span style="color:#16a34a;">' + fmt(log.newAttendanceDays) + '</span></div>' +
+                    '<div><span style="color:#6b7280;">考勤工资：</span><span style="color:#dc2626;text-decoration:line-through;">' + fmt(log.oldBaseAmount) + '</span> <i class="bi bi-arrow-right" style="color:#9ca3af;"></i> <span style="color:#16a34a;">' + fmt(log.newBaseAmount) + '</span></div>' +
+                    '<div><span style="color:#6b7280;">应付工资：</span><span style="color:#dc2626;text-decoration:line-through;">' + fmt(log.oldPayableAmount) + '</span> <i class="bi bi-arrow-right" style="color:#9ca3af;"></i> <span style="color:#16a34a;">' + fmt(log.newPayableAmount) + '</span></div>' +
+                    '</div>' +
+                    '<div style="margin-top:8px;font-size:12px;color:#6b7280;"><i class="bi bi-chat-text me-1"></i>变更原因：' + esc(log.changeReason || '-') + '</div>' +
+                    '</div>';
+            }).join('');
+            allChangesHtml += '</div>';
+        }
+        
+        // 费用项变更
+        if (pendingFeeChanges.length > 0) {
+            allChangesHtml += '<div style="margin-bottom:16px;"><h6 style="color:#374151;margin-bottom:12px;"><i class="bi bi-cash-stack"></i> 费用项变更 (' + pendingFeeChanges.length + '条)</h6>';
+            allChangesHtml += pendingFeeChanges.map(function(log) {
+                var changeDetail = [];
+                try {
+                    changeDetail = JSON.parse(log.feeItemsChangeDetail || '[]');
+                } catch(e) {}
+                
+                var detailHtml = changeDetail.map(function(d) {
+                    var typeText = d.changeType == 'ADD' ? '新增' : (d.changeType == 'DELETE' ? '删除' : '修改');
+                    var typeColor = d.changeType == 'ADD' ? '#16a34a' : (d.changeType == 'DELETE' ? '#dc2626' : '#d97706');
+                    return '<span style="color:' + typeColor + ';font-size:12px;">' + typeText + '</span> ' + esc(d.itemName) + ' ' +
+                        (d.changeType == 'DELETE' ? '' : '<span style="color:#dc2626;text-decoration:line-through;">' + fmt(d.oldAmount) + '</span> <i class="bi bi-arrow-right" style="color:#9ca3af;"></i> <span style="color:#16a34a;">' + fmt(d.newAmount) + '</span>');
+                }).join('<br>');
+                
+                return '<div style="padding:12px;border:1px solid #e5e7eb;border-radius:6px;margin-bottom:8px;background:#f8f9fa;">' +
+                    '<div style="font-weight:600;color:#374151;margin-bottom:8px;">' + esc(log.employeeName) + '</div>' +
+                    '<div style="font-size:13px;margin-bottom:8px;">' + detailHtml + '</div>' +
+                    '<div style="font-size:12px;color:#6b7280;"><i class="bi bi-chat-text me-1"></i>变更原因：' + esc(log.changeReason || '-') + '</div>' +
+                    '</div>';
+            }).join('');
+            allChangesHtml += '</div>';
+        }
+        
+        var totalCount = pendingChanges.length + pendingFeeChanges.length;
+        
+        var content = '<div style="padding:16px;">' +
+            '<div style="background:#fef3c7;border:1px solid #f59e0b;border-radius:8px;padding:12px;margin-bottom:16px;">' +
+            '<i class="bi bi-info-circle-fill" style="color:#d97706;"></i> ' +
+            '<strong>检测到 ' + totalCount + ' 条变更待审批</strong>' +
+            '</div>' +
+            '<div style="max-height:400px;overflow-y:auto;">' + allChangesHtml + '</div>' +
+            '</div>';
+        
+        showModal({
+            title: '批量审批变更',
+            content: content,
+            size: 'lg',
+            buttons: [
+                { text: '取消', class: 'btn btn-secondary' },
+                { 
+                    text: '全部通过', 
+                    class: 'btn btn-success',
+                    onclick: function() {
+                        batchApproveAllChanges(monthRemark);
+                        closeModal();
+                    }
+                },
+                { 
+                    text: '全部驳回', 
+                    class: 'btn btn-danger',
+                    onclick: function() {
+                        batchRejectAllChanges(monthRemark);
+                        closeModal();
+                    }
+                }
+            ]
+        });
+    }
+    
+    // 批量通过所有变更（考勤工资+费用项）
+    function batchApproveAllChanges(monthRemark) {
+        Promise.all([
+            // 审批考勤工资变更
+            fetch('/salary/api/batch-approve-changes?projectId=' + projectId + '&salaryPeriod=' + salaryPeriod + '&remark=' + encodeURIComponent(monthRemark), {
+                method: 'POST'
+            }),
+            // 审批费用项变更
+            fetch('/salary/api/batch-approve-fee-changes?projectId=' + projectId + '&salaryPeriod=' + salaryPeriod + '&remark=' + encodeURIComponent(monthRemark), {
+                method: 'POST'
+            })
+        ])
+        .then(function() {
+            // 所有变更审批通过后，继续审批月份
+            executeApprove(true, monthRemark);
+        })
+        .catch(function(e) {
+            console.error('批量审批失败', e);
+            alert('审批失败，请稍后重试');
+        });
+    }
+    
+    // 批量驳回所有变更（考勤工资+费用项）
+    function batchRejectAllChanges(monthRemark) {
+        Promise.all([
+            // 获取并驳回考勤工资变更
+            fetch('/salary/api/change-logs?projectId=' + projectId + '&salaryPeriod=' + salaryPeriod)
+                .then(r => r.json())
+                .then(function(data) {
+                    var pendingLogs = (data.logs || []).filter(function(l) { return l.status === 0; });
+                    var rejectPromises = pendingLogs.map(function(log) {
+                        return fetch('/salary/api/reject-change?changeLogId=' + log.id + '&remark=' + encodeURIComponent('月份审批被驳回'), {
+                            method: 'POST'
+                        });
+                    });
+                    return Promise.all(rejectPromises);
+                }),
+            // 获取并驳回费用项变更
+            fetch('/salary/api/fee-change-logs-by-period?projectId=' + projectId + '&salaryPeriod=' + salaryPeriod)
+                .then(r => r.json())
+                .then(function(data) {
+                    var pendingLogs = (data.logs || []).filter(function(l) { return l.status === 0; });
+                    var rejectPromises = pendingLogs.map(function(log) {
+                        return fetch('/salary/api/reject-fee-change?changeLogId=' + log.id + '&remark=' + encodeURIComponent('月份审批被驳回'), {
+                            method: 'POST'
+                        });
+                    });
+                    return Promise.all(rejectPromises);
+                })
+        ])
+        .then(function() {
+            // 所有变更驳回后，继续驳回月份
+            executeApprove(false, monthRemark);
+        })
+        .catch(function(e) {
+            console.error('批量驳回失败', e);
+            alert('驳回失败，请稍后重试');
+        });
+    }
+    
+    // 执行月份审批
+    function executeApprove(approved, remark) {
+        // 如果审批通过，先批量审批费用项变更
+        if (approved) {
+            fetch('/salary/api/batch-approve-fee-changes?projectId=' + projectId + '&salaryPeriod=' + salaryPeriod + '&remark=' + encodeURIComponent(remark), {method:'POST'})
+            .then(function(r) { return r.json(); })
+            .then(function(feeRes) {
+                if (feeRes.success) {
+                    // 费用项变更应用成功，继续更新月份状态
+                    return fetch('/salary/month/approve?projectId=' + projectId + '&salaryPeriod=' + salaryPeriod + '&approved=' + approved + '&remark=' + encodeURIComponent(remark), {method:'POST'});
+                } else {
+                    throw new Error(feeRes.message || '费用项变更审批失败');
+                }
+            })
             .then(function(r) { return r.text(); })
             .then(function(res) {
                 if (res === 'success') {
                     loadSalarySlips();
-                    refreshPendingBadge(); // 立即刷新菜单徽章
+                    refreshPendingBadge();
+                    loadSalaryPendingHint();
                 } else {
                     alert('审批失败：' + res);
                 }
+            })
+            .catch(function(e) {
+                console.error('审批失败:', e);
+                alert('审批失败：' + e.message);
             });
+        } else {
+            // 审批驳回，直接更新月份状态（驳回时会删除变更日志）
+            fetch('/salary/month/approve?projectId=' + projectId + '&salaryPeriod=' + salaryPeriod + '&approved=' + approved + '&remark=' + encodeURIComponent(remark), {method:'POST'})
+            .then(function(r) { return r.text(); })
+            .then(function(res) {
+                if (res === 'success') {
+                    loadSalarySlips();
+                    refreshPendingBadge();
+                    loadSalaryPendingHint();
+                } else {
+                    alert('审批失败：' + res);
+                }
+            })
+            .catch(function(e) {
+                console.error('审批失败:', e);
+                alert('审批失败，请重试');
+            });
+        }
     }
     
     // 刷新菜单待审批徽章
@@ -850,6 +3730,163 @@
         }
     }
     
+    // ============ 待审批变更列表功能 ============
+    
+    // 显示待审批变更列表（审批人查看）
+    function showPendingChanges() {
+        fetch('/salary/api/change-logs?projectId=' + projectId + '&salaryPeriod=' + salaryPeriod)
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                var logs = data.logs || [];
+                
+                if (logs.length === 0) {
+                    document.getElementById('pendingChangesContent').innerHTML = 
+                        '<div class="text-center text-muted py-5"><i class="bi bi-inbox fs-2"></i><p class="mt-2">暂无待审批的变更</p></div>';
+                } else {
+                    document.getElementById('pendingChangesContent').innerHTML = renderPendingChanges(logs);
+                }
+                
+                new bootstrap.Modal(document.getElementById('pendingChangesModal')).show();
+            });
+    }
+    
+    // 渲染待审批变更列表
+    function renderPendingChanges(logs) {
+        // 按员工分组
+        var byEmployee = {};
+        logs.forEach(function(log) {
+            if (!byEmployee[log.employeeId]) {
+                byEmployee[log.employeeId] = {
+                    employeeName: log.employeeName,
+                    logs: []
+                };
+            }
+            byEmployee[log.employeeId].logs.push(log);
+        });
+        
+        var html = '<div style="padding:8px;">';
+        
+        for (var empId in byEmployee) {
+            var emp = byEmployee[empId];
+            html += '<div style="margin-bottom:20px;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;">' +
+                '<div style="background:#f3f4f6;padding:12px 16px;font-weight:600;color:#374151;">' +
+                '<i class="bi bi-person me-2"></i>' + esc(emp.employeeName) +
+                '</div>' +
+                '<div style="padding:16px;">';
+            
+            emp.logs.forEach(function(log) {
+                html += renderSingleChange(log);
+            });
+            
+            html += '</div></div>';
+        }
+        
+        html += '</div>';
+        return html;
+    }
+    
+    // 渲染单条变更
+    function renderSingleChange(log) {
+        var html = '<div style="padding:12px;border:1px solid #e5e7eb;border-radius:6px;margin-bottom:12px;background:#f8f9fa;">';
+        
+        // 头部：变更类型和时间
+        html += '<div style="display:flex;justify-content:space-between;margin-bottom:8px;">' +
+            '<span style="font-size:12px;">';
+        
+        html += '<span class="badge bg-info">费用项变更</span>';
+        
+        html += '</span>' +
+            '<span style="color:#6b7280;font-size:12px;">' + (log.createdTime || '-') + '</span>' +
+            '</div>';
+        
+        // 变更详情
+        if (log.feeItemsChangeDetail) {
+            // 费用项变更详情
+            var changes = [];
+            try {
+                changes = JSON.parse(log.feeItemsChangeDetail);
+            } catch(e) {}
+            
+            html += '<div style="margin-bottom:8px;">';
+            changes.forEach(function(c) {
+                var typeText = c.changeType == 'ADD' ? '新增' : (c.changeType == 'DELETE' ? '删除' : '修改');
+                var typeColor = c.changeType == 'ADD' ? '#16a34a' : (c.changeType == 'DELETE' ? '#dc2626' : '#d97706');
+                
+                html += '<div style="font-size:13px;margin-bottom:4px;">' +
+                    '<span style="color:' + typeColor + ';font-weight:600;">' + typeText + '</span> ' +
+                    esc(c.itemName);
+                
+                if (c.changeType == 'EDIT') {
+                    html += ' <span style="color:#dc2626;text-decoration:line-through;">' + fmt(c.oldAmount) + '</span>' +
+                        ' <i class="bi bi-arrow-right" style="color:#9ca3af;"></i> ' +
+                        '<span style="color:#16a34a;">' + fmt(c.newAmount) + '</span>';
+                } else if (c.changeType == 'ADD') {
+                    html += ' <span style="color:#16a34a;">+' + fmt(c.newAmount) + '</span>';
+                } else if (c.changeType == 'DELETE') {
+                    html += ' <span style="color:#dc2626;">-' + fmt(c.oldAmount) + '</span>';
+                }
+                
+                html += '</div>';
+            });
+            html += '</div>';
+            
+            // 汇总变化
+            html += '<div style="display:flex;gap:16px;font-size:12px;color:#6b7280;border-top:1px dashed #d1d5db;padding-top:8px;margin-top:8px;">' +
+                '<span>费用加：' + fmt(log.oldAdditionAmount) + ' → <strong style="color:#374151;">' + fmt(log.newAdditionAmount) + '</strong></span>' +
+                '<span>费用减：' + fmt(log.oldDeductionAmount) + ' → <strong style="color:#374151;">' + fmt(log.newDeductionAmount) + '</strong></span>' +
+                '<span>应付：' + fmt(log.oldPayableAmount) + ' → <strong style="color:#374151;">' + fmt(log.newPayableAmount) + '</strong></span>' +
+                '</div>';
+        }
+        
+        // 变更原因
+        if (log.changeReason) {
+            html += '<div style="font-size:12px;color:#6b7280;margin-top:8px;"><i class="bi bi-chat-text me-1"></i>' + esc(log.changeReason) + '</div>';
+        }
+        
+        // 操作人
+        html += '<div style="font-size:12px;color:#9ca3af;margin-top:8px;text-align:right;">提交人：' + esc(log.createdByName || '-') + '</div>';
+        
+        html += '</div>';
+        return html;
+    }
+    
+    // 批量通过变更
+    function batchApproveChanges() {
+        if (!confirm('确定要批量通过所有待审批的变更吗？')) return;
+        
+        fetch('/salary/api/batch-approve-changes?projectId=' + projectId + '&salaryPeriod=' + salaryPeriod, {
+            method: 'POST'
+        }).then(function(r) { return r.json(); })
+        .then(function(res) {
+            if (res.success) {
+                bootstrap.Modal.getInstance(document.getElementById('pendingChangesModal')).hide();
+                loadSalarySlips();
+                alert('批量审批通过成功');
+            } else {
+                alert('审批失败：' + (res.message || '未知错误'));
+            }
+        });
+    }
+    
+    // 批量驳回变更
+    function batchRejectChanges() {
+        var remark = prompt('请输入驳回原因（可选）：');
+        if (remark === null) return; // 用户取消
+        
+        fetch('/salary/api/batch-reject-changes?projectId=' + projectId + '&salaryPeriod=' + salaryPeriod + '&remark=' + encodeURIComponent(remark), {
+            method: 'POST'
+        }).then(function(r) { return r.json(); })
+        .then(function(res) {
+            if (res.success) {
+                bootstrap.Modal.getInstance(document.getElementById('pendingChangesModal')).hide();
+                loadSalarySlips();
+                alert('批量驳回成功');
+            } else {
+                alert('驳回失败：' + (res.message || '未知错误'));
+            }
+        });
+    }
+    
     // 提交审批 - 打开确认 Modal
     function submitMonth() {
         new bootstrap.Modal(document.getElementById('submitModal')).show();
@@ -866,6 +3903,8 @@
         .then(function(res) {
             if (res === 'success') {
                 loadSalarySlips();
+                refreshPendingBadge(); // 刷新菜单待审批徽章
+                loadSalaryPendingHint(); // 刷新顶部待审批提示
             } else {
                 alert('提交失败：' + res);
             }
@@ -879,6 +3918,65 @@
     function esc(s) {
         if (!s) return '';
         return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+    
+    // 【已移除】重新计算和差异对比功能
+    // 工资条重新计算功能已去除，考勤数据变化不再触发重新计算流程
+    
+    // 通用弹窗函数
+    var currentModal = null;
+    function showModal(options) {
+        // 移除已存在的弹窗
+        var existing = document.getElementById('dynamicModal');
+        if (existing) existing.remove();
+        
+        var buttonsHtml = '';
+        if (options.buttons) {
+            buttonsHtml = options.buttons.map(function(btn, idx) {
+                if (btn.onclick) {
+                    return '<button type="button" class="' + btn.class + '" onclick="modalBtnClick(' + idx + ')">' + btn.text + '</button>';
+                } else {
+                    return '<button type="button" class="' + btn.class + '" data-bs-dismiss="modal">' + btn.text + '</button>';
+                }
+            }).join('');
+        }
+        
+        var sizeClass = options.size === 'lg' ? 'modal-lg' : (options.size === 'sm' ? 'modal-sm' : '');
+        
+        var html = '<div class="modal fade" id="dynamicModal" tabindex="-1">' +
+            '<div class="modal-dialog ' + sizeClass + '">' +
+            '<div class="modal-content">' +
+            '<div class="modal-header">' +
+            '<h5 class="modal-title">' + esc(options.title) + '</h5>' +
+            '<button type="button" class="btn-close" data-bs-dismiss="modal"></button>' +
+            '</div>' +
+            '<div class="modal-body">' + options.content + '</div>' +
+            '<div class="modal-footer">' + buttonsHtml + '</div>' +
+            '</div></div></div>';
+        
+        document.body.insertAdjacentHTML('beforeend', html);
+        
+        currentModal = {
+            el: document.getElementById('dynamicModal'),
+            buttons: options.buttons || [],
+            bsModal: null
+        };
+        
+        currentModal.bsModal = new bootstrap.Modal(currentModal.el);
+        currentModal.bsModal.show();
+    }
+    
+    function modalBtnClick(idx) {
+        var btn = currentModal.buttons[idx];
+        if (btn && btn.onclick) {
+            btn.onclick();
+        }
+    }
+    
+    function closeModal() {
+        if (currentModal && currentModal.bsModal) {
+            currentModal.bsModal.hide();
+        }
     }
 </script>
 </div>

@@ -7,6 +7,8 @@
         <result column="name" property="name"/>
         <result column="role_id" property="roleId"/>
         <result column="phone" property="phone"/>
+        <result column="id_card" property="idCard"/>
+        <result column="native_address" property="nativeAddress"/>
         <result column="job_category_id" property="jobCategoryId"/>
         <result column="salary_amount" property="salaryAmount"/>
         <result column="salary_type" property="salaryType"/>
@@ -63,6 +65,16 @@
         ORDER BY e.create_time DESC
     </select>
 
+    <select id="findExcludeRoot" resultMap="BaseResultMap">
+        SELECT e.*, r.role_name as role_name, r.role_code as role_code,
+               jc.name as job_category_name
+        FROM tb_employee e
+        LEFT JOIN tb_role r ON e.role_id = r.id
+        LEFT JOIN tb_job_category jc ON e.job_category_id = jc.id
+        WHERE r.role_code != 'root' OR r.role_code IS NULL
+        ORDER BY e.create_time DESC
+    </select>
+
     <select id="findByRoleCode" resultMap="BaseResultMap">
         SELECT e.*, r.role_name as role_name, r.role_code as role_code,
                jc.name as job_category_name
@@ -107,9 +119,9 @@
     </select>
 
     <insert id="insert" useGeneratedKeys="true" keyProperty="id">
-        INSERT INTO tb_employee (name, role_id, phone, job_category_id, salary_amount, salary_type, 
+        INSERT INTO tb_employee (name, role_id, phone, id_card, native_address, job_category_id, salary_amount, salary_type, 
                                  password, status)
-        VALUES (#{name}, #{roleId}, #{phone}, #{jobCategoryId}, #{salaryAmount}, #{salaryType}, 
+        VALUES (#{name}, #{roleId}, #{phone}, #{idCard}, #{nativeAddress}, #{jobCategoryId}, #{salaryAmount}, #{salaryType}, 
                 #{password}, #{status})
     </insert>
 
@@ -118,6 +130,8 @@
         SET name = #{name},
             role_id = #{roleId},
             phone = #{phone},
+            id_card = #{idCard},
+            native_address = #{nativeAddress},
             job_category_id = #{jobCategoryId},
             salary_amount = #{salaryAmount},
             salary_type = #{salaryType},

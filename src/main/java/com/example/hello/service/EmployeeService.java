@@ -57,6 +57,17 @@ public class EmployeeService {
         }
         return employees;
     }
+
+    public List<Employee> findExcludeRoot() {
+        List<Employee> employees = employeeMapper.findExcludeRoot();
+        for (Employee emp : employees) {
+            List<String> projectNames = employeeMapper.findProjectNamesByEmployeeId(emp.getId());
+            if (projectNames != null && !projectNames.isEmpty()) {
+                emp.setProjectNames(String.join(", ", projectNames));
+            }
+        }
+        return employees;
+    }
     
     public List<Employee> findByProjectId(Long projectId) {
         List<Employee> employees = employeeMapper.findByProjectId(projectId);

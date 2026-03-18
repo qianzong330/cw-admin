@@ -10,5 +10,5 @@ git pull origin main
 # 打包
 mvn clean package -DskipTests
 
-# 启动
-java -jar target/accounting-0.0.1-SNAPSHOT.jar --spring.profiles.active=prod
+# 启动（设置时区为上海）
+java -Duser.timezone=Asia/Shanghai -jar target/accounting-0.0.1-SNAPSHOT.jar --spring.profiles.active=prod

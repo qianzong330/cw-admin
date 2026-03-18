@@ -24,6 +24,8 @@ public class DatabaseInitializer implements CommandLineRunner {
         ensureSalaryTableColumns();
         createFeeItemTable();
         ensureAccountTableColumns();
+        createEmployeeProjectFlowTable();
+        createProjectEmployeeSalaryTable();
     }
 
     /**
@@ -261,6 +263,33 @@ public class DatabaseInitializer implements CommandLineRunner {
                 jdbcTemplate.execute("ALTER TABLE tb_work_hour_config ADD COLUMN approve_remark VARCHAR(500) COMMENT '审批备注' AFTER approved_time");
                 System.out.println("tb_work_hour_config 表添加 approve_remark 字段成功");
             }
+            
+            // 检查并添加 project_id 字段
+            Integer projectIdCount = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'tb_work_hour_config' AND column_name = 'project_id'",
+                Integer.class
+            );
+            
+            if (projectIdCount != null && projectIdCount == 0) {
+                jdbcTemplate.execute("ALTER TABLE tb_work_hour_config ADD COLUMN project_id BIGINT COMMENT '项目ID' AFTER id");
+                jdbcTemplate.execute("CREATE INDEX idx_project_id ON tb_work_hour_config(project_id)");
+                jdbcTemplate.execute("CREATE UNIQUE INDEX idx_project_calc_type ON tb_work_hour_config(project_id, calc_type)");
+                System.out.println("tb_work_hour_config 表添加 project_id 字段成功");
+            }
+            
+            // 删除 is_default 字段（如果存在）
+            try {
+                Integer isDefaultCount = jdbcTemplate.queryForObject(
+                    "SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'tb_work_hour_config' AND column_name = 'is_default'",
+                    Integer.class
+                );
+                if (isDefaultCount != null && isDefaultCount > 0) {
+                    jdbcTemplate.execute("ALTER TABLE tb_work_hour_config DROP COLUMN is_default");
+                    System.out.println("tb_work_hour_config 表删除 is_default 字段成功");
+                }
+            } catch (Exception e) {
+                // 忽略删除错误
+            }
         } catch (Exception e) {
             System.err.println("添加审批字段失败: " + e.getMessage());
         }
@@ -496,6 +525,61 @@ public class DatabaseInitializer implements CommandLineRunner {
             System.out.println("=== tb_account 表字段检查完成 ===");
         } catch (Exception e) {
             System.err.println("ensureAccountTableColumns 失败: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * 创建员工项目流动记录表
+     */
+    private void createEmployeeProjectFlowTable() {
+        try {
+            jdbcTemplate.execute(
+                "CREATE TABLE IF NOT EXISTS tb_employee_project_flow (" +
+                "  id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '主键ID'," +
+                "  employee_id BIGINT NOT NULL COMMENT '员工ID'," +
+                "  project_id BIGINT NOT NULL COMMENT '项目ID'," +
+                "  employee_name VARCHAR(50) COMMENT '员工姓名（冗余存储）'," +
+                "  job_category_name VARCHAR(50) COMMENT '工种名称（冗余存储）'," +
+                "  operation_type TINYINT NOT NULL COMMENT '操作类型：1-加入，2-移除'," +
+                "  operation_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '操作时间'," +
+                "  operator_id BIGINT COMMENT '操作人ID'," +
+                "  operator_name VARCHAR(50) COMMENT '操作人姓名'," +
+                "  remark VARCHAR(200) COMMENT '备注'," +
+                "  create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '记录创建时间'," +
+                "  INDEX idx_project_id (project_id)," +
+                "  INDEX idx_employee_id (employee_id)," +
+                "  INDEX idx_operation_time (operation_time)" +
+                ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='员工项目流动记录表'"
+            );
+            System.out.println("tb_employee_project_flow 表已创建或已存在");
+        } catch (Exception e) {
+            System.err.println("createEmployeeProjectFlowTable 失败: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * 创建项目员工薪资历史表
+     */
+    private void createProjectEmployeeSalaryTable() {
+        try {
+            jdbcTemplate.execute(
+                "CREATE TABLE IF NOT EXISTS tb_project_employee_salary (" +
+                "  id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '主键ID'," +
+                "  project_id BIGINT NOT NULL COMMENT '项目ID'," +
+                "  employee_id BIGINT NOT NULL COMMENT '员工ID'," +
+                "  salary_amount DECIMAL(12,2) NOT NULL COMMENT '薪资金额'," +
+                "  salary_type TINYINT NOT NULL DEFAULT 1 COMMENT '1-日薪 2-月薪'," +
+                "  effective_date DATE NOT NULL COMMENT '生效日期'," +
+                "  created_by BIGINT COMMENT '操作人ID'," +
+                "  created_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间'," +
+                "  remark VARCHAR(200) COMMENT '变更原因'," +
+                "  UNIQUE KEY uk_proj_emp_date (project_id, employee_id, effective_date)," +
+                "  INDEX idx_proj_emp (project_id, employee_id)" +
+                ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='项目员工薪资历史表'"
+            );
+            System.out.println("tb_project_employee_salary 表已创建或已存在");
+        } catch (Exception e) {
+            System.err.println("createProjectEmployeeSalaryTable 失败: " + e.getMessage());
         }
     }
 }

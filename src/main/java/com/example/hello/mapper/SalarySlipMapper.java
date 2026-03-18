@@ -47,4 +47,25 @@ public interface SalarySlipMapper {
     SalarySlip selectByEmployeeAndPeriod(@Param("employeeId") Long employeeId,
                                          @Param("salaryPeriod") String salaryPeriod,
                                          @Param("projectId") Long projectId);
+
+    /**
+     * 统计某项目某年度的汇总工资条数据（仅统计已审批通过的月份）
+     */
+    java.util.Map<String, Object> sumYearTotal(@Param("projectId") Long projectId,
+                                               @Param("year") String year);
+
+    /**
+     * 按员工聘合统计年度工资条（仅统计已审批通过的月份）
+     */
+    java.util.List<java.util.Map<String, Object>> sumYearByEmployee(
+            @Param("projectId") Long projectId,
+            @Param("year") String year);
+
+    /**
+     * 查询某员工在某项目某年度已审批通过的工资条列表
+     */
+    java.util.List<SalarySlip> selectYearSlipsByEmployee(
+            @Param("projectId") Long projectId,
+            @Param("employeeId") Long employeeId,
+            @Param("year") String year);
 }

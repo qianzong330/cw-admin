@@ -11,6 +11,8 @@ public interface RoleMapper {
     Role findById(Long id);
     
     List<Role> findAll();
+
+    List<Role> findExcludeRoot();
     
     Role findByCode(String code);
 }

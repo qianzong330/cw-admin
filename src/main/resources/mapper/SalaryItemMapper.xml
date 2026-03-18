@@ -9,13 +9,14 @@
         <result column="item_name" property="itemName"/>
         <result column="amount" property="amount"/>
         <result column="remark" property="remark"/>
+        <result column="modifier" property="modifier"/>
         <result column="created_time" property="createdTime"/>
         <result column="updated_time" property="updatedTime"/>
     </resultMap>
 
     <insert id="insert" useGeneratedKeys="true" keyProperty="id">
-        INSERT INTO tb_salary_item (salary_slip_id, item_type, item_name, amount, remark)
-        VALUES (#{salarySlipId}, #{itemType}, #{itemName}, #{amount}, #{remark})
+        INSERT INTO tb_salary_item (salary_slip_id, item_type, item_name, amount, remark, created_time, updated_time)
+        VALUES (#{salarySlipId}, #{itemType}, #{itemName}, #{amount}, #{remark}, NOW(), NOW())
     </insert>
 
     <update id="update">
@@ -23,7 +24,8 @@
         SET item_type = #{itemType},
             item_name = #{itemName},
             amount = #{amount},
-            remark = #{remark}
+            remark = #{remark},
+            modifier = #{modifier}
         WHERE id = #{id}
     </update>
 
@@ -44,6 +46,13 @@
         WHERE salary_slip_id = #{salarySlipId}
         ORDER BY item_type ASC, id ASC
     </select>
+
+    <update id="updateAmount">
+        UPDATE tb_salary_item
+        SET amount = #{amount},
+            updated_time = NOW()
+        WHERE id = #{id}
+    </update>
 
     <select id="sumAdditionBySalarySlipId" resultType="java.math.BigDecimal">
         SELECT COALESCE(SUM(amount), 0)
