@@ -42,8 +42,16 @@ cat src/main/resources/application-prod.properties | grep -A2 "阿里云 OSS"
 
 echo ""
 echo "=== 代码更新完成 ==="
-echo "请继续执行编译部署命令："
-echo "  cd /opt/cw-admin"
-echo "  mvn clean package -DskipTests"
-echo "  cp target/accounting-0.0.1-SNAPSHOT.jar /opt/accounting/"
-echo "  docker restart accounting-app"
+echo "开始编译..."
+echo ""
+
+# 编译
+cd /opt/cw-admin
+mvn clean package -DskipTests
+
+# 复制jar包
+cp target/accounting-0.0.1-SNAPSHOT.jar /opt/accounting/
+
+echo ""
+echo "=== 编译完成 ==="
+echo "请去1Panel手动重启 accounting-app 容器"
