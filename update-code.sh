@@ -1,19 +1,17 @@
 #!/bin/bash
-# 强制拉取最新代码脚本
-# 版本：v1.1 - 添加Git提交信息验证
+# 强制拉取最新代码并编译部署脚本
 
 echo "=== 开始更新代码 ==="
 
-# 进入项目目录
-cd /opt/cw-admin
+# 进入目录
+cd /opt
 
-# 备份当前代码（可选）
+# 备份当前代码
 echo "备份当前代码..."
-cp -r /opt/cw-admin /opt/cw-admin-backup-$(date +%Y%m%d%H%M%S)
+cp -r /opt/cw-admin /opt/cw-admin-backup-$(date +%Y%m%d%H%M%S) 2>/dev/null || true
 
 # 下载最新代码
 echo "下载最新代码..."
-cd /opt
 rm -f cw-admin.zip
 wget https://github.com/qianzong330/cw-admin/archive/refs/heads/main.zip -O cw-admin.zip
 
@@ -28,16 +26,9 @@ rm -rf cw-admin
 mv cw-admin-main cw-admin
 
 # 验证
+echo ""
 echo "=== 验证代码版本 ==="
 cd /opt/cw-admin
-
-# 显示最后一次提交信息
-echo "最后一次提交："
-git log --oneline -1 2>/dev/null || echo "  通过ZIP下载，无Git提交记录"
-
-# 显示OSS配置验证
-echo ""
-echo "OSS配置验证："
 cat src/main/resources/application-prod.properties | grep -A2 "阿里云 OSS"
 
 echo ""
@@ -46,7 +37,6 @@ echo "开始编译..."
 echo ""
 
 # 编译
-cd /opt/cw-admin
 mvn clean package -DskipTests
 
 # 复制jar包
