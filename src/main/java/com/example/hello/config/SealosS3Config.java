@@ -41,7 +41,7 @@ public class SealosS3Config {
                 .region(Region.of(region))
                 .credentialsProvider(StaticCredentialsProvider.create(credentials))
                 .serviceConfiguration(S3Configuration.builder()
-                        .pathStyleAccessEnabled(true)  // 使用路径风格，兼容 Sealos
+                        .pathStyleAccessEnabled(false)  // 虚拟主机风格，兼容阿里云OSS
                         .build())
                 .build();
     }
